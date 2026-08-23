@@ -32,6 +32,12 @@
 \newcommand{\VPAVG}{(VPAVG)$_{30}$}
 \newcommand{\Ainv}{\text{\AA}$^{-1}$}
 
+% See the matching note in main.tex: data-derived figures are drawn at exactly
+% the ACS column widths and are therefore included at natural size, so the 8 pt
+% lettering in the file prints at 8 pt.  The photographic PNGs (S1, Video S1
+% still) are not on that grid and keep an explicit width.
+\newcommand{\acsfig}[1]{\makebox[\linewidth][c]{\includegraphics{#1}}}
+
 \begin{document}
 
 \begin{center}
@@ -201,7 +207,7 @@ GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
 \clearpage
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\linewidth]{FigureS3_Calibration.pdf}
+  \acsfig{FigureS3_Calibration.pdf}
   \caption{Transmission and photon-flux calibration for conversion to absolute scattering cross section. (a) Air-path transmission across seven measurements in the attenuation series; the line marks the mean, $0.8679\pm0.0009$ (standard deviation). (b) Photon flux measured with a calibrated PIN diode as a function of upstream ion-chamber readout; the line is the calibration fit.}
   \label{fig:S3}
 \end{figure}
@@ -209,7 +215,7 @@ GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
 \clearpage
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.98\linewidth]{FigureS4_Flux_Control.pdf}
+  \acsfig{FigureS4_Flux_Control.pdf}
   \caption{Flux-dependence control for SAXS and SA-XPCS. (a) SAXS profiles and (b) intensity autocorrelation functions from a \SI{20}{\milli\gram\per\milli\liter} \VPAVG{} sample at incident fluxes of $2.7\times10^{11}$--$4.9\times10^{11}$ photons s$^{-1}$. No systematic flux-dependent change is resolved over this range, which substantially exceeds the flux used in the main experiment.}
   \label{fig:S4}
 \end{figure}
@@ -217,7 +223,7 @@ GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
 \clearpage
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.84\linewidth]{FigureS5_Guinier.pdf}
+  \acsfig{FigureS5_Guinier.pdf}
   \caption{Guinier analysis of the Reference aliquot at \SI{10}{\degreeCelsius}. The fit over $q_{\mathrm{max}}R_g=1.246$ gives an apparent $R_g=22.65\pm0.50$~\AA{} and $I_0=1.725\pm0.023$.}
   \label{fig:S5}
 \end{figure}
@@ -225,7 +231,7 @@ GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
 \clearpage
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.90\linewidth]{FigureS6_SAXS_Evolution.pdf}
+  \acsfig{FigureS6_SAXS_Evolution.pdf}
   \caption{Complete isothermal SAXS evolution of \VPAVG{} at \SI{30}{\degreeCelsius}. The \SI{6}{\degreeCelsius} reference and profile at the start of the hold are followed by profiles from 1249 to 7863~s. The subset from 5039 to 7863~s corresponds to the SAXS and SA-XPCS data analyzed in Figure~3.}
   \label{fig:S6}
 \end{figure}
@@ -233,7 +239,7 @@ GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
 \clearpage
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.93\linewidth]{FigureS7_Fit_Parameters.pdf}
+  \acsfig{FigureS7_Fit_Parameters.pdf}
   \caption{Additional parameters from global two-mode fits. (a) Stretching exponents shared across the five $q$ bins at each elapsed time. (b) Effective fast relaxation time versus $q$. (c) Effective slow relaxation time versus $q$. Dashed lines in panels (b,c) are power-law fits $\tau\propto q^{\gamma}$. (d) Fitted scaling exponents $\gamma_{\mathrm{fast}}$ and $\gamma_{\mathrm{slow}}$. The final fast-mode exponent is poorly constrained because $f$ approaches zero, and the slow-mode quantities are extrapolations beyond the \SI{2}{\second} window. Error bars are fit uncertainties.}
   \label{fig:S7}
 \end{figure}
@@ -241,7 +247,7 @@ GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
 \clearpage
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\linewidth]{FigureS8_g2_Grid.pdf}
+  \acsfig{FigureS8_g2_Grid.pdf}
   \caption{Correlation functions and global two-mode fits at the four additional $q$ values. Panels show $q=0.00489$, 0.00602, 0.00714, and 0.00827~\Ainv. Colors denote elapsed times used in Figure~3; solid curves are global fits with shared stretching exponents at each elapsed time.}
   \label{fig:S8}
 \end{figure}

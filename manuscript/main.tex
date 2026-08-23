@@ -16,6 +16,15 @@
 \newcommand{\VPAVG}{(VPAVG)$_{30}$}
 \newcommand{\Ainv}{\text{\AA}$^{-1}$}
 
+% Data-derived figures are drawn at exactly the ACS column widths (3.33 in
+% single, 7.0 in double), so they are included at NATURAL SIZE -- no width=
+% scaling -- and the 8 pt lettering in the file is 8 pt on the page.  A
+% double-column figure is wider than this class's 6.52 in text block, so
+% \makebox lets it overhang symmetrically into the margins instead of being
+% shrunk.  Setup.pdf is the approved original artwork and is not on that grid,
+% so it keeps width=\linewidth.
+\newcommand{\acsfig}[1]{\makebox[\linewidth][c]{\includegraphics{#1}}}
+
 \title{Reversible $\beta$-Sheet-like Ordering and XPCS-Resolved Dynamic Arrest during Elastin-like Polypeptide Phase Separation}
 
 \author{Doga Ozgulbas}
@@ -85,7 +94,7 @@ Figure~2 establishes the low- and high-temperature structures and their reversib
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.94\linewidth]{Figure2_SAXS_WAXS.pdf}
+  \acsfig{Figure2_SAXS_WAXS.pdf}
   \caption{Temperature-dependent structure and reversibility of \VPAVG. At \SI{10}{\degreeCelsius}, the Measurement and Reference profiles overlap and the Reference data give an apparent $R_g=22.65\pm0.50$~\AA{} (Figure~S5). Heating produces an approximate $q^{-3.2}$ low-$q$ response and peaks at $q=1.38$ and $0.72$~\Ainv, corresponding to real-space spacings of approximately 4.5 and 8.8~\AA, respectively. The recovery and reproducible re-formation of these signatures demonstrate a thermally reversible structural transition within experimental sensitivity.}
   \label{fig:static}
 \end{figure}
@@ -115,7 +124,7 @@ The fitted fast fraction decreases monotonically at every measured $q$, from $f=
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.98\linewidth]{Figure3_Isothermal_SAXPCS.pdf}
+  \acsfig{Figure3_Isothermal_SAXPCS.pdf}
   \caption{Isothermal structure evolution and dynamic arrest of \VPAVG{} at \SI{30}{\degreeCelsius}. (a) Buffer-subtracted SAXS profiles show continued growth of low-$q$ density contrast. (b) Representative $g_2(q,\Delta t)$ at $q=0.00376$~\Ainv; solid lines are global two-mode fits. With elapsed time, the amplitude of the first decay decreases and the persistent plateau rises. (c) The fitted fraction of fast dynamics, $f$, decreases at all five $q$ values; equivalently, the fitted slow fraction, $1-f$, increases. Error bars represent fit uncertainties.}
   \label{fig:xpcs}
 \end{figure}

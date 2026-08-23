@@ -17,7 +17,7 @@ repo goes from raw beamline files to the PDF figures used in the paper.
 - **`common/`** — code shared by more than one plotting script.
   - `utils.py`: parallel HDF reading, cross-correlation-based outlier removal,
     and averaging helpers for XPCS cluster-result files.
-  - `prl_style.py`: the shared PRL figure-formatting module (column widths,
+  - `acs_style.py`: the shared ACS figure-formatting module (column widths,
     fonts, line/marker sizes, panel-letter helper) used by every script below
     — see [Figure formatting](#figure-formatting).
 - **`SAXS_12id/`** — 12-ID-B SAXS/WAXS: Guinier analysis and the merged
@@ -117,9 +117,12 @@ conda env create -f environment.yml     # creates env-2021-LLDP
 conda activate env-2021-LLDP
 ```
 
-matplotlib is pinned to 3.9.4 because `bbox_inches='tight'` metrics shift by
-~0.01 in between minor releases, which changes the page size of every figure
-saved through `save_tight()`. `pyxpcsviewer` is *not* required — it is imported
+matplotlib is pinned to 3.9.4 for reproducible layout: `tight_layout` spacing
+metrics shift slightly between minor releases, which moves axes, keys, and
+annotations inside the frame. The page size itself no longer moves with the
+version — `save_fig()` writes at the exact figure size with no
+`bbox_inches='tight'` trimming — but the pin preserves the collision-free
+placements checked for this submission. `pyxpcsviewer` is *not* required — it is imported
 lazily inside `common/utils.py` helpers that read raw beamline files, which is
 not on the path from the reduced data in this repo to any figure.
 
@@ -128,15 +131,25 @@ single script from its own directory (`cd SAXPCS_8id && python saxpcs.py`).
 
 ## Figure formatting
 
-All figures follow the PRL/APS figure-preparation guidelines, centralized in
-`common/prl_style.py`:
+All figures follow the ACS "Preparing Graphics" guidelines (Appendix 2 of the
+Nano Letters author guide), centralized in `common/acs_style.py`:
 
-- Single-panel figures are single-column width (8.6 cm / 3.375 in); any
-  figure with more than one panel is double-column width (up to ~18 cm / 7.0
-  in).
-- Fonts, lines, and markers are set to the smallest sizes PRL allows: ~8 pt
-  text (≥2 mm capital-letter height after scaling), ≥0.5 pt (0.18 mm) line
-  weight, ≥3 pt (≈1 mm) marker size.
+- Single-panel figures are single-column width (exactly 3.33 in / 240 pt, the
+  ACS maximum); any figure with more than one panel is double-column width
+  (exactly 7.0 in / 504 pt, likewise the maximum). Depths are well inside the
+  9.167 in cap.
+- One typeface and one size everywhere: 8 pt Arial, for text and for mathtext,
+  against an ACS floor of 4.5 pt.
+- Nothing is drawn thinner than the 0.5 pt ACS floor: 0.5 pt spines, ticks,
+  grids and error bars; 0.6 pt marker edges; 1.0 pt data and fit curves.
+  Markers are 3.5 pt, or 4.5 pt where marker shape encodes a variable.
+- Series are separated by marker shape (or a colourbar) as well as colour, so
+  no information is carried by colour alone.
+- Fonts are embedded as TrueType (`pdf.fonttype = 42`), never Type 3.
+- `save_fig()` writes the PDF at exactly the figure size, with no
+  `bbox_inches='tight'` trimming, so the media box stays exactly one or two
+  columns wide and the manuscript can embed it unscaled — 8 pt drawn is 8 pt
+  printed.
 - Multi-panel figures are labeled (a), (b), (c)... via `label_panels()`.
 
 Regenerate a figure by running its script directly from its own directory,

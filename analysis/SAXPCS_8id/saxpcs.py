@@ -24,17 +24,20 @@ Colour encodes elapsed time and is CONSISTENT across all three panels (e.g. the
 7863 s dataset is the same red everywhere).  In the fit panel the marker SHAPE
 encodes the q bin.  B0146 is a 6 C reference taken before the 30 C isothermal
 run; its acquisition time is not a time origin, so it appears in the SAXS panel
-only.  Because colour means the same thing everywhere, the elapsed-time key is a
-SINGLE legend along the bottom of the figure rather than a box inside panel (a)
-(where it used to cover the I(Q) curves); only the marker-shape -> q key stays
-inside panel (c).
+only.  Because colour means the same thing everywhere, ONE elapsed-time key
+serves all three panels, and it therefore belongs to the figure rather than to
+any one panel: it is a single-row box along the bottom.  Keeping it out of the
+axes means no panel has to carry headroom for it, so all three y ranges sit
+close to their data.  The 6 C reference is NOT one of the elapsed times and
+appears in panel (a) only, so it is keyed separately in that panel's
+bottom-left corner, beside its own curve.  The marker-shape -> q key stays
+inside panel (c), flattened to three columns so it too costs little headroom.
 
-Figure geometry follows the journal figure-preparation guidelines: figures 1 and
-2 are both 2-column figures (2 x 3 3/8 in = 6.75 in = 17.1 cm) and every
-character is set at 9 pt, the smallest whole-point Times size whose capitals
-clear the required 2 mm.  See the PRL/APS FIGURE GEOMETRY block below for the
-arithmetic.  Axis limits are set a clear margin outside the data everywhere, so
-no point is drawn on top of a frame.
+Figure geometry follows the ACS figure-preparation guidelines through
+common/acs_style.py: both multi-panel figures are double-column (7.0 in = the
+504 pt ACS maximum) and every character is 8 pt Arial.  Axis limits are set a
+clear margin outside the data everywhere, so no point is drawn on top of a
+frame.
 
 Fit model and shared exponents
 ------------------------------
@@ -78,59 +81,24 @@ from matplotlib.ticker import (FixedLocator, FixedFormatter, NullFormatter,
 from scipy.optimize import least_squares
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from common.prl_style import DOUBLE_COL, SINGLE_COL, apply_style, add_minor_grid, label_panels, save_tight
+from common.acs_style import (DOUBLE_COL, MS, MS_SPARSE, MEW, LW_THIN, LW_DATA,
+                              apply_style, add_minor_grid, label_panels, save_fig)
 
 # --- PARAMETERS ---
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
-# --- PRL/APS FIGURE GEOMETRY (see the journal figure-preparation guidelines) ---
-# "Size to the width of a single manuscript column (8.5 cm or 3 3/8 in) or 1.5
-# or 2 columns for more detailed figures."  Figure 1 has three panels, so it is
-# a 2-column (double-column) figure: 2 x 3.375 in = 6.75 in = 17.1 cm.
-TWO_COL = 2 * SINGLE_COL             # in, double-column width
-FIG1_SIZE = (TWO_COL, 3.15)          # 3 panels side by side + a shared legend row
-FIG1_LEGEND_H = 0.085                # fraction of the height reserved, at the
-                                     # bottom, for that shared legend
-FIG2_SIZE = (TWO_COL, 4.1)           # 2x2 fit-parameter panels, also 2 columns
-#
-# "Make the height of the smallest capital letters and numerals at least 2 mm."
-# Times New Roman has capHeight/em = 1356/2048 = 0.6621, so a capital is
-#     h[mm] = size[pt] * 0.35278 mm/pt * 0.6621
-# and h >= 2 mm requires size >= 8.56 pt.  9 pt is therefore the smallest
-# whole-point font that complies (cap height 2.10 mm at 100 % reproduction);
-# the 8 pt used previously gives only 1.87 mm.
-MIN_FONT = 9
-#
-# "Make a curve's linewidth at least 0.18 mm (0.5 point)" and "make the diameter
-# of each data point at least 1 mm" (1 mm = 2.835 pt in matplotlib marker units).
-MIN_LW = 0.5                         # pt, 0.18 mm -- floor for every drawn line
-MIN_MEW = 0.6                        # pt, 0.21 mm -- open-marker edge width
-MS_SAXS = 3.5                        # pt, 1.23 mm -- dense I(Q) / g2 point clouds
-MS_FIT = 4.5                         # pt, 1.59 mm -- sparse fitted-parameter points
-LW_FIT = 1.4                         # pt, 0.49 mm -- model curves, drawn over the
-                                     # data they fit so they have to out-weigh a
-                                     # dense cloud of same-coloured markers
-
-
-def apply_prl_minimums():
-    """Raise the shared style to the printed minimums quoted above.
-
-    apply_style() sets the house style (Times, opaque legend boxes, ...); this
-    only lifts the sizes that the journal specifies as hard minimums, so the
-    numbers above are the single place where compliance is defined.
-    """
-    plt.rcParams.update({
-        'font.size': MIN_FONT, 'axes.labelsize': MIN_FONT, 'axes.titlesize': MIN_FONT,
-        'xtick.labelsize': MIN_FONT, 'ytick.labelsize': MIN_FONT,
-        'legend.fontsize': MIN_FONT, 'legend.title_fontsize': MIN_FONT,
-        'lines.linewidth': 0.75, 'lines.markersize': MS_SAXS,
-        'lines.markeredgewidth': MIN_MEW,
-        'axes.linewidth': MIN_LW,
-        'xtick.major.width': MIN_LW, 'ytick.major.width': MIN_LW,
-        'xtick.minor.width': MIN_LW, 'ytick.minor.width': MIN_LW,
-        'patch.linewidth': MIN_LW,
-    })
-
+# --- ACS FIGURE GEOMETRY (see common/acs_style.py) ---
+# Both of these have three or four panels, so both are double-column figures at
+# the 7.0 in (504 pt) ACS maximum.  Depths are far inside the 9.167 in cap.
+FIG1_SIZE = (DOUBLE_COL, 3.15)        # 3 panels + the shared key row beneath them
+FIG1_LEGEND_H = 0.075                # fraction of the height reserved at the
+                                     # bottom for that shared key
+FIG2_SIZE = (DOUBLE_COL, 4.2)        # 2x2 fit-parameter panels
+FIG3_SIZE = (DOUBLE_COL, 2.9)        # 2 calibration panels
+# Panel (a) carries no key of its own except the one-line 6 C reference in the
+# bottom-left corner, so its limits sit just clear of the data: a little over a
+# third of a decade below, half a decade above.
+SAXS_YLO_PAD, SAXS_YHI_PAD = 0.45, 3.0
 
 # --- DATASET SELECTION ---
 BACKGROUND_HEADER = 'D0138'          # buffer, subtracted as background in the SAXS panel
@@ -384,7 +352,6 @@ for fp in xpcs_files:
 
 # --- FIGURE ---
 apply_style()
-apply_prl_minimums()
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=FIG1_SIZE)
 label_panels((ax1, ax2, ax3))
 
@@ -402,7 +369,9 @@ if BACKGROUND_HEADER in by_header:
         coef_buf = abs_xsec_coef(hf)
     print(f'coef_buf ({BACKGROUND_HEADER}) = {coef_buf:.3e}')
 
-saxs_handles = []
+time_handles = []                         # the six elapsed times -> the 3x2 key
+ref_handles = []                          # the 6 C reference -> its own small key
+saxs_I_lo, saxs_I_hi = np.inf, 0.0        # data range, for the panel-(a) headroom
 for fp in by_header.get('B0146', []):                        # 6 C reference (distinct)
     with h5py.File(fp, 'r') as hf:
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
@@ -411,11 +380,12 @@ for fp in by_header.get('B0146', []):                        # 6 C reference (di
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
     I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
     pos = I > 0
-    ax1.plot(q[pos], I[pos], color=COLOR_6C, marker='s', ls='none', ms=MS_SAXS,
-             mfc='none', mew=MIN_MEW)
-    saxs_handles.append(Line2D([], [], color=COLOR_6C, marker='s', ls='none',
-                               mfc='none', mew=MIN_MEW, ms=MS_SAXS,
-                               label='6 $^\\circ$C ref'))
+    saxs_I_lo, saxs_I_hi = min(saxs_I_lo, I[pos].min()), max(saxs_I_hi, I[pos].max())
+    ax1.plot(q[pos], I[pos], color=COLOR_6C, marker='s', ls='none', ms=MS,
+             mfc='none', mew=MEW)
+    ref_handles.append(Line2D([], [], color=COLOR_6C, marker='s', ls='none',
+                              mfc='none', mew=MEW, ms=MS,
+                              label='6 °C ref'))
 
 for fp in saxs_files:                                        # first (0 s) + last N B0147
     with h5py.File(fp, 'r') as hf:
@@ -425,11 +395,12 @@ for fp in saxs_files:                                        # first (0 s) + las
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
     I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
     pos = I > 0
+    saxs_I_lo, saxs_I_hi = min(saxs_I_lo, I[pos].min()), max(saxs_I_hi, I[pos].max())
     color = ecolor(fp)
-    ax1.plot(q[pos], I[pos], color=color, marker='o', ls='none', ms=MS_SAXS,
-             mfc='none', mew=MIN_MEW)
-    saxs_handles.append(Line2D([], [], color=color, marker='o', ls='none',
-                               mfc='none', mew=MIN_MEW, ms=MS_SAXS,
+    ax1.plot(q[pos], I[pos], color=color, marker='o', ls='none', ms=MS,
+             mfc='none', mew=MEW)
+    time_handles.append(Line2D([], [], color=color, marker='o', ls='none',
+                               mfc='none', mew=MEW, ms=MS,
                                label=f'{elapsed(fp):.0f} s'))
 
 ax1.set_xscale('log')
@@ -439,7 +410,7 @@ ax1.set_ylabel(r'$I(Q)$ (cm$^{-1}$)')
 add_minor_grid(ax1)
 # Q spans only ~1 decade (0.0033-0.034), so the automatic log locator labels a
 # single tick (10^-2).  Label three well-separated decimal positions instead --
-# far enough apart that the labels cannot touch at 9 pt.  The limits sit well
+# far enough apart that the labels cannot touch at 8 pt.  The limits sit well
 # outside the data so no point sits on the frame.
 ax1.set_xlim(2.6e-3, 4.4e-2)
 ax1.xaxis.set_major_locator(FixedLocator([4e-3, 1e-2, 3e-2]))
@@ -447,6 +418,15 @@ ax1.xaxis.set_major_formatter(FixedFormatter(['0.004', '0.01', '0.03']))
 ax1.xaxis.set_minor_locator(FixedLocator([3e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3,
                                           1.5e-2, 2e-2, 2.5e-2, 3.5e-2, 4e-2]))
 ax1.xaxis.set_minor_formatter(NullFormatter())
+
+# The elapsed-time key lives at the bottom of the FIGURE (below), so panel (a)
+# needs no headroom for it.  Only the one-line 6 C reference key sits inside,
+# in the bottom-left corner next to the curve it labels: that corner is empty
+# because I(Q) falls to the right.
+ax1.set_ylim(saxs_I_lo * SAXS_YLO_PAD, saxs_I_hi * SAXS_YHI_PAD)
+leg_r = ax1.legend(handles=ref_handles, loc='lower left', borderaxespad=0.3,
+                   handlelength=1.2, handletextpad=0.3)
+leg_r.get_frame().set_linewidth(LW_THIN)
 
 # ============================================================
 # PANEL 2: g2(tau) at target q, with fits
@@ -461,8 +441,8 @@ for fp in xpcs_files:
     # and below the fits in z, so the fit line reads as a line and not as one
     # more marker outline of the same colour.
     ax2.errorbar(tau[m], g2[m, target_q_idx], yerr=g2_err[m, target_q_idx], fmt='o',
-                 color=color, mfc='none', markersize=MS_SAXS, mew=MIN_LW,
-                 capsize=1.5, elinewidth=MIN_LW, capthick=MIN_LW,
+                 color=color, mfc='none', markersize=MS, mew=LW_THIN,
+                 capsize=1.5, elinewidth=LW_THIN, capthick=LW_THIN,
                  alpha=0.75, linestyle='none', zorder=2)
     r = fits[fp]
     if r is not None and target_q_idx in r['per_q'] and r['red_chi2'] < CHI2_MAX:
@@ -471,10 +451,10 @@ for fp in xpcs_files:
         t_fit = np.logspace(np.log10(tt.min()), np.log10(tt.max()), 200)
         g2_fit = double_exp(t_fit, pq['tau_fast'], pq['f'], pq['tau_slow'],
                             r['p1'], r['p2'])
-        # LW_FIT (1.4 pt) against 0.5 pt marker outlines is enough contrast on
+        # LW_DATA (1.4 pt) against 0.5 pt marker outlines is enough contrast on
         # its own -- deliberately NO white casing under the line, which would
         # blank out the very data points the fit is meant to be judged against.
-        ax2.plot(t_fit, g2_fit, color=color, lw=LW_FIT, solid_capstyle='round',
+        ax2.plot(t_fit, g2_fit, color=color, lw=LW_DATA, solid_capstyle='round',
                  zorder=3)
 
 ax2.set_xscale('log')
@@ -517,19 +497,19 @@ for q_idx, marker in zip(fit_q_indices, Q_MARKERS):
     xs = [r['elapsed'] for r in rows]
     ys = [r['f'] for r in rows]
     es = [r['f_err'] for r in rows]
-    ax3.plot(xs, ys, '-', color='0.75', lw=MIN_LW, zorder=1)        # per-q guide line
+    ax3.plot(xs, ys, '-', color='0.75', lw=LW_THIN, zorder=1)        # per-q guide line
     for x, y, e in zip(xs, ys, es):
         ax3.errorbar(x, y, yerr=e, marker=marker, color=time_color[x],
-                     markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
-                     elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
+                     markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
+                     elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
 
-# Headroom above the highest fitted point: f decreases with time, so the
-# upper-right corner is empty data-wise, but the 5039 s points sit high on the
-# left and the legend must clear them with margin.
+# Headroom above the highest fitted point, for the q key.  Three columns make
+# that key two rows deep instead of five, so 0.18 of the span is enough where a
+# single column needed 0.42 -- the data now fills most of the panel.
 _f_hi = max(r['f'] + r['f_err'] for r in fit_rows)
 _f_lo = min(r['f'] - r['f_err'] for r in fit_rows)
 _span = _f_hi - _f_lo
-ax3.set_ylim(_f_lo - 0.08 * _span, _f_hi + 0.42 * _span)
+ax3.set_ylim(_f_lo - 0.08 * _span, _f_hi + 0.18 * _span)
 # widen the elapsed-time axis so the first and last groups are not on the frame
 _t_lo = min(r['elapsed'] for r in fit_rows)
 _t_hi = max(r['elapsed'] for r in fit_rows)
@@ -538,40 +518,34 @@ ax3.set_xlim(_t_lo - _t_pad, _t_hi + _t_pad)
 
 # legend: marker shape -> q bin (open black markers).  The Q values are carried
 # by a legend TITLE with the 10^-3 factor pulled out, so each entry is a short
-# mantissa instead of '$Q = 0.00376 \AA^{-1}$' -- that keeps the box narrow
-# enough to sit in the empty upper-right corner without touching any point.
-q_handles = [Line2D([], [], marker=mk, ls='none', mfc='none', mec='k', mew=MIN_MEW,
-                    markersize=MS_FIT, label=f'{1e3 * q_val_of[qi]:.2f}')
+# mantissa instead of '$Q = 0.00376 \AA^{-1}$'.  Three columns keep the box
+# shallow, so it clears the descending 5039 s points on little headroom.
+q_handles = [Line2D([], [], marker=mk, ls='none', mfc='none', mec='k', mew=MEW,
+                    markersize=MS_SPARSE, label=f'{1e3 * q_val_of[qi]:.2f}')
              for qi, mk in zip(fit_q_indices, Q_MARKERS) if qi in q_val_of]
-leg3 = ax3.legend(handles=q_handles, loc='upper right', borderaxespad=0.3,
-                  title=r'$Q$ ($10^{-3}\ \AA^{-1}$)',
-                  handletextpad=0.4, labelspacing=0.2, borderpad=0.35)
-leg3.get_frame().set_linewidth(MIN_LW)
+leg3 = ax3.legend(handles=q_handles, loc='upper right', ncol=3,
+                  borderaxespad=0.3, title=r'$Q$ ($10^{-3}\ \AA^{-1}$)',
+                  handlelength=0.8, handletextpad=0.25, columnspacing=0.5,
+                  labelspacing=0.2, borderpad=0.3)
+leg3.get_frame().set_linewidth(LW_THIN)
 
 ax3.set_xlabel('Elapsed Time (s)')
 ax3.set_ylabel('Fast Fraction, $f$')
 add_minor_grid(ax3)
 
-# --- shared elapsed-time legend along the bottom of the figure ---
-# Colour means the same thing in all three panels, so one legend serves them
-# all.  Putting it outside the axes (rather than inside panel (a), where it used
-# to sit on top of the I(Q) curves) removes the legend/data collision entirely
-# and gives every panel its full plotting area back.
-fig.legend(handles=saxs_handles, loc='lower center', bbox_to_anchor=(0.5, 0.0),
-           ncol=len(saxs_handles), frameon=False, handletextpad=0.3,
-           columnspacing=1.0, borderaxespad=0.0)
+# --- shared elapsed-time key, one row along the bottom of the figure ---
+# Colour carries the same meaning in all three panels, so this key belongs to
+# the figure, not to any single panel.  Out here it costs no panel any y range.
+leg_fig = fig.legend(handles=time_handles, loc='lower center',
+                     bbox_to_anchor=(0.5, 0.0), ncol=len(time_handles),
+                     handlelength=1.2, handletextpad=0.4, columnspacing=1.2,
+                     borderaxespad=0.0, borderpad=0.35)
+leg_fig.get_frame().set_linewidth(LW_THIN)
 
-# reserve the bottom strip for that legend; w_pad keeps the y labels of panels
-# (b) and (c) clear of the neighbouring panel's tick labels.
-fig.tight_layout(pad=0.45, w_pad=1.6, rect=(0, FIG1_LEGEND_H, 1, 1))
-# NOTE: saved WITHOUT bbox_inches='tight' on purpose.  The media box must be
-# exactly TWO_COL wide so the journal reproduces the figure at 100 %; a trimmed
-# box would be scaled up at typesetting and the 9 pt / 2 mm sizing above would
-# no longer be the size that actually prints.
-fig.savefig('Figure3_Isothermal_SAXPCS.pdf', dpi=300)
-print(f'wrote Figure3_Isothermal_SAXPCS.pdf  ({FIG1_SIZE[0]:.3f} x {FIG1_SIZE[1]:.3f} in '
-      f'= {2.54 * FIG1_SIZE[0]:.1f} x {2.54 * FIG1_SIZE[1]:.1f} cm, '
-      f'{MIN_FONT} pt -> {MIN_FONT * 0.35278 * 0.6621:.2f} mm capitals)')
+# Reserve the bottom strip for that key; w_pad keeps the y labels of panels (b)
+# and (c) clear of the neighbouring panel's tick labels.
+fig.tight_layout(pad=0.4, w_pad=1.1, rect=(0, FIG1_LEGEND_H, 1, 1))
+save_fig(fig, 'Figure3_Isothermal_SAXPCS.pdf')
 
 # ============================================================
 # FIGURE 2 (2x2): (a) p1, p2 vs elapsed time;      (b) tau_fast vs Q
@@ -592,20 +566,20 @@ exp_rows = [{'elapsed': elapsed(fp), 'fp': fp,
             if fits[fp] is not None and fits[fp]['red_chi2'] < CHI2_MAX]
 exp_rows.sort(key=lambda r: r['elapsed'])
 xe = [r['elapsed'] for r in exp_rows]
-axp.plot(xe, [r['p1'] for r in exp_rows], '-', color='0.75', lw=MIN_LW, zorder=1)
-axp.plot(xe, [r['p2'] for r in exp_rows], '-', color='0.75', lw=MIN_LW, zorder=1)
+axp.plot(xe, [r['p1'] for r in exp_rows], '-', color='0.75', lw=LW_THIN, zorder=1)
+axp.plot(xe, [r['p2'] for r in exp_rows], '-', color='0.75', lw=LW_THIN, zorder=1)
 for r in exp_rows:                                   # p1 = circle, p2 = square
     axp.errorbar(r['elapsed'], r['p1'], yerr=r['p1_err'], marker='o', color=ecolor(r['fp']),
-                 markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
-                 elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
+                 markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
+                 elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
     axp.errorbar(r['elapsed'], r['p2'], yerr=r['p2_err'], marker='s', color=ecolor(r['fp']),
-                 markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
-                 elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
-axp.axhline(1.0, color='0.6', ls=':', lw=MIN_LW)          # simple-exponential reference
-p_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MIN_MEW,
-                    markersize=MS_FIT, label=r'$p_{\mathrm{fast}}$'),
-             Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MIN_MEW,
-                    markersize=MS_FIT, label=r'$p_{\mathrm{slow}}$')]
+                 markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
+                 elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
+axp.axhline(1.0, color='0.6', ls=':', lw=LW_THIN)          # simple-exponential reference
+p_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MEW,
+                    markersize=MS_SPARSE, label=r'$p_{\mathrm{fast}}$'),
+             Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MEW,
+                    markersize=MS_SPARSE, label=r'$p_{\mathrm{slow}}$')]
 axp.legend(handles=p_handles, loc='upper left')
 # headroom above BOTH the data and the p = 1 reference line, so the upper-left
 # legend box has clear space and does not sit on the dotted line
@@ -634,18 +608,18 @@ for fp in xpcs_files:
     color  = ecolor(fp)
     lbl    = f'{elapsed(fp):.0f} s'
     axf.errorbar(Q, tf, yerr=tf_err, marker='o', ls='none', color=color,
-                 markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
-                 elinewidth=MIN_LW, capthick=MIN_LW, label=lbl, zorder=2)
+                 markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
+                 elinewidth=LW_THIN, capthick=LW_THIN, label=lbl, zorder=2)
     axs.errorbar(Q, ts, yerr=ts_err, marker='s', ls='none', color=color,
-                 markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
-                 elinewidth=MIN_LW, capthick=MIN_LW, label=lbl, zorder=2)
+                 markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
+                 elinewidth=LW_THIN, capthick=LW_THIN, label=lbl, zorder=2)
 
     if len(Q) >= 3:
         gf, gf_err, gf_A = fit_powerlaw(Q, tf, tf_err)
         gs, gs_err, gs_A = fit_powerlaw(Q, ts, ts_err)
         Q_line = np.linspace(Q.min(), Q.max(), 50)
-        axf.plot(Q_line, gf_A * Q_line**gf, '--', color=color, lw=LW_FIT, zorder=1)
-        axs.plot(Q_line, gs_A * Q_line**gs, '--', color=color, lw=LW_FIT, zorder=1)
+        axf.plot(Q_line, gf_A * Q_line**gf, '--', color=color, lw=LW_DATA, zorder=1)
+        axs.plot(Q_line, gs_A * Q_line**gs, '--', color=color, lw=LW_DATA, zorder=1)
         gamma_rows.append({'elapsed': elapsed(fp), 'fp': fp,
                            'gamma_fast': gf, 'gamma_fast_err': gf_err,
                            'gamma_slow': gs, 'gamma_slow_err': gs_err})
@@ -673,19 +647,19 @@ axs.set_xlabel(r'$Q$ ($\times 10^{-3}\ \AA^{-1}$)')
 # --- (d) power-law scaling exponents gamma_fast, gamma_slow vs elapsed time ---
 gamma_rows.sort(key=lambda r: r['elapsed'])
 xg = [r['elapsed'] for r in gamma_rows]
-axg.plot(xg, [r['gamma_fast'] for r in gamma_rows], '-', color='0.75', lw=MIN_LW, zorder=1)
-axg.plot(xg, [r['gamma_slow'] for r in gamma_rows], '-', color='0.75', lw=MIN_LW, zorder=1)
+axg.plot(xg, [r['gamma_fast'] for r in gamma_rows], '-', color='0.75', lw=LW_THIN, zorder=1)
+axg.plot(xg, [r['gamma_slow'] for r in gamma_rows], '-', color='0.75', lw=LW_THIN, zorder=1)
 for r in gamma_rows:                                 # gamma_fast = circle, gamma_slow = square
     axg.errorbar(r['elapsed'], r['gamma_fast'], yerr=r['gamma_fast_err'], marker='o',
-                 color=ecolor(r['fp']), markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
-                 elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
+                 color=ecolor(r['fp']), markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
+                 elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
     axg.errorbar(r['elapsed'], r['gamma_slow'], yerr=r['gamma_slow_err'], marker='s',
-                 color=ecolor(r['fp']), markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
-                 elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
-g_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MIN_MEW,
-                    markersize=MS_FIT, label=r'$\gamma_{\mathrm{fast}}$'),
-             Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MIN_MEW,
-                    markersize=MS_FIT, label=r'$\gamma_{\mathrm{slow}}$')]
+                 color=ecolor(r['fp']), markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
+                 elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
+g_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MEW,
+                    markersize=MS_SPARSE, label=r'$\gamma_{\mathrm{fast}}$'),
+             Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MEW,
+                    markersize=MS_SPARSE, label=r'$\gamma_{\mathrm{slow}}$')]
 axg.legend(handles=g_handles, loc='lower left')
 axg.set_xlabel('Elapsed Time (s)')
 axg.set_ylabel(r'Scaling exponent ($\gamma$)')
@@ -704,11 +678,8 @@ for a in (axf, axs, axg):
     a.set_ymargin(0.11)
     a.autoscale_view()
 
-fig2.tight_layout(pad=0.45, w_pad=1.6, h_pad=0.8)
-# fixed media box, exactly TWO_COL wide -- see the note on figure 1
-fig2.savefig('FigureS7_Fit_Parameters.pdf', dpi=300)
-print(f'wrote FigureS7_Fit_Parameters.pdf  ({FIG2_SIZE[0]:.3f} x {FIG2_SIZE[1]:.3f} in '
-      f'= {2.54 * FIG2_SIZE[0]:.1f} x {2.54 * FIG2_SIZE[1]:.1f} cm)')
+fig2.tight_layout(pad=0.4, w_pad=1.4, h_pad=0.8)
+save_fig(fig2, 'FigureS7_Fit_Parameters.pdf')
 
 # ============================================================
 # FIGURE 3 (2 panels): ion-chamber -> photon calibration
@@ -717,30 +688,31 @@ print(f'wrote FigureS7_Fit_Parameters.pdf  ({FIG2_SIZE[0]:.3f} x {FIG2_SIZE[1]:.
 # This reproduces IC_pin4/IC_pind4_convert.ipynb inside this analysis; the same
 # CAL_A, CAL_B and AIR_TRANSMISSION feed abs_xsec_coef() (in abs_xsec.py).
 # ============================================================
-fig3, (axt, axc) = plt.subplots(1, 2, figsize=(DOUBLE_COL, 2.8))
+fig3, (axt, axc) = plt.subplots(1, 2, figsize=FIG3_SIZE)
 label_panels((axt, axc))
 
 # --- left: air transmission (mean +/- standard deviation reported in legend) ---
-axt.plot(np.arange(len(AIR_TRANS_SERIES)), AIR_TRANS_SERIES, 'ko:', ms=MS_SAXS, mew=MIN_LW, lw=MIN_LW)
-axt.axhline(AIR_TRANSMISSION, color='b', ls='-', lw=0.75,
-            label=f'mean = {AIR_TRANSMISSION:.4f} $\\pm$ {AIR_TRANS_STD:.4f}')
+axt.plot(np.arange(len(AIR_TRANS_SERIES)), AIR_TRANS_SERIES, 'ko:', ms=MS, mew=MEW, lw=LW_THIN)
+axt.axhline(AIR_TRANSMISSION, color='b', ls='-', lw=LW_DATA,
+            label=f'mean = {AIR_TRANSMISSION:.4f} ± {AIR_TRANS_STD:.4f}')
 axt.set_xlabel('Measurement #')
 axt.set_ylabel('Transmission of Air')
-axt.legend(loc='best')
+# bottom-left: the transmission falls to the right, so that corner is empty
+axt.legend(loc='lower left', borderaxespad=0.4)
 add_minor_grid(axt)
 
 # --- right: ion chamber -> photon linear calibration ---
 _up = CAL_UPIC[CAL_CROP:]
-axc.plot(_up, CAL_PHOTONS[CAL_CROP:], 'ko', ms=MS_SAXS, mew=MIN_LW, label='measured')
+axc.plot(_up, CAL_PHOTONS[CAL_CROP:], 'ko', ms=MS, mew=MEW, label='measured')
 _uline = np.linspace(_up.min(), _up.max(), 100)
-axc.plot(_uline, CAL_A * _uline + CAL_B, 'b-', lw=0.75,
-         label=f'fit: {CAL_A:.2e}$\\cdot$Up_IC {CAL_B:+.2e}')
+axc.plot(_uline, CAL_A * _uline + CAL_B, 'b-', lw=LW_DATA,
+         label=f'fit: {CAL_A:.2e}·Up_IC {CAL_B:+.2e}')
 axc.set_xlabel('Upstream Ion Chamber')
 axc.set_ylabel('Number of Photons')
 axc.legend(loc='upper left')
 add_minor_grid(axc)
 
-save_tight(fig3, 'FigureS3_Calibration.pdf')
-print('wrote FigureS3_Calibration.pdf')
+fig3.tight_layout(pad=0.4, w_pad=1.4)
+save_fig(fig3, 'FigureS3_Calibration.pdf')
 
 plt.show()

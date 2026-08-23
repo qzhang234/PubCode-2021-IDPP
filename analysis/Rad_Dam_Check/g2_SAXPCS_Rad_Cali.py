@@ -23,7 +23,8 @@ import h5py
 import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from common.prl_style import DOUBLE_COL, apply_style, add_minor_grid, label_panels, save_tight
+from common.acs_style import (DOUBLE_COL, MS, MEW, LW_THIN,
+                              apply_style, add_minor_grid, label_panels, save_fig)
 
 # --- PATHS (all local, relative to this script) ---
 here = os.path.dirname(os.path.abspath(__file__))
@@ -114,19 +115,24 @@ for key in ORDER:
 
 # --- FIGURE ---
 apply_style()
-fig, axs = plt.subplots(1, 2, figsize=(DOUBLE_COL - 0.15, 3.0))
+fig, axs = plt.subplots(1, 2, figsize=(DOUBLE_COL, 2.9))
 label_panels(axs)
+
+# marker shape as well as colour, so the four flux conditions stay separable
+# without colour (ACS: "avoid relying on color alone")
+MARKERS = {'a7': 'o', 'a9': 's', 'a11': '^', 'a14': 'D'}
 
 for key in ORDER:
     d = data[key]
     color = COLORS[key]
     label = fmt_flux(d['flux'])
     # left: SAXS I(q)
-    axs[0].plot(d['q_saxs'], d['saxs_1d'], marker='o', mfc='none', mec=color,
-                mew=0.5, ms=3, color=color, ls='none', label=label)
+    axs[0].plot(d['q_saxs'], d['saxs_1d'], marker=MARKERS[key], mfc='none', mec=color,
+                mew=MEW, ms=MS, color=color, ls='none', label=label)
     # right: g2 at the first q bin
-    axs[1].errorbar(d['t_g2'], d['g2'][:, 0], d['g2_err'][:, 0], marker='o',
-                    mfc='none', mec=color, mew=0.5, ms=3, capsize=1.5, elinewidth=0.6,
+    axs[1].errorbar(d['t_g2'], d['g2'][:, 0], d['g2_err'][:, 0], marker=MARKERS[key],
+                    mfc='none', mec=color, mew=MEW, ms=MS, capsize=1.5,
+                    elinewidth=LW_THIN, capthick=LW_THIN,
                     color=color, ls='none', label=label)
 
 axs[0].set_xlabel(r'$Q$ (nm$^{-1}$)')
@@ -134,15 +140,19 @@ axs[0].set_ylabel('Intensity (photon/pixel/frame)')
 axs[0].set_xscale('log')
 axs[0].set_yscale('log')
 add_minor_grid(axs[0])
-axs[0].legend(title='Flux on sample')
+# I(Q) falls from the top left, so open a decade of headroom for the key to
+# sit in rather than letting it cover the high-Q end of the curves
+_i_hi = max(d['saxs_1d'].max() for d in data.values())
+_i_lo = min(d['saxs_1d'][d['saxs_1d'] > 0].min() for d in data.values())
+axs[0].set_ylim(_i_lo * 0.6, _i_hi * 12)
+axs[0].legend(title='Flux on sample', loc='upper right')
 
 axs[1].set_xlabel('Delay Time (s)')
-axs[1].set_ylabel(r'g$_2$')
+axs[1].set_ylabel(r'$g_2$')
 axs[1].set_xscale('log')
 add_minor_grid(axs[1])
 axs[1].legend(title='Flux on sample')
 
-out_pdf = os.path.join(here, 'FigureS4_Flux_Control.pdf')
-save_tight(fig, out_pdf)
-print(f'\nwrote {out_pdf}')
+fig.tight_layout(pad=0.4, w_pad=1.4)
+save_fig(fig, os.path.join(here, 'FigureS4_Flux_Control.pdf'))
 plt.show()

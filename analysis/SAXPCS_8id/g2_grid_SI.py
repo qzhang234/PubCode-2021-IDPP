@@ -18,7 +18,15 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from common.prl_style import DOUBLE_COL, apply_style, add_minor_grid, label_panels, save_tight
+from common.acs_style import (DOUBLE_COL, MS, MEW, LW_THIN, LW_DATA,
+                              apply_style, add_minor_grid, label_panels, save_fig)
+from matplotlib.lines import Line2D
+
+FIG_SIZE = (DOUBLE_COL, 5.0)         # 2x2 panels + the shared key row beneath
+LEGEND_H = 0.05                      # height fraction reserved for that key
+G2_YLIM = (0.98, 1.20)               # 0.98 keeps error bars off the frame; the
+                                     # cap trims 2 of 1220 points and 4 error-bar
+                                     # caps, all at the noisiest shortest delays
 
 # --- PARAMETERS ---
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -119,7 +127,7 @@ for fp in xpcs_files:
 
 # --- FIGURE ---
 apply_style()
-fig, axes = plt.subplots(2, 2, figsize=(DOUBLE_COL - 0.1, 5.8), sharex=True, sharey=True)
+fig, axes = plt.subplots(2, 2, figsize=FIG_SIZE, sharex=True, sharey=True)
 label_panels(axes.flat)
 
 for ax, q_idx in zip(axes.flat, grid_q_indices):
@@ -127,23 +135,38 @@ for ax, q_idx in zip(axes.flat, grid_q_indices):
         tau, g2, g2_err, q_vals = data[fp]
         color = xpcs_color[fp]
         m = tau > 0
-        ax.errorbar(tau[m], g2[m, q_idx], yerr=g2_err[m, q_idx], fmt='o', color=color, mfc='none',
-                    markersize=3, mew=0.5, capsize=1.5, elinewidth=0.6, alpha=0.85, linestyle='none')
+        ax.errorbar(tau[m], g2[m, q_idx], yerr=g2_err[m, q_idx], fmt='o', color=color,
+                    mfc='none', markersize=MS, mew=LW_THIN, capsize=1.5,
+                    elinewidth=LW_THIN, capthick=LW_THIN, alpha=0.85, linestyle='none')
         res = fit_g2(tau, g2[:, q_idx], g2_err[:, q_idx])
         if res is not None:
             t_fit = np.logspace(np.log10(tau[m].min()), np.log10(tau[m].max()), 200)
-            ax.plot(t_fit, double_exp_eq9(t_fit, *res), color=color, lw=0.9)
+            ax.plot(t_fit, double_exp_eq9(t_fit, *res), color=color, lw=LW_DATA)
     ax.set_xscale('log')
-    ax.set_ylim(0.98, 1.18)                 # slightly below 1 so error bars aren't clipped
+    ax.set_ylim(*G2_YLIM)
     ax.set_yticks([1.0, 1.05, 1.10, 1.15])
-    ax.set_title(f'$Q = {q_vals[q_idx]:.5f}\ \AA^{{-1}}$')
+    ax.set_title(rf'$Q = {q_vals[q_idx]:.5f}\ \AA^{{-1}}$')
     add_minor_grid(ax)
+
+# elapsed-time key in the artwork (ACS prefers this over explaining colours in
+# the caption).  The same five colours serve all four panels, so -- as in
+# Figure 3 -- the key belongs to the figure and sits in one row along the
+# bottom; out there it costs no panel any headroom, which is what lets the y
+# axis stop at 1.20.
+t_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mew=MEW,
+                    mec=xpcs_color[fp], markersize=MS, label=f'{elapsed[fp]:.0f} s')
+             for fp in sorted(xpcs_files, key=lambda p: elapsed[p])]
+leg = fig.legend(handles=t_handles, loc='lower center', bbox_to_anchor=(0.5, 0.0),
+                 ncol=len(t_handles), handlelength=1.2, handletextpad=0.4,
+                 columnspacing=1.2, borderaxespad=0.0, borderpad=0.35)
+leg.get_frame().set_linewidth(LW_THIN)
 
 for ax in axes[-1, :]:
     ax.set_xlabel(r'Delay Time, $\tau$ (s)')
 for ax in axes[:, 0]:
-    ax.set_ylabel('g$_2$')
+    ax.set_ylabel('$g_2$')
 
-save_tight(fig, 'FigureS8_g2_Grid.pdf')
+# sharex/sharey strip the inner tick labels, so the panels can sit close
+fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=0.6, rect=(0, LEGEND_H, 1, 1))
+save_fig(fig, 'FigureS8_g2_Grid.pdf')
 plt.show()
-print('wrote FigureS8_g2_Grid.pdf')

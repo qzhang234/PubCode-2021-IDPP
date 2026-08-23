@@ -49,7 +49,7 @@ FIGURES := $(F_12ID) $(F_GUINIER) $(F_XPCS) $(F_EVOL) $(F_GRID) $(F_RAD)
 XPCS_DATA := $(wildcard $(ANA)/SAXPCS_8id/data/*.hdf)
 CSV_DATA  := $(wildcard $(ANA)/SAXS_12id/reduced_data/*.csv)
 RAD_DATA  := $(wildcard $(ANA)/Rad_Dam_Check/cluster_results/*.hdf)
-COMMON    := $(ANA)/common/prl_style.py
+COMMON    := $(ANA)/common/acs_style.py
 
 .PHONY: all figures papers main si cover check clean distclean env
 

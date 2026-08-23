@@ -5,7 +5,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from common.prl_style import SINGLE_COL, apply_style, add_minor_grid, save_tight
+from common.acs_style import (SINGLE_COL, MS, MEW, LW_THIN, LW_DATA,
+                              apply_style, add_minor_grid, save_fig)
 
 # 1. READ DATA
 data_dir = 'reduced_data'
@@ -74,27 +75,32 @@ yp = np.log(I[mask_plot])
 if I_err is not None:
     yperr = I_err[mask_plot] / I[mask_plot]
     ax.errorbar(xp, yp, yerr=yperr, fmt='o', mfc='none', mec='r', ecolor='r',
-                markersize=3, mew=0.5, capsize=1.5, elinewidth=0.6, ls='none', label='Reference 10 C')
+                markersize=MS, mew=MEW, capsize=1.5, elinewidth=LW_THIN,
+                capthick=LW_THIN, ls='none', label='Reference 10 °C')
 else:
-    ax.plot(xp, yp, 'ro', fillstyle='none', markersize=3, mew=0.5, label='Reference 10 C')
+    ax.plot(xp, yp, 'ro', fillstyle='none', markersize=MS, mew=MEW, label='Reference 10 °C')
 
 # Plot fit line
 fit_line = slope * x + intercept
-ax.plot(x, fit_line, 'k-', linewidth=0.75, label='Guinier fit')
+ax.plot(x, fit_line, 'k-', linewidth=LW_DATA, label='Guinier fit')
 
-# Fit-result annotation (mirrors the 12-ID beamline readout)
-txt = (f'$I_0$ = {I_0:.3f} $\\pm$ {I_0_err:.3f}\n'
-       f'$R_g$ = {R_g:.2f} $\\pm$ {R_g_err:.2f} $\\AA$\n'
-       f'$Q_{{max}}\\cdot R_g$ = {q_max * R_g:.3f}')
+# Fit-result annotation (mirrors the 12-ID beamline readout).  It sits in the
+# upper right, where the data has already decayed away.
+txt = (f'$I_0$ = {I_0:.3f} ± {I_0_err:.3f}\n'
+       f'$R_g$ = {R_g:.2f} ± {R_g_err:.2f} $\\AA$\n'
+       f'$Q_{{max}}$·$R_g$ = {q_max * R_g:.3f}')
 ax.text(0.97, 0.95, txt, transform=ax.transAxes, va='top', ha='right',
-        bbox=dict(boxstyle='round', fc='white', ec='0.5', lw=0.5))
+        bbox=dict(boxstyle='round', fc='white', ec='0.5', lw=LW_THIN))
 
 # Formatting
 add_minor_grid(ax)
 ax.set_xlabel(r'$Q^2$ ($\AA^{-2}$)')
 ax.set_ylabel(r'$\ln[I(Q)]$ (arbs.)')
 ax.ticklabel_format(style='sci', axis='x', scilimits=(0,0), useMathText=True)
-ax.legend(loc='lower left')
+# centre right: the lower-left corner is where the longest low-Q error bars
+# reach, so a key there would sit on top of them
+ax.legend(loc='center right')
 
-save_tight(fig, 'FigureS5_Guinier.pdf')
+fig.tight_layout(pad=0.4)
+save_fig(fig, 'FigureS5_Guinier.pdf')
 plt.show()

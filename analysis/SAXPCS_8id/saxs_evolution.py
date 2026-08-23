@@ -2,8 +2,18 @@
 
 Every B0147 averaged file is plotted, coloured by elapsed time (time origin =
 first B0147 file, frames 1-200).  B0146 (6 C reference, before the 30 C
-isothermal) is shown as a grey dashed curve.  The legend is placed outside, on
-the right-hand side of the axes.
+isothermal) is drawn in the same blue square as the 6 C reference in Figure 3a,
+and the y axis carries the same label, so the two figures key and label that
+dataset identically.
+
+Elapsed time is keyed by a COLOURBAR rather than by a 14-entry legend box.  The
+curves are stacked in y across the whole q range, so there is no corner of the
+axes a box that size can sit in without covering data; the colourbar carries the
+same information outside the frame.  The colormap is plasma, the same
+elapsed-time colour language used in the main XPCS figure (and, unlike the turbo
+scale used before, it is legible with colour-vision deficiency) -- but note the
+two figures normalise over different time spans, so read the value off this bar
+rather than matching hues between figures.
 """
 
 import glob
@@ -23,7 +33,8 @@ from matplotlib.colors import Normalize
 from abs_xsec import abs_xsec_coef, calibration_summary
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from common.prl_style import SINGLE_COL, apply_style, add_minor_grid, save_tight
+from common.acs_style import (SINGLE_COL, MS, MEW, LW_THIN,
+                              apply_style, add_minor_grid, save_fig)
 
 # --- PARAMETERS ---
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -36,7 +47,8 @@ BACKGROUND_HEADER = 'D0138'
 # drift in incident flux across the time series is handled per file.  coef_buf
 # is the D0138 buffer's own coefficient; coef_sam is recomputed for every curve.
 PHI_AVERAGE = True
-CMAP = plt.cm.turbo
+CMAP = plt.cm.plasma
+COLOR_6C = '#1f77b4'                 # identical to COLOR_6C in saxpcs.py
 
 SAXS_PATH       = '/xpcs/temporal_mean/scattering_1d'
 STATIC_MAP_PATH = '/xpcs/qmap/static_index_mapping'
@@ -113,8 +125,10 @@ for fp in by_header.get('B0146', []):
         coef_sam = abs_xsec_coef(hf)                       # this file's own coefficient
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
     pos = I > 0
-    ax.plot(q[pos], I[pos], color='0.5', marker='s', ls='none', ms=3,
-            mfc='none', mew=0.5, label=r'6$^{\circ}$C Ref')
+    # same colour and marker as the 6 C reference in Figure 3a, so the two
+    # figures key that dataset identically
+    ax.plot(q[pos], I[pos], color=COLOR_6C, marker='s', ls='none', ms=MS,
+            mfc='none', mew=MEW, label='6 °C ref')
 
 for fp in b0147:
     with h5py.File(fp, 'r') as hf:
@@ -123,16 +137,26 @@ for fp in b0147:
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
     pos = I > 0
     ax.plot(q[pos], I[pos], color=CMAP(norm(elapsed[fp])), marker='o', ls='none',
-            ms=3, mfc='none', mew=0.5, label=f'{elapsed[fp]:.0f} s')
+            ms=MS, mfc='none', mew=MEW)
 
 ax.set_xscale('log')
 ax.set_yscale('log')
 ax.set_xlabel(r'$Q$ ($\AA^{-1}$)')
-ax.set_ylabel(r'$d\Sigma/d\Omega$ (cm$^{-1}$)')
+# same axis label as Figure 3a: the quantity is an absolute differential cross
+# section, and the units belong in the caption (see the note in saxpcs.py)
+ax.set_ylabel(r'$I(Q)$ (cm$^{-1}$)')
 add_minor_grid(ax)
-ax.legend(loc='upper right', title='Elapsed time',
-          ncol=2, columnspacing=1.0, handletextpad=0.4, labelspacing=0.25)
+# only the 6 C reference needs a legend entry; elapsed time is the colourbar
+ax.legend(loc='lower left', borderaxespad=0.4)
 
-save_tight(fig, 'FigureS6_SAXS_Evolution.pdf')
+cb = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=CMAP), ax=ax, pad=0.03)
+cb.set_label('Elapsed time (s)')
+cb.outline.set_linewidth(LW_THIN)
+cb.ax.tick_params(width=LW_THIN)
+# a tick on the bar at every acquisition, so the reader can see that the times
+# are unevenly spaced and where the Figure 3 subset (5039-7863 s) sits
+cb.ax.hlines(sorted(elapsed.values()), 0, 1, colors='w', lw=LW_THIN)
+
+fig.tight_layout(pad=0.4)
+save_fig(fig, 'FigureS6_SAXS_Evolution.pdf')
 plt.show()
-print('wrote FigureS6_SAXS_Evolution.pdf')
