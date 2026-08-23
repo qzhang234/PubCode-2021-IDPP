@@ -1,0 +1,746 @@
+"""Combined SAXS + XPCS analysis, reading the averaged HDF files directly.
+
+One figure, three panels:
+  1. SAXS I(q) for B0146, the first B0147 file (frames 1-200), and the last five
+     B0147 files (frames 801-1313), with the D0138 buffer subtracted.
+  2. XPCS g2(tau) at one q for the first + last-five B0147 files, with fits.
+  3. Fitted fast fraction f vs elapsed time, per q bin.
+A second figure (2x2 panels) plots the fit parameters: (a) shared exponents p1,
+p2 vs elapsed time, (b) tau_fast vs Q, (c) tau_slow vs Q, and (d) the power-law
+scaling exponents gamma_fast, gamma_slow obtained by fitting each elapsed
+time's tau(Q) in (b)/(c) to tau = A * Q**gamma.  A third figure (2 panels)
+documents the absolute-cross-section calibration: the ion-chamber -> photon
+linear fit and the air transmission (both merged from the IC_pin4 notebooks;
+see the ABSOLUTE SCATTERING CROSS-SECTION section below).
+
+The SAXS panel is still put on an absolute scale (d(Sigma)/d(Omega)) via a
+coefficient computed PER FILE from that file's own range-averaged ion-chamber
+readings, so a drift in incident flux across the time series is handled
+correctly -- the axis is simply labelled I(Q) and the absolute units belong in
+the caption.  See abs_xsec_coef() and the long note in the ABSOLUTE SCATTERING
+CROSS-SECTION section.
+
+Colour encodes elapsed time and is CONSISTENT across all three panels (e.g. the
+7863 s dataset is the same red everywhere).  In the fit panel the marker SHAPE
+encodes the q bin.  B0146 is a 6 C reference taken before the 30 C isothermal
+run; its acquisition time is not a time origin, so it appears in the SAXS panel
+only.  Because colour means the same thing everywhere, the elapsed-time key is a
+SINGLE legend along the bottom of the figure rather than a box inside panel (a)
+(where it used to cover the I(Q) curves); only the marker-shape -> q key stays
+inside panel (c).
+
+Figure geometry follows the journal figure-preparation guidelines: figures 1 and
+2 are both 2-column figures (2 x 3 3/8 in = 6.75 in = 17.1 cm) and every
+character is set at 9 pt, the smallest whole-point Times size whose capitals
+clear the required 2 mm.  See the PRL/APS FIGURE GEOMETRY block below for the
+arithmetic.  Axis limits are set a clear margin outside the data everywhere, so
+no point is drawn on top of a frame.
+
+Fit model and shared exponents
+------------------------------
+The g2 model is a double stretched-exponential (Siegert form):
+
+    g2 = contrast * ( f e^-(tau/tau_fast)^p1 + (1-f) e^-(tau/tau_slow)^p2 )^2 + 1
+
+with contrast = 0.135 (read from g2) and baseline = 1 both fixed.  For each
+elapsed time all fitted q bins are fit SIMULTANEOUSLY (a global fit): the
+stretching exponents p1 (fast) and p2 (slow) are SHARED across q -- they depend
+only on elapsed time -- while tau_fast, f and tau_slow are independent per q.
+This is the physically motivated constraint that the relaxation-shape exponents
+are a property of the sample state at a given age, not of the q bin, and it
+stabilises the otherwise poorly-conditioned slow mode (tau_slow lies beyond the
+~1.5 s delay window, so its shape cannot be pinned q-by-q).
+
+Uncertainties
+-------------
+The fit minimises error-weighted residuals (g2_model - g2)/g2_err using the
+g2_err stored in the averaged files directly (absolute_sigma convention).  The
+parameter covariance is inv(J^T J) at the solution; 1-sigma errors on f, p1 and
+p2 are the square roots of its diagonal.  Because p1/p2 are shared, their
+uncertainty is correctly propagated into f (f errors are larger than a per-q
+fixed-exponent fit would report -- that difference is the exponent systematic,
+now folded in honestly).
+"""
+
+import glob
+import os
+import re
+import sys
+from datetime import datetime
+
+import numpy as np
+import h5py
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
+from matplotlib.lines import Line2D
+from matplotlib.ticker import (FixedLocator, FixedFormatter, NullFormatter,
+                               FuncFormatter, LogLocator)
+from scipy.optimize import least_squares
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from common.prl_style import DOUBLE_COL, SINGLE_COL, apply_style, add_minor_grid, label_panels, save_tight
+
+# --- PARAMETERS ---
+data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
+# --- PRL/APS FIGURE GEOMETRY (see the journal figure-preparation guidelines) ---
+# "Size to the width of a single manuscript column (8.5 cm or 3 3/8 in) or 1.5
+# or 2 columns for more detailed figures."  Figure 1 has three panels, so it is
+# a 2-column (double-column) figure: 2 x 3.375 in = 6.75 in = 17.1 cm.
+TWO_COL = 2 * SINGLE_COL             # in, double-column width
+FIG1_SIZE = (TWO_COL, 3.15)          # 3 panels side by side + a shared legend row
+FIG1_LEGEND_H = 0.085                # fraction of the height reserved, at the
+                                     # bottom, for that shared legend
+FIG2_SIZE = (TWO_COL, 4.1)           # 2x2 fit-parameter panels, also 2 columns
+#
+# "Make the height of the smallest capital letters and numerals at least 2 mm."
+# Times New Roman has capHeight/em = 1356/2048 = 0.6621, so a capital is
+#     h[mm] = size[pt] * 0.35278 mm/pt * 0.6621
+# and h >= 2 mm requires size >= 8.56 pt.  9 pt is therefore the smallest
+# whole-point font that complies (cap height 2.10 mm at 100 % reproduction);
+# the 8 pt used previously gives only 1.87 mm.
+MIN_FONT = 9
+#
+# "Make a curve's linewidth at least 0.18 mm (0.5 point)" and "make the diameter
+# of each data point at least 1 mm" (1 mm = 2.835 pt in matplotlib marker units).
+MIN_LW = 0.5                         # pt, 0.18 mm -- floor for every drawn line
+MIN_MEW = 0.6                        # pt, 0.21 mm -- open-marker edge width
+MS_SAXS = 3.5                        # pt, 1.23 mm -- dense I(Q) / g2 point clouds
+MS_FIT = 4.5                         # pt, 1.59 mm -- sparse fitted-parameter points
+LW_FIT = 1.4                         # pt, 0.49 mm -- model curves, drawn over the
+                                     # data they fit so they have to out-weigh a
+                                     # dense cloud of same-coloured markers
+
+
+def apply_prl_minimums():
+    """Raise the shared style to the printed minimums quoted above.
+
+    apply_style() sets the house style (Times, opaque legend boxes, ...); this
+    only lifts the sizes that the journal specifies as hard minimums, so the
+    numbers above are the single place where compliance is defined.
+    """
+    plt.rcParams.update({
+        'font.size': MIN_FONT, 'axes.labelsize': MIN_FONT, 'axes.titlesize': MIN_FONT,
+        'xtick.labelsize': MIN_FONT, 'ytick.labelsize': MIN_FONT,
+        'legend.fontsize': MIN_FONT, 'legend.title_fontsize': MIN_FONT,
+        'lines.linewidth': 0.75, 'lines.markersize': MS_SAXS,
+        'lines.markeredgewidth': MIN_MEW,
+        'axes.linewidth': MIN_LW,
+        'xtick.major.width': MIN_LW, 'ytick.major.width': MIN_LW,
+        'xtick.minor.width': MIN_LW, 'ytick.minor.width': MIN_LW,
+        'patch.linewidth': MIN_LW,
+    })
+
+
+# --- DATASET SELECTION ---
+BACKGROUND_HEADER = 'D0138'          # buffer, subtracted as background in the SAXS panel
+XPCS_HEADER = 'B0147'                # header used for the g2 / fit panels
+# The absolute cross-section coefficients coef_sam / coef_buf are no longer
+# hard-coded: they are computed per file from that file's own (range-averaged)
+# ion-chamber readings by abs_xsec_coef(), defined in the ABSOLUTE SCATTERING
+# CROSS-SECTION section below.
+N_LAST = 5                           # number of last (highest-frame) files
+target_q_idx = 0                     # q bin shown in the g2 panel
+fit_q_indices = [0, 1, 2, 3, 4]      # q bins fitted for the f-vs-time panel
+Q_MARKERS = ['o', 's', '^', 'D', 'v']   # one marker per fit q bin
+CHI2_MAX = 10.0                      # skip fits worse than this reduced chi^2
+                                     # (the liquid t=0 file does not obey the
+                                     # arrested double-exp model: chi^2 ~ 1e2-1e3)
+PHI_AVERAGE = True                   # azimuthally average I(q) over phi sectors
+# XPCS elapsed-time colours: the N_LAST times are mapped to evenly-spaced
+# positions of this colormap (maximises separation so times are easy to tell
+# apart), independent of the SAXS-only SI figure.  The 0 s and 6 C reference
+# datasets get their own distinct colours (below), outside this scale.
+XPCS_CMAP = plt.cm.plasma
+CMAP_LO, CMAP_HI = 0.10, 0.88        # colormap span used for the N_LAST times
+COLOR_0S = 'black'                   # first B0147 file (elapsed = 0 s)
+COLOR_6C = '#1f77b4'                 # B0146 (6 C reference, before isothermal)
+
+# --- FIT MODEL (contrast + baseline fixed; p1, p2 shared across q per time) ---
+contrast = 0.135
+BASELINE = 1.0
+
+# per-q parameter bounds / start (tau_fast, f, tau_slow) and shared (p1, p2)
+PQ_P0    = [1e-3, 0.5, 100.0]
+PQ_LO    = [1e-6, 0.0, 1.0]
+PQ_HI    = [10.0, 1.0, 10000.0]
+P_EXP_P0 = [0.5, 0.5]
+P_EXP_LO = [0.2, 0.2]
+P_EXP_HI = [3.0, 3.0]
+
+
+def double_exp(tau, tau_fast, f, tau_slow, p1, p2):
+    decay_fast = f * np.exp(-(tau / tau_fast)**p1)
+    decay_slow = (1 - f) * np.exp(-(tau / tau_slow)**p2)
+    return contrast * (decay_fast + decay_slow)**2 + BASELINE
+
+
+# ============================================================================
+# ABSOLUTE SCATTERING CROSS-SECTION
+# ============================================================================
+# The calibration constants, the IC->photon linear fit, the air transmission
+# and the per-file coefficient function abs_xsec_coef() all live in the shared
+# module abs_xsec.py (merged there from IC_pin4/IC_pind4_convert.ipynb and
+# IC_pin4/Abs_Scatt_Cross.ipynb).  saxpcs.py and saxs_evolution.py both import
+# from it so the absolute scale is computed identically in every figure.  See
+# abs_xsec.py for the full derivation and unit notes.
+from abs_xsec import (                                     # noqa: E402
+    CAL_A, CAL_B, CAL_UPIC, CAL_PHOTONS, CAL_CROP,
+    AIR_TRANS_SERIES, AIR_TRANSMISSION, AIR_TRANS_STD,
+    INCIDENT_PATH, TRANSMITTED_PATH, INV_MM_TO_INV_CM,
+    abs_xsec_coef, calibration_summary,
+)
+
+print(calibration_summary())
+
+
+# --- HDF field locations ---
+START_TIME_PATH = '/entry/start_time'
+TIME_FORMAT     = '%Y-%m-%d %H:%M:%S'
+FRAME_TIME_PATH = '/entry/instrument/detector_1/frame_time'
+DELAY_PATH      = '/xpcs/multitau/delay_list'
+G2_PATH         = '/xpcs/multitau/normalized_g2'
+G2_ERR_PATH     = '/xpcs/multitau/normalized_g2_err'
+DYN_Q_PATH      = '/xpcs/qmap/dynamic_v_list_dim0'
+SAXS_PATH       = '/xpcs/temporal_mean/scattering_1d'
+STATIC_MAP_PATH = '/xpcs/qmap/static_index_mapping'
+STATIC_Q_PATH   = '/xpcs/qmap/static_v_list_dim0'
+STATIC_PHI_PATH = '/xpcs/qmap/static_v_list_dim1'
+
+_name_re = re.compile(r'Average_([A-Za-z]\d+)_.*?_(\d+)_(\d+)_results')
+
+
+# --- READ HELPERS ---
+def parse_name(fname):
+    m = _name_re.search(os.path.basename(fname))
+    return (m.group(1), int(m.group(2)), int(m.group(3))) if m else (None, -1, -1)
+
+
+def read_start_time(hf):
+    raw = hf[START_TIME_PATH][()]
+    if isinstance(raw, np.ndarray):
+        raw = raw.reshape(-1)[0]
+    if isinstance(raw, bytes):
+        raw = raw.decode('utf-8')
+    return datetime.strptime(str(raw).strip(), TIME_FORMAT)
+
+
+def read_saxs_iq(hf, phi_average=True):
+    intensity = np.asarray(hf[SAXS_PATH][()]).reshape(-1)
+    idx_map = hf[STATIC_MAP_PATH][()]
+    q_list = hf[STATIC_Q_PATH][()]
+    n_phi = hf[STATIC_PHI_PATH].shape[0]
+    q_idx = idx_map // n_phi
+    uq = np.unique(q_idx)
+    if phi_average and n_phi > 1:
+        inten = np.array([np.nanmean(intensity[q_idx == qi]) for qi in uq])
+    else:
+        inten = np.array([intensity[q_idx == qi][0] for qi in uq])
+    return q_list[uq], inten
+
+
+def read_g2(hf):
+    t0 = hf[FRAME_TIME_PATH][()]
+    t0 = t0.item() if isinstance(t0, np.ndarray) else t0
+    tau = hf[DELAY_PATH][()] * t0
+    tau = tau[:, 0] if tau.ndim > 1 else tau
+    return tau, hf[G2_PATH][()], hf[G2_ERR_PATH][()], hf[DYN_Q_PATH][()]
+
+
+def fit_g2_global(tau, g2, g2_err, q_indices):
+    """Global fit of several q bins for one elapsed time, sharing p1 and p2.
+
+    Parameter vector = [p1, p2, (tau_fast, f, tau_slow) x nq].  Minimises the
+    error-weighted residual (model - g2) / g2_err over all q simultaneously,
+    using the g2_err stored in the file directly (absolute_sigma convention).
+    Parameter 1-sigma errors are sqrt(diag(inv(J^T J))).
+
+    Returns a dict:
+      {'p1','p1_err','p2','p2_err','red_chi2',
+       'per_q': {q_idx: {'tau_fast','f','tau_slow','f_err'}}}
+    or None if too few q bins have usable data.
+    """
+    data = []
+    for qi in q_indices:
+        v = (tau > 0) & ~np.isnan(g2[:, qi]) & ~np.isnan(g2_err[:, qi]) & (g2_err[:, qi] > 0)
+        if v.sum() >= 5:
+            data.append((qi, tau[v], g2[v, qi], g2_err[v, qi]))
+    nq = len(data)
+    if nq == 0:
+        return None
+
+    def residual(p):
+        p1, p2 = p[0], p[1]
+        parts = []
+        for i, (qi, tv, gv, ev) in enumerate(data):
+            tf, f, ts = p[2 + 3 * i: 5 + 3 * i]
+            parts.append((double_exp(tv, tf, f, ts, p1, p2) - gv) / ev)
+        return np.concatenate(parts)
+
+    x0 = list(P_EXP_P0) + PQ_P0 * nq
+    lo = list(P_EXP_LO) + PQ_LO * nq
+    hi = list(P_EXP_HI) + PQ_HI * nq
+    res = least_squares(residual, x0, bounds=(lo, hi), max_nfev=40000)
+
+    ndof = max(len(res.fun) - len(res.x), 1)
+    red_chi2 = float(np.sum(res.fun**2) / ndof)
+    # covariance from the Gauss-Newton Hessian of error-weighted residuals
+    try:
+        cov = np.linalg.inv(res.jac.T @ res.jac)
+        perr = np.sqrt(np.abs(np.diag(cov)))
+    except np.linalg.LinAlgError:
+        perr = np.full(len(res.x), np.nan)
+
+    out = {'p1': res.x[0], 'p1_err': perr[0],
+           'p2': res.x[1], 'p2_err': perr[1],
+           'red_chi2': red_chi2, 'per_q': {}}
+    for i, (qi, tv, gv, ev) in enumerate(data):
+        tf, f, ts = res.x[2 + 3 * i: 5 + 3 * i]
+        out['per_q'][qi] = {'tau_fast': tf, 'tau_fast_err': perr[2 + 3 * i],
+                            'f': f, 'f_err': perr[3 + 3 * i],
+                            'tau_slow': ts, 'tau_slow_err': perr[4 + 3 * i]}
+    return out
+
+
+def fit_powerlaw(Q, tau, tau_err):
+    """Weighted log-log fit of tau = A * Q**gamma at one elapsed time.
+
+    Minimises the error-weighted residual of ln(tau) vs ln(Q) (a weighted
+    linear regression), with sigma_ln(tau) = tau_err / tau (propagated from
+    the tau uncertainty). Returns (gamma, gamma_err, A), with gamma_err from
+    the weighted-least-squares covariance (absolute_sigma convention) and A
+    the fitted prefactor (for overlaying the fit line).
+    """
+    x = np.log(np.asarray(Q, dtype=float))
+    y = np.log(np.asarray(tau, dtype=float))
+    sigma_y = np.asarray(tau_err, dtype=float) / np.asarray(tau, dtype=float)
+    w = 1.0 / sigma_y**2
+    X = np.vstack([x, np.ones_like(x)]).T
+    cov = np.linalg.inv(X.T @ (w[:, None] * X))
+    gamma, intercept = cov @ (X.T @ (w * y))
+    gamma_err = np.sqrt(cov[0, 0])
+    return gamma, gamma_err, np.exp(intercept)
+
+
+# --- DISCOVER FILES ---
+file_paths = sorted(glob.glob(os.path.join(data_dir, '*.hdf')))
+assert file_paths, f'no HDF files found in {data_dir}'
+by_header, start_times = {}, {}
+for fp in file_paths:
+    header = parse_name(fp)[0]
+    with h5py.File(fp, 'r') as hf:
+        start_times[fp] = read_start_time(hf)
+    by_header.setdefault(header, []).append(fp)
+for h in by_header:
+    by_header[h].sort(key=lambda p: parse_name(p)[1])
+
+b0147 = by_header[XPCS_HEADER]
+first_file = b0147[0]                          # first B0147 file (frames 1-200)
+xpcs_files = b0147[-N_LAST:]                    # g2 / fit: last N only (NOT 1-200)
+saxs_files = [first_file] + xpcs_files          # SAXS panel: first + last N
+t_ref = start_times[first_file]                 # time origin = first B0147 file
+
+
+def elapsed(fp):
+    return (start_times[fp] - t_ref).total_seconds()
+
+
+# XPCS elapsed-time colours: map the N_LAST files (sorted by time) to evenly
+# spaced colormap positions so consecutive times are maximally distinguishable.
+# The same mapping is reused in every XPCS panel (and in g2_grid_SI.py).
+_xpcs_sorted = sorted(xpcs_files, key=elapsed)
+_xpcs_pos = np.linspace(CMAP_LO, CMAP_HI, len(_xpcs_sorted))
+_xpcs_color = {fp: XPCS_CMAP(p) for fp, p in zip(_xpcs_sorted, _xpcs_pos)}
+
+
+def ecolor(fp):
+    """Colour for an XPCS elapsed time; 0 s and the 6 C ref use distinct colours."""
+    if fp == first_file:
+        return COLOR_0S
+    return _xpcs_color[fp]
+
+
+# elapsed-time value -> colour (xpcs_files only; used where fp isn't in scope)
+time_color = {elapsed(fp): ecolor(fp) for fp in xpcs_files}
+
+
+print('SAXS files:', [f'{parse_name(f)[1]}-{parse_name(f)[2]} ({elapsed(f):.0f} s)' for f in saxs_files])
+print('XPCS files:', [f'{parse_name(f)[1]}-{parse_name(f)[2]} ({elapsed(f):.0f} s)' for f in xpcs_files])
+
+# --- GLOBAL FITS (one per elapsed time; p1, p2 shared across q) ---
+# Fit each XPCS file once and reuse the result in every panel.
+g2_data = {}   # fp -> (tau, g2, g2_err, q_vals)
+fits = {}      # fp -> result dict from fit_g2_global
+for fp in xpcs_files:
+    with h5py.File(fp, 'r') as hf:
+        g2_data[fp] = read_g2(hf)
+    tau, g2, g2_err, q_vals = g2_data[fp]
+    fits[fp] = fit_g2_global(tau, g2, g2_err, fit_q_indices)
+    r = fits[fp]
+    if r is not None:
+        fmt = ' '.join(f'f{qi}={r["per_q"][qi]["f"]:.3f}' for qi in r['per_q'])
+        print(f'  fit {elapsed(fp):5.0f} s: p1={r["p1"]:.3f}+/-{r["p1_err"]:.3f} '
+              f'p2={r["p2"]:.3f}+/-{r["p2_err"]:.3f} chi2={r["red_chi2"]:.2f}  {fmt}')
+
+# --- FIGURE ---
+apply_style()
+apply_prl_minimums()
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=FIG1_SIZE)
+label_panels((ax1, ax2, ax3))
+
+# ============================================================
+# PANEL 1: SAXS I(q), background-subtracted (B0146 + first + last N B0147)
+# ============================================================
+# Background buffer curve AND its own absolute coefficient (coef_buf).  Both are
+# taken from the D0138 buffer file; coef_buf multiplies the buffer term in every
+# subtraction below.
+bg_I = None
+coef_buf = None
+if BACKGROUND_HEADER in by_header:
+    with h5py.File(by_header[BACKGROUND_HEADER][0], 'r') as hf:
+        _, bg_I = read_saxs_iq(hf, PHI_AVERAGE)
+        coef_buf = abs_xsec_coef(hf)
+    print(f'coef_buf ({BACKGROUND_HEADER}) = {coef_buf:.3e}')
+
+saxs_handles = []
+for fp in by_header.get('B0146', []):                        # 6 C reference (distinct)
+    with h5py.File(fp, 'r') as hf:
+        q, I = read_saxs_iq(hf, PHI_AVERAGE)
+        coef_sam = abs_xsec_coef(hf)                          # this file's own coefficient
+    print(f'coef_sam (B0146 {parse_name(fp)[1]}-{parse_name(fp)[2]}) = {coef_sam:.3e}')
+    I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
+    I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
+    pos = I > 0
+    ax1.plot(q[pos], I[pos], color=COLOR_6C, marker='s', ls='none', ms=MS_SAXS,
+             mfc='none', mew=MIN_MEW)
+    saxs_handles.append(Line2D([], [], color=COLOR_6C, marker='s', ls='none',
+                               mfc='none', mew=MIN_MEW, ms=MS_SAXS,
+                               label='6 $^\\circ$C ref'))
+
+for fp in saxs_files:                                        # first (0 s) + last N B0147
+    with h5py.File(fp, 'r') as hf:
+        q, I = read_saxs_iq(hf, PHI_AVERAGE)
+        coef_sam = abs_xsec_coef(hf)                          # this file's own coefficient
+    print(f'coef_sam (B0147 {parse_name(fp)[1]}-{parse_name(fp)[2]}) = {coef_sam:.3e}')
+    I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
+    I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
+    pos = I > 0
+    color = ecolor(fp)
+    ax1.plot(q[pos], I[pos], color=color, marker='o', ls='none', ms=MS_SAXS,
+             mfc='none', mew=MIN_MEW)
+    saxs_handles.append(Line2D([], [], color=color, marker='o', ls='none',
+                               mfc='none', mew=MIN_MEW, ms=MS_SAXS,
+                               label=f'{elapsed(fp):.0f} s'))
+
+ax1.set_xscale('log')
+ax1.set_yscale('log')
+ax1.set_xlabel(r'$Q$ ($\AA^{-1}$)')
+ax1.set_ylabel(r'$I(Q)$ (cm$^{-1}$)')
+add_minor_grid(ax1)
+# Q spans only ~1 decade (0.0033-0.034), so the automatic log locator labels a
+# single tick (10^-2).  Label three well-separated decimal positions instead --
+# far enough apart that the labels cannot touch at 9 pt.  The limits sit well
+# outside the data so no point sits on the frame.
+ax1.set_xlim(2.6e-3, 4.4e-2)
+ax1.xaxis.set_major_locator(FixedLocator([4e-3, 1e-2, 3e-2]))
+ax1.xaxis.set_major_formatter(FixedFormatter(['0.004', '0.01', '0.03']))
+ax1.xaxis.set_minor_locator(FixedLocator([3e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3,
+                                          1.5e-2, 2e-2, 2.5e-2, 3.5e-2, 4e-2]))
+ax1.xaxis.set_minor_formatter(NullFormatter())
+
+# ============================================================
+# PANEL 2: g2(tau) at target q, with fits
+# ============================================================
+q_val_target = None
+for fp in xpcs_files:
+    tau, g2, g2_err, q_vals = g2_data[fp]
+    q_val_target = q_vals[target_q_idx]
+    color = ecolor(fp)
+    m = tau > 0
+    # Data drawn at the THIN end of the allowed range (0.5 pt = 0.18 mm edges)
+    # and below the fits in z, so the fit line reads as a line and not as one
+    # more marker outline of the same colour.
+    ax2.errorbar(tau[m], g2[m, target_q_idx], yerr=g2_err[m, target_q_idx], fmt='o',
+                 color=color, mfc='none', markersize=MS_SAXS, mew=MIN_LW,
+                 capsize=1.5, elinewidth=MIN_LW, capthick=MIN_LW,
+                 alpha=0.75, linestyle='none', zorder=2)
+    r = fits[fp]
+    if r is not None and target_q_idx in r['per_q'] and r['red_chi2'] < CHI2_MAX:
+        pq = r['per_q'][target_q_idx]
+        tt = tau[m]
+        t_fit = np.logspace(np.log10(tt.min()), np.log10(tt.max()), 200)
+        g2_fit = double_exp(t_fit, pq['tau_fast'], pq['f'], pq['tau_slow'],
+                            r['p1'], r['p2'])
+        # LW_FIT (1.4 pt) against 0.5 pt marker outlines is enough contrast on
+        # its own -- deliberately NO white casing under the line, which would
+        # blank out the very data points the fit is meant to be judged against.
+        ax2.plot(t_fit, g2_fit, color=color, lw=LW_FIT, solid_capstyle='round',
+                 zorder=3)
+
+ax2.set_xscale('log')
+ax2.set_xlabel(r'Delay Time, $\tau$ (s)')
+ax2.set_ylabel(r'$g_2$')
+ax2.set_ylim(1.0, 1.18)
+# two-decimal ticks: '1.000'-style labels are wide enough at 9 pt to squeeze
+# the three panels together, and the extra digit carries no information here.
+ax2.yaxis.set_major_locator(FixedLocator([1.00, 1.05, 1.10, 1.15]))
+ax2.yaxis.set_major_formatter(FixedFormatter(['1.00', '1.05', '1.10', '1.15']))
+add_minor_grid(ax2)
+# tau covers ~5 decades; label every other one so the exponents stay legible
+# and well separated, keeping a tick (and grid line) on every decade.  The
+# limits leave a clear margin either side of the shortest / longest delay.
+ax2.set_xlim(9e-6, 5.0)
+ax2.xaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
+ax2.xaxis.set_major_formatter(FuncFormatter(
+    lambda x, _pos: rf'$10^{{{int(round(np.log10(x)))}}}$'
+                    if int(round(np.log10(x))) % 2 == 0 else ''))
+
+# ============================================================
+# PANEL 3: fitted fast fraction f vs elapsed time (colour=time, marker=q)
+# ============================================================
+fit_rows = []
+q_val_of = {}                                    # q_idx -> Q value (for legends)
+for fp in xpcs_files:
+    r = fits[fp]
+    if r is None or r['red_chi2'] >= CHI2_MAX:   # drop unreliable global fits
+        continue
+    _, _, _, q_vals = g2_data[fp]
+    for q_idx, pq in r['per_q'].items():
+        q_val_of[q_idx] = q_vals[q_idx]
+        fit_rows.append({'q_index': q_idx, 'q_val': q_vals[q_idx],
+                         'elapsed': elapsed(fp), 'f': pq['f'], 'f_err': pq['f_err']})
+
+for q_idx, marker in zip(fit_q_indices, Q_MARKERS):
+    rows = sorted([r for r in fit_rows if r['q_index'] == q_idx], key=lambda r: r['elapsed'])
+    if not rows:
+        continue
+    xs = [r['elapsed'] for r in rows]
+    ys = [r['f'] for r in rows]
+    es = [r['f_err'] for r in rows]
+    ax3.plot(xs, ys, '-', color='0.75', lw=MIN_LW, zorder=1)        # per-q guide line
+    for x, y, e in zip(xs, ys, es):
+        ax3.errorbar(x, y, yerr=e, marker=marker, color=time_color[x],
+                     markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
+                     elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
+
+# Headroom above the highest fitted point: f decreases with time, so the
+# upper-right corner is empty data-wise, but the 5039 s points sit high on the
+# left and the legend must clear them with margin.
+_f_hi = max(r['f'] + r['f_err'] for r in fit_rows)
+_f_lo = min(r['f'] - r['f_err'] for r in fit_rows)
+_span = _f_hi - _f_lo
+ax3.set_ylim(_f_lo - 0.08 * _span, _f_hi + 0.42 * _span)
+# widen the elapsed-time axis so the first and last groups are not on the frame
+_t_lo = min(r['elapsed'] for r in fit_rows)
+_t_hi = max(r['elapsed'] for r in fit_rows)
+_t_pad = 0.16 * (_t_hi - _t_lo)
+ax3.set_xlim(_t_lo - _t_pad, _t_hi + _t_pad)
+
+# legend: marker shape -> q bin (open black markers).  The Q values are carried
+# by a legend TITLE with the 10^-3 factor pulled out, so each entry is a short
+# mantissa instead of '$Q = 0.00376 \AA^{-1}$' -- that keeps the box narrow
+# enough to sit in the empty upper-right corner without touching any point.
+q_handles = [Line2D([], [], marker=mk, ls='none', mfc='none', mec='k', mew=MIN_MEW,
+                    markersize=MS_FIT, label=f'{1e3 * q_val_of[qi]:.2f}')
+             for qi, mk in zip(fit_q_indices, Q_MARKERS) if qi in q_val_of]
+leg3 = ax3.legend(handles=q_handles, loc='upper right', borderaxespad=0.3,
+                  title=r'$Q$ ($10^{-3}\ \AA^{-1}$)',
+                  handletextpad=0.4, labelspacing=0.2, borderpad=0.35)
+leg3.get_frame().set_linewidth(MIN_LW)
+
+ax3.set_xlabel('Elapsed Time (s)')
+ax3.set_ylabel('Fast Fraction, $f$')
+add_minor_grid(ax3)
+
+# --- shared elapsed-time legend along the bottom of the figure ---
+# Colour means the same thing in all three panels, so one legend serves them
+# all.  Putting it outside the axes (rather than inside panel (a), where it used
+# to sit on top of the I(Q) curves) removes the legend/data collision entirely
+# and gives every panel its full plotting area back.
+fig.legend(handles=saxs_handles, loc='lower center', bbox_to_anchor=(0.5, 0.0),
+           ncol=len(saxs_handles), frameon=False, handletextpad=0.3,
+           columnspacing=1.0, borderaxespad=0.0)
+
+# reserve the bottom strip for that legend; w_pad keeps the y labels of panels
+# (b) and (c) clear of the neighbouring panel's tick labels.
+fig.tight_layout(pad=0.45, w_pad=1.6, rect=(0, FIG1_LEGEND_H, 1, 1))
+# NOTE: saved WITHOUT bbox_inches='tight' on purpose.  The media box must be
+# exactly TWO_COL wide so the journal reproduces the figure at 100 %; a trimmed
+# box would be scaled up at typesetting and the 9 pt / 2 mm sizing above would
+# no longer be the size that actually prints.
+fig.savefig('Figure3_Isothermal_SAXPCS.pdf', dpi=300)
+print(f'wrote Figure3_Isothermal_SAXPCS.pdf  ({FIG1_SIZE[0]:.3f} x {FIG1_SIZE[1]:.3f} in '
+      f'= {2.54 * FIG1_SIZE[0]:.1f} x {2.54 * FIG1_SIZE[1]:.1f} cm, '
+      f'{MIN_FONT} pt -> {MIN_FONT * 0.35278 * 0.6621:.2f} mm capitals)')
+
+# ============================================================
+# FIGURE 2 (2x2): (a) p1, p2 vs elapsed time;      (b) tau_fast vs Q
+#                 (d) gamma_fast, gamma_slow vs t;  (c) tau_slow vs Q
+# Column 0 (a, d) shares the elapsed-time x-axis; column 1 (b, c) shares the Q
+# x-axis -- so only the bottom row needs x tick labels / an x-axis label.
+# All XPCS colours use the same elapsed-time scale as figure 1.
+# ============================================================
+fig2, ((axp, axf), (axg, axs)) = plt.subplots(2, 2, figsize=FIG2_SIZE,
+                                              sharex='col')
+label_panels((axp, axf, axs, axg))
+
+# --- (a) shared stretching exponents vs elapsed time (colour = time) ---
+exp_rows = [{'elapsed': elapsed(fp), 'fp': fp,
+             'p1': fits[fp]['p1'], 'p1_err': fits[fp]['p1_err'],
+             'p2': fits[fp]['p2'], 'p2_err': fits[fp]['p2_err']}
+            for fp in xpcs_files
+            if fits[fp] is not None and fits[fp]['red_chi2'] < CHI2_MAX]
+exp_rows.sort(key=lambda r: r['elapsed'])
+xe = [r['elapsed'] for r in exp_rows]
+axp.plot(xe, [r['p1'] for r in exp_rows], '-', color='0.75', lw=MIN_LW, zorder=1)
+axp.plot(xe, [r['p2'] for r in exp_rows], '-', color='0.75', lw=MIN_LW, zorder=1)
+for r in exp_rows:                                   # p1 = circle, p2 = square
+    axp.errorbar(r['elapsed'], r['p1'], yerr=r['p1_err'], marker='o', color=ecolor(r['fp']),
+                 markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
+                 elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
+    axp.errorbar(r['elapsed'], r['p2'], yerr=r['p2_err'], marker='s', color=ecolor(r['fp']),
+                 markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
+                 elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
+axp.axhline(1.0, color='0.6', ls=':', lw=MIN_LW)          # simple-exponential reference
+p_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MIN_MEW,
+                    markersize=MS_FIT, label=r'$p_{\mathrm{fast}}$'),
+             Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MIN_MEW,
+                    markersize=MS_FIT, label=r'$p_{\mathrm{slow}}$')]
+axp.legend(handles=p_handles, loc='upper left')
+# headroom above BOTH the data and the p = 1 reference line, so the upper-left
+# legend box has clear space and does not sit on the dotted line
+_p_lo = min(min(r['p1'] - r['p1_err'], r['p2'] - r['p2_err']) for r in exp_rows)
+_p_hi = max(max(r['p1'] + r['p1_err'], r['p2'] + r['p2_err']) for r in exp_rows)
+_p_span = max(_p_hi, 1.0) - _p_lo
+axp.set_ylim(_p_lo - 0.10 * _p_span, max(_p_hi, 1.0) + 0.18 * _p_span)
+axp.set_ylabel('Stretching exponent')
+axp.tick_params(labelbottom=False)
+add_minor_grid(axp)
+
+# --- (b, c) relaxation times vs Q, one curve per elapsed time; also fit each
+# elapsed time's tau(Q) to a power law tau = A * Q**gamma for panel (d). ---
+gamma_rows = []
+for fp in xpcs_files:
+    r = fits[fp]
+    if r is None or r['red_chi2'] >= CHI2_MAX:
+        continue
+    _, _, _, q_vals = g2_data[fp]
+    qs = sorted(r['per_q'])
+    Q      = np.array([q_vals[qi] for qi in qs])
+    tf     = np.array([r['per_q'][qi]['tau_fast'] for qi in qs])
+    tf_err = np.array([r['per_q'][qi]['tau_fast_err'] for qi in qs])
+    ts     = np.array([r['per_q'][qi]['tau_slow'] for qi in qs])
+    ts_err = np.array([r['per_q'][qi]['tau_slow_err'] for qi in qs])
+    color  = ecolor(fp)
+    lbl    = f'{elapsed(fp):.0f} s'
+    axf.errorbar(Q, tf, yerr=tf_err, marker='o', ls='none', color=color,
+                 markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
+                 elinewidth=MIN_LW, capthick=MIN_LW, label=lbl, zorder=2)
+    axs.errorbar(Q, ts, yerr=ts_err, marker='s', ls='none', color=color,
+                 markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
+                 elinewidth=MIN_LW, capthick=MIN_LW, label=lbl, zorder=2)
+
+    if len(Q) >= 3:
+        gf, gf_err, gf_A = fit_powerlaw(Q, tf, tf_err)
+        gs, gs_err, gs_A = fit_powerlaw(Q, ts, ts_err)
+        Q_line = np.linspace(Q.min(), Q.max(), 50)
+        axf.plot(Q_line, gf_A * Q_line**gf, '--', color=color, lw=LW_FIT, zorder=1)
+        axs.plot(Q_line, gs_A * Q_line**gs, '--', color=color, lw=LW_FIT, zorder=1)
+        gamma_rows.append({'elapsed': elapsed(fp), 'fp': fp,
+                           'gamma_fast': gf, 'gamma_fast_err': gf_err,
+                           'gamma_slow': gs, 'gamma_slow_err': gs_err})
+        print(f'  gamma {elapsed(fp):5.0f} s: gamma_fast={gf:.3f}+/-{gf_err:.3f} '
+              f'gamma_slow={gs:.3f}+/-{gs_err:.3f}')
+
+# Q ticks: label the mantissa (4..8); the x10^-3 factor is folded into the
+# shared x-axis label on the bottom row instead of a separate corner text.
+_q_major = [4e-3, 5e-3, 6e-3, 7e-3, 8e-3]
+_q_minor = [3.5e-3, 4.5e-3, 5.5e-3, 6.5e-3, 7.5e-3, 8.5e-3, 9e-3]
+for a in (axf, axs):
+    a.set_xscale('log')
+    a.set_yscale('log')
+    a.set_xlim(3.25e-3, 9.6e-3)          # margin either side of Q = 3.76-8.27
+    add_minor_grid(a)                              # sets minorticks_on + grids
+    a.xaxis.set_major_locator(FixedLocator(_q_major))
+    a.xaxis.set_minor_locator(FixedLocator(_q_minor))
+    a.xaxis.set_major_formatter(FixedFormatter(['4', '5', '6', '7', '8']))
+    a.xaxis.set_minor_formatter(NullFormatter())
+axf.set_ylabel(r'$\tau_{\mathrm{fast}}$ (s)')
+axf.tick_params(labelbottom=False)
+axs.set_ylabel(r'$\tau_{\mathrm{slow}}$ (s)')
+axs.set_xlabel(r'$Q$ ($\times 10^{-3}\ \AA^{-1}$)')
+
+# --- (d) power-law scaling exponents gamma_fast, gamma_slow vs elapsed time ---
+gamma_rows.sort(key=lambda r: r['elapsed'])
+xg = [r['elapsed'] for r in gamma_rows]
+axg.plot(xg, [r['gamma_fast'] for r in gamma_rows], '-', color='0.75', lw=MIN_LW, zorder=1)
+axg.plot(xg, [r['gamma_slow'] for r in gamma_rows], '-', color='0.75', lw=MIN_LW, zorder=1)
+for r in gamma_rows:                                 # gamma_fast = circle, gamma_slow = square
+    axg.errorbar(r['elapsed'], r['gamma_fast'], yerr=r['gamma_fast_err'], marker='o',
+                 color=ecolor(r['fp']), markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
+                 elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
+    axg.errorbar(r['elapsed'], r['gamma_slow'], yerr=r['gamma_slow_err'], marker='s',
+                 color=ecolor(r['fp']), markersize=MS_FIT, capsize=1.5, mfc='none', mew=MIN_MEW,
+                 elinewidth=MIN_LW, capthick=MIN_LW, zorder=2)
+g_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MIN_MEW,
+                    markersize=MS_FIT, label=r'$\gamma_{\mathrm{fast}}$'),
+             Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MIN_MEW,
+                    markersize=MS_FIT, label=r'$\gamma_{\mathrm{slow}}$')]
+axg.legend(handles=g_handles, loc='lower left')
+axg.set_xlabel('Elapsed Time (s)')
+axg.set_ylabel(r'Scaling exponent ($\gamma$)')
+add_minor_grid(axg)
+
+# (a) and (d) share the elapsed-time axis; widen it once so the first and last
+# points are not sitting on the frame (matplotlib's 5 % default is too tight
+# for five widely-spaced groups).
+_t_pad2 = 0.16 * (max(xe) - min(xe))
+axg.set_xlim(min(xe) - _t_pad2, max(xe) + _t_pad2)
+
+# matplotlib's default 5 % y margin leaves the extreme error-bar caps ~1 mm off
+# the frame in the autoscaled panels; widen it for the same breathing room the
+# explicitly-limited panels have.  (axp sets its own limits above.)
+for a in (axf, axs, axg):
+    a.set_ymargin(0.11)
+    a.autoscale_view()
+
+fig2.tight_layout(pad=0.45, w_pad=1.6, h_pad=0.8)
+# fixed media box, exactly TWO_COL wide -- see the note on figure 1
+fig2.savefig('FigureS7_Fit_Parameters.pdf', dpi=300)
+print(f'wrote FigureS7_Fit_Parameters.pdf  ({FIG2_SIZE[0]:.3f} x {FIG2_SIZE[1]:.3f} in '
+      f'= {2.54 * FIG2_SIZE[0]:.1f} x {2.54 * FIG2_SIZE[1]:.1f} cm)')
+
+# ============================================================
+# FIGURE 3 (2 panels): ion-chamber -> photon calibration
+#   (left)  air transmission across the calibration measurements (mean ~0.868)
+#   (right) photon counts vs upstream IC, with the linear fit CAL_A/CAL_B
+# This reproduces IC_pin4/IC_pind4_convert.ipynb inside this analysis; the same
+# CAL_A, CAL_B and AIR_TRANSMISSION feed abs_xsec_coef() (in abs_xsec.py).
+# ============================================================
+fig3, (axt, axc) = plt.subplots(1, 2, figsize=(DOUBLE_COL, 2.8))
+label_panels((axt, axc))
+
+# --- left: air transmission (mean +/- standard deviation reported in legend) ---
+axt.plot(np.arange(len(AIR_TRANS_SERIES)), AIR_TRANS_SERIES, 'ko:', ms=MS_SAXS, mew=MIN_LW, lw=MIN_LW)
+axt.axhline(AIR_TRANSMISSION, color='b', ls='-', lw=0.75,
+            label=f'mean = {AIR_TRANSMISSION:.4f} $\\pm$ {AIR_TRANS_STD:.4f}')
+axt.set_xlabel('Measurement #')
+axt.set_ylabel('Transmission of Air')
+axt.legend(loc='best')
+add_minor_grid(axt)
+
+# --- right: ion chamber -> photon linear calibration ---
+_up = CAL_UPIC[CAL_CROP:]
+axc.plot(_up, CAL_PHOTONS[CAL_CROP:], 'ko', ms=MS_SAXS, mew=MIN_LW, label='measured')
+_uline = np.linspace(_up.min(), _up.max(), 100)
+axc.plot(_uline, CAL_A * _uline + CAL_B, 'b-', lw=0.75,
+         label=f'fit: {CAL_A:.2e}$\\cdot$Up_IC {CAL_B:+.2e}')
+axc.set_xlabel('Upstream Ion Chamber')
+axc.set_ylabel('Number of Photons')
+axc.legend(loc='upper left')
+add_minor_grid(axc)
+
+save_tight(fig3, 'FigureS3_Calibration.pdf')
+print('wrote FigureS3_Calibration.pdf')
+
+plt.show()

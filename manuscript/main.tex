@@ -1,0 +1,150 @@
+\documentclass[journal=nalefd,manuscript=letter,layout=traditional]{achemso}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{bm}
+\usepackage[hidelinks]{hyperref}
+
+\setkeys{acs}{articletitle=true}
+\SectionNumbersOff
+\graphicspath{{figures/}}
+\sisetup{detect-all=true,range-phrase=--,range-units=single}
+
+\newcommand{\VPAVG}{(VPAVG)$_{30}$}
+\newcommand{\Ainv}{\text{\AA}$^{-1}$}
+
+\title{Reversible $\beta$-Sheet-like Ordering and XPCS-Resolved Dynamic Arrest during Elastin-like Polypeptide Phase Separation}
+
+\author{Doga Ozgulbas}
+\affiliation{Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Miaoqi Chu}
+\affiliation{X-ray Science Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Alex Lavens}
+\affiliation{Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Nicholas Marks}
+\affiliation{Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Ming Du}
+\affiliation{X-ray Science Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Xiaobing Zuo}
+\affiliation{X-ray Science Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Michael Irvin}
+\affiliation{Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Heng Ma}
+\affiliation{Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Soenke Seifert}
+\affiliation{X-ray Science Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Byeongdu Lee}
+\affiliation{X-ray Science Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Rafael Vescovi}
+\affiliation{Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Ian Foster}
+\affiliation{Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Victor Mateevitsi}
+\affiliation{Argonne Leadership Computing Facility, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Don Jensen Jr.}
+\affiliation{X-ray Science Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Arvind Ramanathan}
+\email{ramanathana@anl.gov}
+\affiliation{Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Chase Atkins}
+\affiliation{Bioscience Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Gyorgy Babnigg}
+\email{gbabnigg@anl.gov}
+\affiliation{Bioscience Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+\author{Qingteng Zhang}
+\email{qzhang234@anl.gov}
+\affiliation{X-ray Science Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}
+
+\begin{document}
+
+\begin{abstract}
+Amyloid-like $\beta$-sheet order is often associated with persistent aggregates, but related contacts can also act as reversible physical junctions in protein materials. Temperature-dependent SAXS/WAXS of sequence-defined \VPAVG{} reveals a reversible transition from a dispersed, unassembled state at \SI{10}{\degreeCelsius} to a hierarchical assembly at \SI{30}{\degreeCelsius}. The high-temperature state shows an approximate $I(q)\propto q^{-3.2}$ low-$q$ response and peaks at $q=1.38$ and $0.72$~\Ainv, compatible with $\beta$-sheet-like packing. Isothermal SA-XPCS at \SI{30}{\degreeCelsius} shows a two-step correlation decay whose fast-decay amplitude decreases progressively across \SIrange{76}{167}{\nano\meter} over \SI{47}{\minute}, indicating that an increasing fraction of the scattering ensemble is dynamically arrested within the \SI{2}{\second} observation window. The coexistence of thermally reversible amyloid-like local order with progressive mesoscale arrest demonstrates that amyloid-like packing need not imply irreversible aggregation and provides a route to thermally switchable protein networks.
+\end{abstract}
+
+Amyloid-like $\beta$-sheet ordering occupies an unusual position in protein science and polymer materials. Pathological amyloid fibrils formed by distinct precursor proteins are associated with Alzheimer’s disease,\cite{Masters1985-pnas} Parkinson’s disease,\cite{Serpell2000-pnas} type II diabetes,\cite{Cooper1987-pnas} prion diseases,\cite{Pan1993-pnas} and systemic light-chain amyloidosis.\cite{Glenner1971-science} Many amyloid fibrils are kinetically persistent because extended hydrogen-bonded sheets are reinforced by tightly packed steric-zipper interfaces.\cite{Sawaya2007-nature} Yet amyloid-like order is not intrinsically pathological: functional amyloids mediate peptide-hormone storage and extracellular-matrix formation, and related assemblies are increasingly used as mechanically robust biomaterials.\cite{Maji2009-science,Chapman2002-science} The relevant materials distinction is therefore not simply whether $\beta$-sheet-like order forms, but whether it is effectively irreversible or can be switched by environmental conditions.\cite{Palmadottir2025-bpr}
+
+Reversible $\beta$-sheet-like contacts are attractive as candidate physical junctions because backbone hydrogen bonding can stabilize locally ordered assemblies, whereas hydrated or weakly packed interfaces can remain dynamic or reversible.\cite{Kato2012-cell,Hughes2018-science,Luo2018-nsmb,Palmadottir2025-bpr} Elastin-like polypeptides (ELPs) are well suited to test this possibility because their sequence, molecular weight, and lower critical solution temperature (LCST) behavior can be programmed recombinantly.\cite{Meyer2004-zb,Amiram2011-la,Quiroz2015-mh,Varanko2020-ek,Saha2020-jg} Above the LCST, ELPs undergo hydrophobic desolvation and can form coacervates or hierarchical assemblies depending on sequence, concentration, and thermal history.\cite{Varanko2020-ek,Saha2020-jg,Sing2017-zq} In particular, alanine-containing ELPs can form stiff, thermoresponsive gels through arrested phase separation.\cite{Glassman2015-cw,Glassman2016-pq,Sing2018-er} These studies did not determine whether local $\beta$-sheet-like packing can emerge reversibly while the mesoscale assembly progressively loses mobility.
+
+Resolving whether a structurally assembled state remains dynamically evolving requires a dynamical measurement. In colloidal gels, microscopic relaxation can continue to evolve after the time-averaged structure changes only weakly, a nonequilibrium process commonly termed physical aging.\cite{Bahadur2019-ln,Chen2023-ho} Related heterogeneous relaxation has been resolved during protein liquid--liquid phase separation, protein gelation, and cage relaxation in crowded protein solutions.\cite{Girelli2021-zz,Begam2021-fh,Chushkin2022-bw} During arrested phase separation, a protein-rich morphology can therefore continue to reorganize through junction exchange, stress relaxation, and residual coarsening even when its SAXS profile changes modestly. SA-XPCS directly probes this hidden evolution through speckle decorrelation at the same low-$q$ length scales sampled by SAXS.
+
+Here, temperature-dependent SAXS/WAXS and isothermal SA-XPCS provide complementary structural and dynamical views of concentrated aqueous \VPAVG. At \SI{10}{\degreeCelsius}, the scattering is dominated by molecular dimensions and shows no detectable mesoscale assembly. Heating to \SI{30}{\degreeCelsius} produces hierarchical low-$q$ scattering and high-$q$ peaks compatible with $\beta$-sheet-like packing; cooling restores the low-temperature profile. Separately, isothermal SA-XPCS at \SI{30}{\degreeCelsius} reveals a two-step decay in which the fraction of fast dynamics decreases and the fraction of slow dynamics increases progressively with elapsed time. The central result is therefore a reversible structural transition that coexists with a time-dependent loss of mesoscale mobility.
+
+Figure~1 summarizes the SA-XPCS experiment and the viscoelastic phase-separation pathway. In the upper-left sequence, the continuous background represents the slow protein-rich phase and the cyan domains represent the faster protein-poor solvent phase. As solvent-rich regions appear and grow, they displace and compress the protein-rich phase, driving it toward a coarsened, networklike morphology. This dynamic-asymmetry picture follows Tanaka's viscoelastic phase-separation framework and is consistent with prior scattering studies of arrested ELP gels.\cite{Tanaka2000-qq,Glassman2015-cw} The \VPAVG{} sample (approximately \SI{100}{\milli\gram\per\milli\liter}) contained \SI{20}{\milli\mole\per\liter} HEPES (pH 8), \SI{250}{\milli\mole\per\liter} NaCl, and \SI{2}{\milli\mole\per\liter} DTT. At APS 8-ID-I, a partially coherent \SI{10.91}{\kilo\electronvolt} beam was focused to approximately $10\times10~\mu\mathrm{m}^{2}$. A Rigaku XSPA-500k detector \SI{7.8}{\meter} downstream recorded 100,000 frames at \SI{52}{\kilo\hertz}, giving \SI{19.2}{\micro\second} per frame and \SI{2}{\second} per acquisition. Each acquisition used a previously unexposed sample position. Temporal and azimuthal averaging yielded $I(q)$, while multi-tau correlation analysis yielded $g_2(q,\Delta t)$.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{Setup.pdf}
+  \caption{SA-XPCS measurement of thermally induced \VPAVG{} assembly at APS 8-ID-I. Averaging the coherent scattering frames gives the SAXS intensity $I(q)$, whereas temporal correlation gives $g_2(q,\Delta t)$ and the relaxation of low-$q$ mesoscale density fluctuations. The upper-left four-stage sequence illustrates the viscoelastic phase-separation pathway: protein-poor solvent regions (cyan) appear and grow within a slow, continuous protein-rich phase, driving the protein-rich phase toward a coarsened, networklike morphology.}
+  \label{fig:setup}
+\end{figure}
+
+Figure~2 establishes the low- and high-temperature structures and their reversibility. Two aliquots from the same stock were sealed in \SI{2}{\milli\meter} quartz capillaries and measured at APS 12-ID-B using simultaneous SAXS/WAXS detection at \SI{13.3}{\kilo\electronvolt}.\cite{Xu2022-12IDB,Zheng2022-12IDB} The aliquot labeled ``Measurement'' had undergone more than 10 heating/cooling cycles, whereas the ``Reference'' aliquot had remained at \SI{4}{\degreeCelsius}. At \SI{10}{\degreeCelsius}, the two profiles overlap. A Guinier fit to the Reference data gives an apparent $R_g=22.65\pm0.50$~\AA{} (Figure~S5), consistent with a dispersed, unassembled low-temperature state lacking detectable mesoscale aggregates; this profile is recovered after repeated cycling. At \SI{30}{\degreeCelsius}, both aliquots reproducibly develop an approximate $I(q)\propto q^{-3.2}$ response at low $q$ and peaks at $q=1.38$ and $0.72$~\Ainv. Their close overlap at both temperatures shows reproducible interconversion within the sensitivity of the scattering measurements; Video~S1 independently shows recovery of optical transparency after cooling.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.94\linewidth]{Figure2_SAXS_WAXS.pdf}
+  \caption{Temperature-dependent structure and reversibility of \VPAVG. At \SI{10}{\degreeCelsius}, the Measurement and Reference profiles overlap and the Reference data give an apparent $R_g=22.65\pm0.50$~\AA{} (Figure~S5). Heating produces an approximate $q^{-3.2}$ low-$q$ response and peaks at $q=1.38$ and $0.72$~\Ainv, corresponding to real-space spacings of approximately 4.5 and 8.8~\AA, respectively. The recovery and reproducible re-formation of these signatures demonstrate a thermally reversible structural transition within experimental sensitivity.}
+  \label{fig:static}
+\end{figure}
+
+The two reciprocal-space regimes describe a hierarchical assembly. Power-law small-angle scattering signifies self-similar density heterogeneity over the probed interval rather than a single resolved structural scale.\cite{Teixeira1988-jac} Related gel-forming ELPs exhibit disordered bicontinuous or fractal protein-rich networks produced by arrested phase separation.\cite{Glassman2015-cw,Glassman2016-pq} The 4.5 and 8.8~\AA{} spacings are compatible with strand-to-strand and sheet-to-sheet packing in cross-$\beta$-like assemblies.\cite{Sawaya2007-nature,Sunde1997-jmb} Their concurrent appearance with the low-$q$ response establishes coexistence of local ordered contacts and mesoscale density heterogeneity, but does not by itself prove that the contacts are the network junctions. Hydrated or weakly packed $\beta$-sheet interfaces can form dynamic hydrogel contacts and reversible fibrils.\cite{Kato2012-cell,Hughes2018-science,Luo2018-nsmb} The disappearance of the peaks on cooling therefore identifies thermally labile $\beta$-sheet-like associations that are plausible, rather than uniquely established, physical junctions.
+
+To resolve the evolution at fixed thermal driving force, a freshly loaded sample was held at \SI{6}{\degreeCelsius} for more than \SI{30}{\minute}, ramped to \SI{20}{\degreeCelsius} at \SI{5}{\degreeCelsius\per\minute}, and then ramped to \SI{30}{\degreeCelsius} at \SI{1}{\degreeCelsius\per\minute} to limit temperature overshoot. The waiting time $t_w$ was defined from the moment the calibrated RTD readout reached \SI{30}{\degreeCelsius}. The sample was then followed by simultaneous SAXS and SA-XPCS for up to \SI{7863}{\second} (Figure~3). The SAXS intensity initially lies close to the \SI{6}{\degreeCelsius} reference profile and subsequently rises by more than two orders of magnitude at low $q$, while remaining broad and monotonic (Figure~3a and Figure~S6). This evolution documents increasing mesoscale density contrast without selection of a narrow domain spacing. Reliable correlation functions could be extracted once the coherent intensity became sufficient, beginning at $t_w=5039$~s.
+
+The intensity autocorrelation function is
+\begin{equation}
+ g_2(q,\Delta t)=\frac{\langle I(q,t)I(q,t+\Delta t)\rangle_t}{\langle I(q,t)\rangle_t^2},
+ \label{eq:g2}
+\end{equation}
+where $I(q,t)$ is the coherent scattering intensity and $\Delta t$ is the delay time. Through the Siegert relation, $g_2$ reports the relaxation of density fluctuations at length scale $2\pi/q$. At $q=0.00376$~\Ainv{} (approximately \SI{167}{\nano\meter}), the correlation functions show a two-step decay: an initial millisecond-scale relaxation followed by an apparent plateau that persists throughout the \SI{2}{\second} acquisition (Figure~3b). With increasing $t_w$, the amplitude of the first decay decreases and the plateau rises. The fraction of fast dynamics therefore decreases while the fraction of dynamics arrested on the experimental time window increases, rather than all relaxation times shifting uniformly. Such two-step relaxation and growth of a slow component are characteristic of heterogeneous kinetic arrest in protein and colloidal gels.\cite{Begam2021-fh,Bahadur2019-ln,Chen2020-fn}
+
+The correlation functions were parameterized by
+\begin{equation}
+ g_2(q,\Delta t)=1+\beta\left[
+ f\exp\!\left[-\left(\frac{\Delta t}{\tau_{\mathrm{fast}}}\right)^{p_{\mathrm{fast}}}\right]
+ +(1-f)\exp\!\left[-\left(\frac{\Delta t}{\tau_{\mathrm{slow}}}\right)^{p_{\mathrm{slow}}}\right]
+ \right]^2,
+ \label{eq:twomode}
+\end{equation}
+where $\beta$ is the speckle contrast, $f$ is the fitted fraction of fast dynamics, $1-f$ is the fitted fraction of slow dynamics, $\tau_{\mathrm{fast}}$ and $\tau_{\mathrm{slow}}$ are effective relaxation times, and $p_{\mathrm{fast}}$ and $p_{\mathrm{slow}}$ are stretching exponents. At each elapsed time, the five measured $q$ bins were fitted globally with the stretching exponents shared across $q$. This phenomenological decomposition describes the observed first decay and persistent plateau without assigning either mode to a unique molecular mechanism. Because $\tau_{\mathrm{slow}}$ frequently exceeds the acquisition window, it is an extrapolated descriptor rather than a directly sampled terminal time; the primary quantitative descriptor is the directly constrained fast fraction $f$.
+
+The fitted fast fraction decreases monotonically at every measured $q$, from $f=0.42$--0.72 at $t_w=5039$~s to $f=0.01$--0.14 at $t_w=7863$~s (Figure~3c). Equivalently, the fitted slow fraction $1-f$ rises from 0.28--0.58 to 0.86--0.99 over approximately \SI{47}{\minute}. The common trend across $q=0.00376$--0.00827~\Ainv{} (approximately \SIrange{76}{167}{\nano\meter}) shows that the loss of mobility spans the measured mesoscale range. Thus, a statistically increasing fraction of the scattering ensemble is dynamically arrested within the \SI{2}{\second} window. XPCS does not locate those dynamically arrested regions, and $1-f$ is not a direct geometric volume fraction because the scattering contribution is weighted by structure and contrast. The stretching exponents remain below unity. Over most of the fitted interval, $\tau_{\mathrm{fast}}(q)$ decreases with $q$ with an approximately diffusive-like exponent, whereas the final-time exponent becomes poorly constrained as $f$ approaches zero; $\tau_{\mathrm{slow}}$ is not used for mechanistic scaling because it lies beyond the acquisition window (Figure~S7). Correlation functions at the remaining $q$ values are shown in Figure~S8. Fresh-position acquisition and an independent higher-flux control show no systematic flux-dependent change in the correlation decay (Figure~S4).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.98\linewidth]{Figure3_Isothermal_SAXPCS.pdf}
+  \caption{Isothermal structure evolution and dynamic arrest of \VPAVG{} at \SI{30}{\degreeCelsius}. (a) Buffer-subtracted SAXS profiles show continued growth of low-$q$ density contrast. (b) Representative $g_2(q,\Delta t)$ at $q=0.00376$~\Ainv; solid lines are global two-mode fits. With elapsed time, the amplitude of the first decay decreases and the persistent plateau rises. (c) The fitted fraction of fast dynamics, $f$, decreases at all five $q$ values; equivalently, the fitted slow fraction, $1-f$, increases. Error bars represent fit uncertainties.}
+  \label{fig:xpcs}
+\end{figure}
+
+The simultaneous growth of low-$q$ SAXS intensity and decline of the fast fraction establish complementary aspects of network formation: the protein-rich morphology continues to develop while the fraction of slow dynamics increases. This coupling is consistent with network-forming arrested phase separation in a dynamically asymmetric protein--solvent mixture, for which concentration fluctuations produce a connected dense phase and viscoelastic constraints suppress relaxation.\cite{Tanaka2000-qq,Girelli2021-zz,Begam2021-fh,Lu2008-nature} Related ELPs form bicontinuous networks with long stress-relaxation times and gel-like elasticity.\cite{Glassman2015-cw,Glassman2016-pq,Sing2018-er} The present measurements add a local structural element: the high-temperature state contains thermally reversible $\beta$-sheet-like contacts while the low-$q$ assembly progressively loses mobility.
+
+Three limitations define the appropriate interpretation. First, the $\beta$-sheet-like assignment is based on WAXS peak positions and is not an independent spectroscopic determination of secondary structure. Second, the high-$q$ ordering and low-$q$ XPCS dynamics were measured in separate experiments, so the data do not establish a time-resolved causal relation between peak growth and arrest. Third, the \SI{2}{\second} XPCS window quantifies the fraction of dynamics arrested on that time scale but cannot determine the infinite-time nonergodicity factor or establish terminal arrest at arbitrarily long delay times. Subject to those constraints, the combined data support network-forming arrested phase separation containing candidate, thermally labile $\beta$-sheet-like junctions.
+
+In summary, thermally induced association of \VPAVG{} produces a hierarchical protein-rich assembly with reversible $\beta$-sheet-like local order and progressively suppressed mesoscale fluctuations. SAXS/WAXS resolves reversible reorganization from a dispersed state to a network-like assembly, while SA-XPCS shows a near-complete shift from fast to slow dynamics across \SIrange{76}{167}{\nano\meter}. The result establishes a sequence-defined protein-polymer system in which amyloid-like local packing is thermally reversible even as the mesoscale assembly becomes dynamically arrested at high temperature.
+
+\textbf{Experimental Section.} The Sanger-verified expression construct encoded an N-terminal His-tagged \VPAVG{} protein; the complete amino-acid sequence is given in the Supporting Information. Recombinant \VPAVG{} was expressed in \textit{E. coli}, purified by immobilized metal-affinity chromatography, and buffer exchanged into \SI{20}{\milli\mole\per\liter} HEPES, \SI{250}{\milli\mole\per\liter} NaCl, and \SI{2}{\milli\mole\per\liter} DTT at pH 8. Purification was monitored by SDS-PAGE. Protein concentration was determined from $A_{280}$ using a NanoDrop spectrophotometer and the sequence-specific molar extinction coefficient used during sample preparation; the final concentration was approximately \SI{100}{\milli\gram\per\milli\liter}. Detailed synthesis, purification, sample-cell, calibration, and fitting procedures are provided in the Supporting Information.
+% AUTHOR CHECK: Confirm the exact epsilon_280 value before submission; see AUTHOR_TODO.md.
+
+Temperature-dependent SAXS/WAXS measurements were performed at APS 12-ID-B with a \SI{13.3}{\kilo\electronvolt} beam of approximately $100\times150~\mu\mathrm{m}^{2}$ and an incident flux of approximately $5\times10^{11}$ photons s$^{-1}$. Simultaneous SAXS/WAXS exposures were \SI{0.1}{\second}. SAXS and WAXS were acquired using an Eiger2 9M detector at an approximately \SI{2}{\meter} sample-to-detector distance and a Pilatus 300K detector at \SI{0.42}{\meter}, respectively. Buffer and capillary backgrounds were subtracted, and the SAXS and WAXS profiles were stitched across their overlap. SA-XPCS was performed at APS 8-ID-I with a \SI{10.91}{\kilo\electronvolt}, $10\times10~\mu\mathrm{m}^{2}$ partially coherent beam and a Rigaku XSPA-500k detector \SI{7.8}{\meter} downstream. The aluminum cell was conductively coupled to an anodized-aluminum holder on a Peltier-controlled stage with a resistive heater, and a calibrated RTD adjacent to the Peltier element supplied the controller readout. Before the isothermal sequence, the sample was held at \SI{6}{\degreeCelsius} for more than \SI{30}{\minute}, ramped to \SI{20}{\degreeCelsius} at \SI{5}{\degreeCelsius\per\minute}, and then to \SI{30}{\degreeCelsius} at \SI{1}{\degreeCelsius\per\minute}; $t_w=0$ was defined when the RTD readout reached \SI{30}{\degreeCelsius}. Each acquisition contained 100,000 frames at \SI{52}{\kilo\hertz}. The isothermal sequence was acquired from one loaded sample; the fresh positions provide spatial sampling within that preparation rather than independent sample replication. Further acquisition, fitting, and radiation-control details are provided in the Supporting Information.
+
+\section*{Supporting Information}
+Recombinant synthesis and purification; sample environments; SAXS/WAXS calibration; SA-XPCS analysis and global fitting; radiation controls; Guinier analysis; complete isothermal SAXS evolution; length-scale-dependent XPCS parameters; correlation functions at all measured $q$ values; and a linked video of the reversible thermal transition.
+
+\section*{Data and Code Availability}
+Reduced data and analysis/figure-generation code are publicly available at \url{https://github.com/qzhang234/PubCode-2021-IDPP}. The repository includes the 8-ID-I and 12-ID-B datasets used for the figures, radiation-control data, and analysis scripts. Raw beamline data are available from the corresponding authors upon reasonable request.
+
+\section*{Acknowledgments}
+This research was supported by Laboratory Directed Research and Development funding (LDRD 2021-0138) from Argonne National Laboratory, provided by the Director, Office of Science, of the U.S. Department of Energy under Contract No. DE-AC02-06CH11357. This research used resources of the Advanced Photon Source, a U.S. Department of Energy Office of Science User Facility operated for the DOE Office of Science by Argonne National Laboratory under Contract No. DE-AC02-06CH11357. The authors thank the staff of APS beamlines 8-ID-I and 12-ID-B for technical support.
+
+\textbf{AI-assisted manuscript and code preparation.} During preparation of this work, the authors used OpenAI ChatGPT to assist with manuscript organization, drafting, and language revision. Argo, Argonne National Laboratory's internal generative AI interface, was used to access Anthropic Claude for development of Python code used in data processing, quantitative analysis, fitting, uncertainty propagation, and generation of data-derived figures. The authors independently reviewed and revised the manuscript, audited the code line by line, reran all analyses, regenerated all figures, and verified the reported results. The authors made all scientific and editorial decisions and take full responsibility for the content of the publication.
+
+\section*{Conflict of Interest}
+The authors declare no competing financial interest.
+
+\bibliography{reference}
+
+\end{document}

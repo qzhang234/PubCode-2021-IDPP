@@ -1,0 +1,253 @@
+\documentclass[11pt]{article}
+
+\usepackage[letterpaper,margin=0.82in]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{float}
+\usepackage[numbers,sort&compress]{natbib}
+
+\graphicspath{{figures/}}
+\sisetup{detect-all=true,range-phrase=--,range-units=single}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\setlist[itemize]{leftmargin=1.4em,itemsep=0.1em,topsep=0.2em}
+\captionsetup{font=small,labelfont=bf}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Supporting Information}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlength{\headheight}{14pt}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\theequation}{S\arabic{equation}}
+
+\newcommand{\VPAVG}{(VPAVG)$_{30}$}
+\newcommand{\Ainv}{\text{\AA}$^{-1}$}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries Supporting Information}\\[0.5em]
+{\large Reversible $\beta$-Sheet-like Ordering and XPCS-Resolved Dynamic Arrest during Elastin-like Polypeptide Phase Separation}\\[1.2em]
+{\normalsize Doga Ozgulbas$^{1}$, Miaoqi Chu$^{2}$, Alex Lavens$^{1}$, Nicholas Marks$^{1}$, Ming Du$^{2}$, Xiaobing Zuo$^{2}$,\\
+Michael Irvin$^{1}$, Heng Ma$^{1}$, Soenke Seifert$^{2}$, Byeongdu Lee$^{2}$, Rafael Vescovi$^{1}$, Ian Foster$^{1}$,\\
+Victor Mateevitsi$^{3}$, Don Jensen Jr.$^{2}$, Arvind Ramanathan$^{1,*}$, Chase Atkins$^{4}$, Gyorgy Babnigg$^{4,*}$, and Qingteng Zhang$^{2,*}$}\\[0.8em]
+{\small $^{1}$Data Science and Learning Division, Argonne National Laboratory, Lemont, Illinois 60439, United States\\
+$^{2}$X-ray Science Division, Argonne National Laboratory, Lemont, Illinois 60439, United States\\
+$^{3}$Argonne Leadership Computing Facility, Argonne National Laboratory,\\ Lemont, Illinois 60439, United States\\
+$^{4}$Bioscience Division, Argonne National Laboratory, Lemont, Illinois 60439, United States}\\[0.6em]
+{\small $^{*}$ramanathana@anl.gov; gbabnigg@anl.gov; qzhang234@anl.gov}
+\end{center}
+
+\section*{Supporting Information Contents}
+\begin{itemize}
+  \item Recombinant synthesis and purification of \VPAVG
+  \item Sample environments and X-ray measurement protocols
+  \item SAXS/WAXS reduction and absolute-intensity calibration
+  \item SA-XPCS temperature protocol, correlation analysis, and global two-mode fitting
+  \item Experimental replication, radiation-damage mitigation, and flux controls
+  \item Code and reduced-data availability
+  \item AI-assisted analysis-code development
+  \item Supporting results for reversibility, the low-temperature unassembled state, isothermal SAXS evolution, and XPCS fit parameters
+  \item Video S1 and Figures S1--S8
+\end{itemize}
+
+\section{Recombinant Synthesis and Purification of \texorpdfstring{\VPAVG}{(VPAVG)30}}
+
+\subsection{Materials}
+Shrimp alkaline phosphatase, PfuUltra II Fusion HS DNA polymerase, GoTaq Green Master Mix, and T4 DNA ligase with PEG4000 additive were purchased from Thermo Fisher Scientific. Exonuclease I was purchased from New England Biolabs. CircLigase ssDNA ligase was purchased from Lucigen, and KOD Hot Start DNA polymerase was purchased from Sigma-Aldrich. T4 DNA ligase and CircLigase ssDNA ligase are distinct enzymes used in separate steps of the gene-construction workflow. PCR products and plasmids were purified using Monarch PCR and DNA Cleanup kits and Monarch Plasmid Miniprep columns. DNA was recovered from agarose gels using the Monarch DNA Gel Extraction kit. Oligonucleotides and the 5$'$-phosphorylated synthetic template used for rolling-circle amplification were obtained from Integrated DNA Technologies. \textit{E. coli} BL21(DE3)-Gold cells were obtained from Stratagene.
+
+\subsection{Gene construction}
+The repetitive ELP gene was prepared by overlap-extension rolling-circle amplification (OERCA).\cite{Amiram2011-la} A single-stranded DNA template encoding five VPAVG repeats was circularized in a \SI{20}{\micro\liter} reaction containing \SI{10}{\pico\mole} template, \SI{2}{\micro\liter} of 10$\times$ CircLigase buffer, \SI{1}{\micro\liter} of \SI{1}{\milli\mole\per\liter} ATP, \SI{1}{\micro\liter} of \SI{50}{\milli\mole\per\liter} MnCl$_2$, and 100 U CircLigase. The reaction was incubated for \SI{1}{\hour} at \SI{60}{\degreeCelsius}, heat-inactivated for \SI{10}{\minute} at \SI{80}{\degreeCelsius}, purified, and treated with exonuclease I for \SI{1}{\hour} at \SI{37}{\degreeCelsius} to remove unreacted linear template.
+
+OERCA was performed with 300 ng circular template, \SI{1.5}{\micro\liter} each of \SI{50}{\micro\mole\per\liter} primers A1 and A2, \SI{2}{\micro\liter} of 70\% GC dNTP mix, \SI{2}{\micro\liter} of \SI{25}{\milli\mole\per\liter} MgSO$_4$, \SI{10}{\micro\liter} of 10$\times$ PfuUltra II buffer, \SI{5}{\micro\liter} DMSO, and \SI{2}{\micro\liter} PfuUltra II polymerase in a total volume of \SI{100}{\micro\liter}. Cycling consisted of \SI{2}{\minute} at \SI{95}{\degreeCelsius}; 30 cycles of \SI{20}{\second} at \SI{95}{\degreeCelsius}, \SI{20}{\second} at \SI{54}{\degreeCelsius}, and \SI{90}{\second} at \SI{72}{\degreeCelsius}; and a final \SI{10}{\minute} at \SI{72}{\degreeCelsius}. Products above approximately 1.2 kb were isolated from a 0.8\% agarose gel.
+
+Ligation-independent cloning adapters were introduced by PCR using primers B1 and B2 (Figure~S2), and the products were inserted into pMCSG53.\cite{Aslanidis1990-lm,Eschenfeldt2009-bi} Constructs were transformed into \textit{E. coli} BL21(DE3)-Gold, screened for soluble expression, and verified by Sanger sequencing. The selected construct encoded the amino-acid sequence \texttt{MHHHHHHSSGVDLGTENLYFQSNAV(VPAVG)30}, comprising an N-terminal affinity/fusion sequence followed by 30 VPAVG repeats.
+
+\subsection{Protein expression and purification}
+Fresh transformants were grown in Terrific Broth containing \SI{10}{\milli\mole\per\liter} MgSO$_4$ and \SI{300}{\micro\gram\per\milli\liter} ampicillin at \SI{37}{\degreeCelsius} to an optical density of 0.6--0.8 at 600 nm. Cultures were cooled to \SI{18}{\degreeCelsius}, induced with \SI{0.2}{\milli\mole\per\liter} IPTG, and grown overnight. Cells were harvested at $5000\times g$, resuspended in ice-cold lysis buffer (\SI{500}{\milli\mole\per\liter} NaCl, 5 vol\% glycerol, \SI{50}{\milli\mole\per\liter} HEPES at pH 8.0, \SI{20}{\milli\mole\per\liter} imidazole, and \SI{10}{\milli\mole\per\liter} 2-mercaptoethanol), treated with \SI{1}{\milli\gram\per\milli\liter} lysozyme for \SI{10}{\minute}, sonicated, and clarified at $29{,}000\times g$.\cite{Makowska-Grzyska2014-cz}
+
+The supernatant was applied to \SI{5}{\milli\liter} IMAC Sepharose High Performance resin, washed with lysis buffer, and eluted with lysis buffer containing \SI{500}{\milli\mole\per\liter} imidazole. Purification fractions were monitored by SDS-PAGE. The purified protein was exchanged into \SI{20}{\milli\mole\per\liter} HEPES at pH 8.0, \SI{250}{\milli\mole\per\liter} NaCl, and \SI{2}{\milli\mole\per\liter} DTT and concentrated using a 10 kDa molecular-weight-cutoff centrifugal concentrator. Protein concentration was determined by direct $A_{280}$ measurement on a NanoDrop spectrophotometer using the sequence-specific molar extinction coefficient applied during sample preparation. The final concentration was approximately \SI{100}{\milli\gram\per\milli\liter}; samples were stored at \SI{4}{\degreeCelsius}, and freshly prepared protein was used for the X-ray measurements.
+% AUTHOR CHECK: Confirm the exact epsilon_280 value before submission; see AUTHOR_TODO.md.
+
+\section{Sample Environments and X-ray Measurements}
+
+\subsection{Temperature-dependent SAXS and WAXS}
+Two aliquots from the same \VPAVG{} stock were sealed in \SI{2}{\milli\meter} quartz capillaries. The aliquot designated Measurement underwent more than 10 heating/cooling cycles across the thermal transition, whereas the Reference aliquot remained refrigerated at \SI{4}{\degreeCelsius}. Both aliquots were subsequently measured at \SI{10}{\degreeCelsius} and \SI{30}{\degreeCelsius} during APS run 2021-1 at beamline 12-ID-B. The \SI{13.3}{\kilo\electronvolt} beam had an approximate size of $100\times150~\mu\mathrm{m}^{2}$ and an incident flux of approximately $5\times10^{11}$ photons s$^{-1}$.\cite{Xu2022-12IDB,Zheng2022-12IDB} SAXS was recorded with an Eiger2 9M detector at an approximately \SI{2}{\meter} sample-to-detector distance, while WAXS was recorded with a Pilatus 300K detector at \SI{0.42}{\meter}. The Pilatus detector was mounted above the direct-beam path, allowing the transmitted beam to continue to the SAXS detector so that SAXS and WAXS were acquired simultaneously with a \SI{0.1}{\second} exposure. Buffer and capillary backgrounds were subtracted, and the SAXS and WAXS profiles were stitched over their common $q$ interval.
+
+\subsection{Isothermal SA-XPCS}
+SA-XPCS was performed at APS 8-ID-I. Approximately \SI{100}{\milli\gram\per\milli\liter} \VPAVG{} in \SI{20}{\milli\mole\per\liter} HEPES (pH 8), \SI{250}{\milli\mole\per\liter} NaCl, and \SI{2}{\milli\mole\per\liter} DTT was loaded into an aluminum cell containing a \SI{3}{\milli\meter}-diameter, \SI{2}{\milli\meter}-thick liquid chamber sealed by \SI{0.127}{\milli\meter} polycarbonate windows (Figure~S1). The cell was inserted into an anodized-aluminum holder in one temperature zone of the Quantum Northwest 3$\times$3 stage. Each zone was driven by a Peltier element and a resistive heater, and a calibrated resistance-temperature detector (RTD) embedded adjacent to the Peltier stage supplied the controller feedback and readout.\cite{Ozgulbas2023-oz} The aluminum holder and aluminum cell provided direct conductive thermal coupling. Samples were held at \SI{6}{\degreeCelsius} before measurement. A partially coherent \SI{10.91}{\kilo\electronvolt} X-ray beam with 0.03\% FWHM bandwidth and incident flux $1.2\times10^{10}$ photons s$^{-1}$ was focused to approximately $10\times10~\mu\mathrm{m}^{2}$. Coherent scattering was recorded \SI{7.8}{\meter} downstream with a Rigaku XSPA-500k photon-counting detector comprising 1024$\times$512 pixels with a \SI{76}{\micro\meter} pitch and a \SI{320}{\micro\meter}-thick silicon sensor. The detector was operated at its maximum \SI{52}{\kilo\hertz} frame rate in 2-bit mode; each acquisition contained 100,000 frames, corresponding to \SI{19.2}{\micro\second} per frame and \SI{2}{\second} total duration.\cite{Zhang2021-jl}
+
+For the isothermal experiment, the loaded sample was first held at \SI{6}{\degreeCelsius} for more than \SI{30}{\minute}. It was then heated to \SI{20}{\degreeCelsius} at \SI{5}{\degreeCelsius\per\minute}, followed by a slower ramp from \SI{20}{\degreeCelsius} to the target temperature of \SI{30}{\degreeCelsius} at \SI{1}{\degreeCelsius\per\minute}. The two-stage protocol was used to reduce overshoot near the target temperature. The waiting time $t_w$ was set to zero when the calibrated RTD readout reached \SI{30}{\degreeCelsius}; data collected during the preceding ramps were not included in the isothermal waiting-time series. SAXS profiles were obtained by temporal and azimuthal averaging. Correlation functions were extracted at selected elapsed times once the low-$q$ intensity provided sufficient photon statistics.
+
+\subsection{Experimental replication and spatial sampling}
+The isothermal SAXS/SA-XPCS sequence was acquired from one freshly loaded sample, and no independent sample replicate was collected. Each \SI{2}{\second} acquisition was recorded at a previously unexposed spatial position, providing repeated spatial sampling within the same preparation but not independent sample replication. The five $q$ bins probe different length scales within the same time series and likewise are not independent replicates. Uncertainties shown for fitted quantities are one-standard-deviation uncertainties propagated from the correlation-function errors through the nonlinear fit; they do not represent between-sample variability.
+
+\section{SAXS/WAXS Reduction and Absolute-Intensity Calibration}
+
+\subsection{12-ID-B SAXS/WAXS processing}
+The beamline-reduced \texttt{.avg} files contained $q$, $I(q)$, and the corresponding intensity uncertainty. For each aliquot and temperature, the capillary-plus-buffer profile was subtracted using a factor of 1.00 for SAXS and the empirical factor of 0.95 used in the original WAXS reduction; sample and background uncertainties were added in quadrature. The WAXS intensity and uncertainty were then multiplied by the ratio of the mean SAXS and WAXS intensities over their common $q$ interval, and the two profiles were concatenated and sorted by $q$. The uncertainty of this overlap scaling factor was not propagated.
+
+For Figure~2, the low-$q$ slope was obtained by an unweighted linear fit of $\log_{10} I$ against $\log_{10} q$ over $0.012<q<0.040$~\Ainv{} for the Reference aliquot at \SI{30}{\degreeCelsius}. The two WAXS features were fitted independently to a Gaussian plus linear background over $0.48<q<1.00$ and $1.18<q<1.70$~\Ainv, respectively. The reduced profiles and scripts implementing the background subtraction, overlap scaling, Guinier analysis, power-law fit, and peak fits are available in the public repository identified in Section~6.
+
+\subsection{8-ID-I absolute-intensity calibration}
+For the 8-ID-I data, the differential scattering cross section was calculated as
+\begin{equation}
+ I(q)=A_s I_s(q)-A_b I_b(q),
+ \end{equation}
+where $I_s(q)$ and $I_b(q)$ are the detector intensities from the sample and buffer. The conversion factors were
+\begin{equation}
+ A_j=(F_jT_jt_{\mathrm{exp}}L\Delta\Omega)^{-1},\qquad j\in\{s,b\},
+ \end{equation}
+where $F_j$ is the incident photon flux, $T_j$ is the transmission, $t_{\mathrm{exp}}$ is the exposure time, $L$ is the sample thickness, and $\Delta\Omega=(d_{\mathrm{pix}}/D)^2$ is the solid angle per detector pixel.\cite{Sheyfer2020-yb}
+
+Sample transmission was obtained from ion chambers immediately upstream and downstream of the sample. Across the attenuation series, the transmission of the intervening air path was independent of beam intensity within uncertainty, with a mean value of $0.8679\pm0.0009$ (Figure~S3a; mean $\pm$ standard deviation). The upstream ion-chamber signal was converted to incident photon flux by calibration against a PIN diode positioned in the flight path upstream of the beamstop. The measured photon flux varied linearly with the upstream ion-chamber readout (Figure~S3b). The absolute-scale SAXS evolution in Figure~S6 used this transmission and flux calibration.
+
+\section{SA-XPCS Correlation Analysis}
+The intensity autocorrelation function was calculated using a multi-tau algorithm,
+\begin{equation}
+ g_2(q,\Delta t)=\frac{\langle I(q,t)I(q,t+\Delta t)\rangle_t}{\langle I(q,t)\rangle_t^2}.
+ \end{equation}
+Azimuthal averaging was performed in five contiguous bins of nominal width $1.13\times10^{-3}$~\Ainv, centered at $q=0.00376$, 0.00489, 0.00602, 0.00714, and 0.00827~\Ainv. The centers correspond to $2\pi/q$ values of approximately 167, 128, 104, 88, and \SI{76}{\nano\meter}.
+
+The two-step correlation functions were parameterized as
+\begin{equation}
+ g_2(q,\Delta t)=1+\beta\left[
+ f\exp\!\left[-\left(\frac{\Delta t}{\tau_{\mathrm{fast}}}\right)^{p_{\mathrm{fast}}}\right]
+ +(1-f)\exp\!\left[-\left(\frac{\Delta t}{\tau_{\mathrm{slow}}}\right)^{p_{\mathrm{slow}}}\right]
+ \right]^2.
+ \end{equation}
+Here, $\beta$ is the speckle contrast, $f$ is the fitted fraction of fast dynamics, $1-f$ is the fitted fraction of slow dynamics, $\tau_{\mathrm{fast}}$ and $\tau_{\mathrm{slow}}$ are effective relaxation times, and $p_{\mathrm{fast}}$ and $p_{\mathrm{slow}}$ are Kohlrausch--Williams--Watts exponents. The contrast was fixed at $\beta=0.135$, as determined from the measured short-delay contrast, and the baseline was fixed at 1. For each elapsed time, all five $q$ bins were fitted jointly with $p_{\mathrm{fast}}$ and $p_{\mathrm{slow}}$ shared across $q$; $f$, $\tau_{\mathrm{fast}}$, and $\tau_{\mathrm{slow}}$ were allowed to vary independently with $q$.
+
+Fits were performed with \texttt{scipy.optimize.least\_squares} by minimizing the error-weighted residuals $[g_{2,\mathrm{model}}-g_{2,\mathrm{data}}]/\sigma_{g_2}$, using the pointwise $g_2$ uncertainties stored in the reduced HDF files. Initial values were $p_{\mathrm{fast}}=p_{\mathrm{slow}}=0.5$, $\tau_{\mathrm{fast}}=10^{-3}$~s, $f=0.5$, and $\tau_{\mathrm{slow}}=100$~s. Bounds were $0.2\le p_{\mathrm{fast}},p_{\mathrm{slow}}\le3$, $10^{-6}\le\tau_{\mathrm{fast}}\le10$~s, $0\le f\le1$, and $1\le\tau_{\mathrm{slow}}\le10^4$~s. The maximum number of function evaluations was 40,000. Global fits with reduced $\chi^2\ge10$ were excluded from the plotted fit-parameter trends. The covariance matrix was estimated as $(J^{\mathrm{T}}J)^{-1}$ from the Jacobian of the error-weighted residuals at the solution, and reported one-standard-deviation parameter uncertainties are the square roots of its diagonal elements. Power-law relations $\tau=Aq^{\gamma}$ in Figure~S7 were obtained by weighted linear regression of $\ln\tau$ against $\ln q$, with $\sigma_{\ln\tau}=\sigma_{\tau}/\tau$.
+
+The slow component remains only partially relaxed during the \SI{2}{\second} acquisition and frequently yields $\tau_{\mathrm{slow}}>2$~s. It is therefore an effective extrapolation rather than a fully sampled terminal relaxation time. Conclusions regarding arrest are based primarily on directly observed features: the decreasing amplitude of the first decay, the rising plateau, and the systematic decrease in $f$, equivalently the increase in the slow fraction $1-f$. The monotonic rise of $1-f$ indicates that a statistically increasing fraction of the scattering ensemble is dynamically arrested within the experimental window. XPCS does not determine where those regions are located, and $1-f$ is not a direct geometric volume fraction because scattering contributions are weighted by structure and contrast. Because the measurement does not reach infinite delay, $1-f$ is also not identified with the formal infinite-time nonergodicity factor. Figure~S7 reports all auxiliary fit parameters; Figure~S8 shows the measured correlation functions and fits at the four additional $q$ values.
+
+\section{Radiation-Damage Mitigation and Controls}
+A Cartesian grid of $100\times100$ sample positions was defined in the aluminum cell, with adjacent points separated by at least one beam diameter. Every \SI{2}{\second} acquisition was collected at a previously unexposed position, preventing cumulative dose from tracking the elapsed time of the isothermal experiment.
+
+An independent dose-rate test was performed after the APS Upgrade using a \SI{20}{\milli\gram\per\milli\liter} \VPAVG{} sample. Attenuation selected incident fluxes from $2.7\times10^{11}$ to $4.9\times10^{11}$ photons s$^{-1}$, approximately 23--41 times the flux used for the main experiment. The SAXS line shapes and $g_2$ decays showed no systematic flux dependence (Figure~S4). Because this control used a lower protein concentration and a different beam configuration than the primary experiment, it tests for gross flux-driven artifacts rather than reproducing the complete main-measurement condition.
+
+\section{Code and Reduced-Data Availability}
+The reduced datasets and all analysis and figure-generation code used for this manuscript are publicly available at \url{https://github.com/qzhang234/PubCode-2021-IDPP}. The repository includes the reduced 12-ID-B SAXS/WAXS data, averaged 8-ID-I XPCS HDF files, radiation-control data, absolute-intensity calibration inputs, and scripts used to generate the main-text and Supporting Information figures. The repository README maps each script and output file to the corresponding manuscript figure. Raw detector-frame datasets are not included in the repository and are available from the corresponding authors upon reasonable request.
+
+\section{AI-Assisted Analysis-Code Development}
+The Python scripts used for data processing, quantitative analysis, fitting, uncertainty propagation, and generation of data-derived figures were developed using Anthropic Claude accessed through Argo, Argonne National Laboratory's internal generative AI interface. The scripts read the experimental and reduced SAXS/WAXS and XPCS datasets; perform background subtraction, SAXS/WAXS stitching, absolute-intensity calibration, Guinier and peak fitting, global two-mode XPCS fitting, uncertainty propagation, and $q$-dependent scaling analysis; and generate the data-derived plots used in the manuscript and Supporting Information. The authors audited the scripts line by line, verified the analysis inputs and assumptions, reran the full analysis, regenerated all data-derived figures, and confirmed the reported numerical outputs. The scripts operate on measured or reduced data and do not generate experimental observations. All analysis choices, scientific interpretations, and reporting decisions were independently reviewed and approved by the authors.
+
+\section{Supporting Structural and Dynamical Results}
+
+\subsection{Macroscopic reversibility}
+Video~S1 provides a direct visual demonstration of thermal reversibility. Brief warming of a capillary containing \VPAVG{} produces turbidity within approximately \SI{5}{\second}, indicating structures large enough to scatter visible light. After removal of the heat source, the sample returns to optical transparency in approximately \SI{60}{\second}. This recovery is consistent with the overlap of the cycled Measurement and refrigerated Reference SAXS/WAXS profiles at \SI{10}{\degreeCelsius}. Optical transparency does not specify molecular structure, but independently confirms dissolution of the mesoscale assembly on cooling.
+
+\subsection{Low-temperature unassembled state}
+The Reference profile at \SI{10}{\degreeCelsius} contains a Guinier regime satisfying $q_{\mathrm{max}}R_g=1.246$ (Figure~S5). A linear fit of $\ln I(q)$ against $q^2$ gives
+\begin{equation}
+ R_g=22.65\pm0.50~\text{\AA}.
+ \end{equation}
+The fitted size is molecular in scale and is consistent with a dispersed, unassembled low-temperature state rather than persistent mesoscale aggregates. Because the protein concentration is high, this value is reported as an apparent $R_g$; weak intermolecular structure-factor contributions cannot be excluded. Recovery of the same low-temperature profile after repeated cycling establishes that the large high-temperature assembly is no longer detectable after cooling.
+
+\subsection{Isothermal SAXS evolution at \SI{30}{\degreeCelsius}}
+Figure~S6 shows the full SAXS sequence. At $t_w=0$, the profile is close to the \SI{6}{\degreeCelsius} reference. The low-$q$ intensity then increases continuously and ultimately by more than two orders of magnitude, documenting progressive growth of mesoscale density contrast. The profile remains broad throughout, consistent with hierarchical network development rather than selection of a narrow domain spacing. The most pronounced increase occurs between $t_w=4088$ and 5039~s, after which the intensity continues to grow through 7863~s. The correlation analysis in Figure~3 uses $t_w=5039$--7863~s; earlier scattering was insufficient for reliable two-step correlations at the \SI{19.2}{\micro\second} frame time.
+
+\subsection{Length-scale-dependent relaxation parameters}
+Figure~S7 shows parameters from the global fits. Both shared stretching exponents remain below unity: $p_{\mathrm{fast}}\approx0.5$--0.7 and $p_{\mathrm{slow}}\approx0.25$--0.5. These stretched decays indicate broad relaxation-time distributions, consistent with a heterogeneous, nonequilibrium network.\cite{Begam2021-fh,Bahadur2019-ln}
+
+The effective fast relaxation occurs on approximately $10^{-4}$--$10^{-2}$~s and generally becomes faster with increasing $q$. At each elapsed time, the $q$ dependence was parameterized as $\tau(q)\propto q^{\gamma}$. The fast-mode exponent is close to $-2$ over most of the analyzed interval, but becomes poorly constrained at the final elapsed time as $f$ approaches zero. The fitted slow component also decreases with $q$, but its tens-to-thousands-of-seconds values exceed the acquisition window; neither $\tau_{\mathrm{slow}}$ nor $\gamma_{\mathrm{slow}}$ is interpreted as a directly measured terminal relaxation law. The robust arrest measure remains the monotonic decrease in the fitted fast fraction $f$---equivalently, the increase in the fitted slow fraction $1-f$---across all five $q$ values.
+
+\clearpage
+\section*{Supporting Video}
+\begin{center}
+  \includegraphics[width=0.88\linewidth]{VideoS1_Still.png}
+\end{center}
+\textbf{Video S1. Reversible thermal transition in \VPAVG.} (a) A thin quartz capillary containing \VPAVG{} is held in a fixture. (b) The capillary is warmed for approximately \SI{5}{\second} by contact through nitrile gloves. (c) The initially transparent solution becomes visibly turbid. (d) The sample returns to transparency approximately \SI{60}{\second} after removal of the heat source. The complete video can be viewed or downloaded at \url{https://anl.app.box.com/s/lsukldjnr45nhfrkobijsar1tqhba7jw}.
+
+\clearpage
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\linewidth]{FigureS1_Sample_Cells.png}
+  \caption{Sample cells used for liquid X-ray measurements. (a) Exploded view of the aluminum cell used for the 8-ID-I isothermal SA-XPCS experiment. The cylindrical chamber is \SI{3}{\milli\meter} in diameter and \SI{2}{\milli\meter} thick along the X-ray direction; \SI{0.127}{\milli\meter} polycarbonate windows are compressed by O-rings and bolted caps. During measurement, this cell was inserted into the anodized-aluminum holder of the Peltier-controlled stage described in Section~2.2; both the holder and cell were aluminum. (b) Screw-cap cell developed separately for automated handling. Only the bolted aluminum cell in panel (a) was used for measurements reported in the main text.}
+  \label{fig:S1}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\fbox{\begin{minipage}{0.90\linewidth}
+\raggedright\ttfamily\small
+\textbf{A1 (forward)}\\
+5$'$-GTTCCAGCTGTTGGTG\\[0.5em]
+\textbf{A2 (reverse)}\\
+5$'$-ACCTACTGCTGGTACG\\[0.5em]
+\textbf{B1 (forward)}\\
+5$'$-TACTTCCAATCCAATGCCGTTCCAGCTGTTGGTGTGCCG\\[0.5em]
+\textbf{B2 (reverse)}\\
+5$'$-TTATCCACTTCCAATGTTAACCTACTGCTGGTACGCCGAC\\[0.5em]
+\textbf{VPAVG$_{30}$ OERCA single-stranded template}\\
+/5Phos/GTTCCAGCTGTTGGTGTGCCGGCCGTGGGCGTGCCTGC\\
+GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
+\end{minipage}}
+\caption{Oligonucleotide and OERCA template sequences used to construct the ELP gene.}
+\label{fig:S2}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{FigureS3_Calibration.pdf}
+  \caption{Transmission and photon-flux calibration for conversion to absolute scattering cross section. (a) Air-path transmission across seven measurements in the attenuation series; the line marks the mean, $0.8679\pm0.0009$ (standard deviation). (b) Photon flux measured with a calibrated PIN diode as a function of upstream ion-chamber readout; the line is the calibration fit.}
+  \label{fig:S3}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\linewidth]{FigureS4_Flux_Control.pdf}
+  \caption{Flux-dependence control for SAXS and SA-XPCS. (a) SAXS profiles and (b) intensity autocorrelation functions from a \SI{20}{\milli\gram\per\milli\liter} \VPAVG{} sample at incident fluxes of $2.7\times10^{11}$--$4.9\times10^{11}$ photons s$^{-1}$. No systematic flux-dependent change is resolved over this range, which substantially exceeds the flux used in the main experiment.}
+  \label{fig:S4}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.84\linewidth]{FigureS5_Guinier.pdf}
+  \caption{Guinier analysis of the Reference aliquot at \SI{10}{\degreeCelsius}. The fit over $q_{\mathrm{max}}R_g=1.246$ gives an apparent $R_g=22.65\pm0.50$~\AA{} and $I_0=1.725\pm0.023$.}
+  \label{fig:S5}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.90\linewidth]{FigureS6_SAXS_Evolution.pdf}
+  \caption{Complete isothermal SAXS evolution of \VPAVG{} at \SI{30}{\degreeCelsius}. The \SI{6}{\degreeCelsius} reference and profile at the start of the hold are followed by profiles from 1249 to 7863~s. The subset from 5039 to 7863~s corresponds to the SAXS and SA-XPCS data analyzed in Figure~3.}
+  \label{fig:S6}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.93\linewidth]{FigureS7_Fit_Parameters.pdf}
+  \caption{Additional parameters from global two-mode fits. (a) Stretching exponents shared across the five $q$ bins at each elapsed time. (b) Effective fast relaxation time versus $q$. (c) Effective slow relaxation time versus $q$. Dashed lines in panels (b,c) are power-law fits $\tau\propto q^{\gamma}$. (d) Fitted scaling exponents $\gamma_{\mathrm{fast}}$ and $\gamma_{\mathrm{slow}}$. The final fast-mode exponent is poorly constrained because $f$ approaches zero, and the slow-mode quantities are extrapolations beyond the \SI{2}{\second} window. Error bars are fit uncertainties.}
+  \label{fig:S7}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{FigureS8_g2_Grid.pdf}
+  \caption{Correlation functions and global two-mode fits at the four additional $q$ values. Panels show $q=0.00489$, 0.00602, 0.00714, and 0.00827~\Ainv. Colors denote elapsed times used in Figure~3; solid curves are global fits with shared stretching exponents at each elapsed time.}
+  \label{fig:S8}
+\end{figure}
+
+\clearpage
+\bibliographystyle{achemso}
+\bibliography{reference}
+
+\end{document}
