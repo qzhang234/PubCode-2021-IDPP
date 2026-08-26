@@ -4,18 +4,20 @@ LaTeX sources for the Nano Letters submission. Build everything from the
 repository root:
 
 ```
-make papers     # -> examples/main.pdf, examples/SI.pdf, examples/cover_letter.pdf
+make papers     # -> build/main.pdf, build/si.pdf, build/cover_letter.pdf
 make check      # report undefined citations/references or missing figures
 ```
 
 | Source | Class | Output |
 |---|---|---|
-| `main.tex` | `achemso` (`journal=nalefd`, Nano Letters) | `examples/main.pdf` |
-| `si.tex` | `article` + `natbib`, `achemso` bib style | `examples/SI.pdf` |
-| `cover_letter.tex` | `article` + `cover_letter_header.tex` | `examples/cover_letter.pdf` |
+| `main.tex` | `achemso` (`journal=nalefd`, Nano Letters) | `build/main.pdf` |
+| `si.tex` | `article` + `natbib`, `achemso` bib style | `build/si.pdf` |
+| `cover_letter.tex` | `article` + `cover_letter_header.tex` | `build/cover_letter.pdf` |
 
 Intermediate files go to `build/` (gitignored); only the finished PDFs are
-copied into `examples/`.
+written to `build/`, together with the LaTeX aux files. Source -- the `.tex`
+files, `reference.bib`, `figures/` and the vendored `texmf/` tree -- stays
+outside `build/`, because `make distclean` deletes that directory wholesale.
 
 ## Where the figures come from
 

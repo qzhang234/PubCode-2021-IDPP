@@ -93,7 +93,8 @@ q_meas30, i_meas30, e_meas30 = merge_data(
     WA_ql[pl_range_30C_WA], WA_30C_2_sub[pl_range_30C_WA], WA_30C_2_e[pl_range_30C_WA])
 
 # Create the directory if it doesn't exist
-out_dir = 'reduced_data'
+# script-relative, so the script runs correctly from any directory
+out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reduced_data')
 os.makedirs(out_dir, exist_ok=True)
 
 header_txt = 'Q(A^-1),I(Q),I_err(Q)'

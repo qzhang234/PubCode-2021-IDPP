@@ -1,9 +1,17 @@
 """SI figure: 2x2 grid of XPCS g2(tau) for the 4 non-primary q bins.
 
-The main figure (saxpcs.py) shows q index 0; this shows q indices 1-4.  Each
-subplot plots the first B0147 file (frames 1-200) and the last five B0147 files
-(801-1313), coloured by elapsed time on the SAME scale as the main figure, with
-double-exponential fits (baseline fixed at 1.0) overlaid.
+This figure is an EXPANSION of Figure 3b onto the four higher q bins: Figure 3b
+shows q index 0, this shows q indices 1-4.  It therefore has to show the same
+model, fitted the same way -- so the curves here come from exactly the same
+global fit that produces Figure 3c and Figure S9, imported from xpcs_fit.py.
+
+For each elapsed time the five q bins are fitted SIMULTANEOUSLY with the two
+stretching exponents shared across q and the contrast fixed at the measured
+instrumental value; the curve drawn in each panel is that global solution
+evaluated at that panel's q.  (Previously this script carried its own private
+copy of the model which fitted each q bin independently with both exponents
+frozen at 0.5, so the caption's description of the fits did not match the
+curves; the parameters shown here are now the ones the paper reports.)
 """
 
 import glob
@@ -15,12 +23,11 @@ from datetime import datetime
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
-
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from common.acs_style import (DOUBLE_COL, MS, MEW, LW_THIN, LW_DATA,
                               apply_style, add_minor_grid, label_panels, save_fig)
 from matplotlib.lines import Line2D
+from xpcs_fit import CONTRAST, double_exp, fit_g2_global
 
 FIG_SIZE = (DOUBLE_COL, 5.0)         # 2x2 panels + the shared key row beneath
 LEGEND_H = 0.05                      # height fraction reserved for that key
@@ -32,25 +39,15 @@ G2_YLIM = (0.98, 1.20)               # 0.98 keeps error bars off the frame; the
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 XPCS_HEADER = 'B0147'
 N_LAST = 5
-grid_q_indices = [1, 2, 3, 4]        # the 4 "other" q bins (main figure = 0)
 # XPCS elapsed-time colours: same scale as saxpcs.py -- the N_LAST times are
 # mapped to evenly-spaced positions of this colormap for maximum separation.
 XPCS_CMAP = plt.cm.plasma
 CMAP_LO, CMAP_HI = 0.10, 0.88
 
-# --- FIT MODEL (baseline fixed at 1.0) ---
-p1, p2, contrast = 0.5, 0.5, 0.135
-BASELINE = 1.0
-
-
-def double_exp_eq9(tau, tau_fast, f, tau_slow):
-    decay_fast = f * np.exp(-(tau / tau_fast)**p1)
-    decay_slow = (1 - f) * np.exp(-(tau / tau_slow)**p2)
-    return contrast * (decay_fast + decay_slow)**2 + BASELINE
-
-
-p0 = [1e-3, 0.5, 100.0]
-bounds = ([1e-6, 0.0, 1.0], [10.0, 1.0, 10000.0])
+# The model, the measured contrast and the global fit come from xpcs_fit.py --
+# the same implementation Figure 3 and Figure S9 use.
+fit_q_indices = [0, 1, 2, 3, 4]      # all five bins enter the global fit ...
+grid_q_indices = [1, 2, 3, 4]        # ... these four are the ones plotted here
 
 # --- HDF paths ---
 START_TIME_PATH = '/entry/start_time'
@@ -86,18 +83,6 @@ def read_g2(hf):
     return tau, hf[G2_PATH][()], hf[G2_ERR_PATH][()], hf[DYN_Q_PATH][()]
 
 
-def fit_g2(tau, g2, g2_err):
-    valid = (tau > 0) & ~np.isnan(g2) & ~np.isnan(g2_err) & (g2_err > 0)
-    if valid.sum() < 5:
-        return None
-    try:
-        popt, _ = curve_fit(double_exp_eq9, tau[valid], g2[valid], sigma=g2_err[valid],
-                            absolute_sigma=True, p0=p0, bounds=bounds, maxfev=10000)
-        return popt
-    except RuntimeError:
-        return None
-
-
 # --- DISCOVER FILES ---
 file_paths = sorted(glob.glob(os.path.join(data_dir, '*.hdf')))
 b0147, start_times = [], {}
@@ -130,6 +115,13 @@ apply_style()
 fig, axes = plt.subplots(2, 2, figsize=FIG_SIZE, sharex=True, sharey=True)
 label_panels(axes.flat)
 
+# One global fit per elapsed time, over all five q bins at once -- identical to
+# saxpcs.py, so the curves below are the fits the paper reports.
+fits = {}
+for fp in xpcs_files:
+    tau, g2, g2_err, q_vals = data[fp]
+    fits[fp] = fit_g2_global(tau, g2, g2_err, fit_q_indices)
+
 for ax, q_idx in zip(axes.flat, grid_q_indices):
     for fp in xpcs_files:
         tau, g2, g2_err, q_vals = data[fp]
@@ -138,10 +130,12 @@ for ax, q_idx in zip(axes.flat, grid_q_indices):
         ax.errorbar(tau[m], g2[m, q_idx], yerr=g2_err[m, q_idx], fmt='o', color=color,
                     mfc='none', markersize=MS, mew=LW_THIN, capsize=1.5,
                     elinewidth=LW_THIN, capthick=LW_THIN, alpha=0.85, linestyle='none')
-        res = fit_g2(tau, g2[:, q_idx], g2_err[:, q_idx])
-        if res is not None:
+        r = fits[fp]
+        if r is not None and q_idx in r['per_q']:
+            pq = r['per_q'][q_idx]
             t_fit = np.logspace(np.log10(tau[m].min()), np.log10(tau[m].max()), 200)
-            ax.plot(t_fit, double_exp_eq9(t_fit, *res), color=color, lw=LW_DATA)
+            ax.plot(t_fit, double_exp(t_fit, pq['tau_fast'], pq['f'], pq['tau_slow'],
+                                      r['p1'], r['p2']), color=color, lw=LW_DATA)
     ax.set_xscale('log')
     ax.set_ylim(*G2_YLIM)
     ax.set_yticks([1.0, 1.05, 1.10, 1.15])
@@ -168,5 +162,5 @@ for ax in axes[:, 0]:
 
 # sharex/sharey strip the inner tick labels, so the panels can sit close
 fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=0.6, rect=(0, LEGEND_H, 1, 1))
-save_fig(fig, 'FigureS8_g2_Grid.pdf')
+save_fig(fig, 'FigureS10_g2_Grid.pdf')
 plt.show()

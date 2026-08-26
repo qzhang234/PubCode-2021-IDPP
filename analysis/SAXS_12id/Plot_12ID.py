@@ -29,7 +29,8 @@ from common.acs_style import (SINGLE_COL, MS_DENSE, LW_THIN, LW_DATA,
                               apply_style, add_minor_grid, save_fig)
 
 # 1. READ GENERATED CSV FILES
-data_dir = 'reduced_data'
+# script-relative, so the script runs correctly from any directory
+data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reduced_data')
 df_ref10 = pd.read_csv(os.path.join(data_dir, 'Merged_Reference_10C.csv'))
 df_ref30 = pd.read_csv(os.path.join(data_dir, 'Merged_Reference_30C.csv'))
 df_meas10 = pd.read_csv(os.path.join(data_dir, 'Merged_Measurement_10C.csv'))

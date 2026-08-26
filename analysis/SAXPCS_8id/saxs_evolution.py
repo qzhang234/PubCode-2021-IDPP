@@ -158,5 +158,5 @@ cb.ax.tick_params(width=LW_THIN)
 cb.ax.hlines(sorted(elapsed.values()), 0, 1, colors='w', lw=LW_THIN)
 
 fig.tight_layout(pad=0.4)
-save_fig(fig, 'FigureS6_SAXS_Evolution.pdf')
+save_fig(fig, 'FigureS8_SAXS_Evolution.pdf')
 plt.show()

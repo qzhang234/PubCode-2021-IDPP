@@ -124,23 +124,12 @@ CMAP_LO, CMAP_HI = 0.10, 0.88        # colormap span used for the N_LAST times
 COLOR_0S = 'black'                   # first B0147 file (elapsed = 0 s)
 COLOR_6C = '#1f77b4'                 # B0146 (6 C reference, before isothermal)
 
-# --- FIT MODEL (contrast + baseline fixed; p1, p2 shared across q per time) ---
-contrast = 0.135
-BASELINE = 1.0
-
-# per-q parameter bounds / start (tau_fast, f, tau_slow) and shared (p1, p2)
-PQ_P0    = [1e-3, 0.5, 100.0]
-PQ_LO    = [1e-6, 0.0, 1.0]
-PQ_HI    = [10.0, 1.0, 10000.0]
-P_EXP_P0 = [0.5, 0.5]
-P_EXP_LO = [0.2, 0.2]
-P_EXP_HI = [3.0, 3.0]
-
-
-def double_exp(tau, tau_fast, f, tau_slow, p1, p2):
-    decay_fast = f * np.exp(-(tau / tau_fast)**p1)
-    decay_slow = (1 - f) * np.exp(-(tau / tau_slow)**p2)
-    return contrast * (decay_fast + decay_slow)**2 + BASELINE
+# --- FIT MODEL ---
+# The model, the measured contrast and the global fit live in xpcs_fit.py so
+# that Figure 3b, Figure S9 and Figure S10 provably share one implementation.
+from xpcs_fit import (CONTRAST, BASELINE, double_exp, fit_g2_global,  # noqa: E402
+                      PQ_P0, PQ_LO, PQ_HI, P_EXP_P0, P_EXP_LO, P_EXP_HI)
+contrast = CONTRAST                  # local alias used in the panels below
 
 
 # ============================================================================
@@ -213,61 +202,6 @@ def read_g2(hf):
     tau = hf[DELAY_PATH][()] * t0
     tau = tau[:, 0] if tau.ndim > 1 else tau
     return tau, hf[G2_PATH][()], hf[G2_ERR_PATH][()], hf[DYN_Q_PATH][()]
-
-
-def fit_g2_global(tau, g2, g2_err, q_indices):
-    """Global fit of several q bins for one elapsed time, sharing p1 and p2.
-
-    Parameter vector = [p1, p2, (tau_fast, f, tau_slow) x nq].  Minimises the
-    error-weighted residual (model - g2) / g2_err over all q simultaneously,
-    using the g2_err stored in the file directly (absolute_sigma convention).
-    Parameter 1-sigma errors are sqrt(diag(inv(J^T J))).
-
-    Returns a dict:
-      {'p1','p1_err','p2','p2_err','red_chi2',
-       'per_q': {q_idx: {'tau_fast','f','tau_slow','f_err'}}}
-    or None if too few q bins have usable data.
-    """
-    data = []
-    for qi in q_indices:
-        v = (tau > 0) & ~np.isnan(g2[:, qi]) & ~np.isnan(g2_err[:, qi]) & (g2_err[:, qi] > 0)
-        if v.sum() >= 5:
-            data.append((qi, tau[v], g2[v, qi], g2_err[v, qi]))
-    nq = len(data)
-    if nq == 0:
-        return None
-
-    def residual(p):
-        p1, p2 = p[0], p[1]
-        parts = []
-        for i, (qi, tv, gv, ev) in enumerate(data):
-            tf, f, ts = p[2 + 3 * i: 5 + 3 * i]
-            parts.append((double_exp(tv, tf, f, ts, p1, p2) - gv) / ev)
-        return np.concatenate(parts)
-
-    x0 = list(P_EXP_P0) + PQ_P0 * nq
-    lo = list(P_EXP_LO) + PQ_LO * nq
-    hi = list(P_EXP_HI) + PQ_HI * nq
-    res = least_squares(residual, x0, bounds=(lo, hi), max_nfev=40000)
-
-    ndof = max(len(res.fun) - len(res.x), 1)
-    red_chi2 = float(np.sum(res.fun**2) / ndof)
-    # covariance from the Gauss-Newton Hessian of error-weighted residuals
-    try:
-        cov = np.linalg.inv(res.jac.T @ res.jac)
-        perr = np.sqrt(np.abs(np.diag(cov)))
-    except np.linalg.LinAlgError:
-        perr = np.full(len(res.x), np.nan)
-
-    out = {'p1': res.x[0], 'p1_err': perr[0],
-           'p2': res.x[1], 'p2_err': perr[1],
-           'red_chi2': red_chi2, 'per_q': {}}
-    for i, (qi, tv, gv, ev) in enumerate(data):
-        tf, f, ts = res.x[2 + 3 * i: 5 + 3 * i]
-        out['per_q'][qi] = {'tau_fast': tf, 'tau_fast_err': perr[2 + 3 * i],
-                            'f': f, 'f_err': perr[3 + 3 * i],
-                            'tau_slow': ts, 'tau_slow_err': perr[4 + 3 * i]}
-    return out
 
 
 def fit_powerlaw(Q, tau, tau_err):
@@ -605,20 +539,36 @@ for fp in xpcs_files:
     tf_err = np.array([r['per_q'][qi]['tau_fast_err'] for qi in qs])
     ts     = np.array([r['per_q'][qi]['tau_slow'] for qi in qs])
     ts_err = np.array([r['per_q'][qi]['tau_slow_err'] for qi in qs])
+    f_val  = np.array([r['per_q'][qi]['f'] for qi in qs])
+    f_err  = np.array([r['per_q'][qi]['f_err'] for qi in qs])
+    # tau_fast only means something where a fast mode is actually detected.  At
+    # the last elapsed time the lowest q bin fits f = 0.000 +/- 0.003, i.e. no
+    # fast mode at all, and tau_fast there rails to a meaningless ~5 s.  Keeping
+    # that point would drag the tau_fast(Q) power law to gamma = -15.  Bins whose
+    # fast amplitude is under 3 sigma are therefore dropped from panel (b) and
+    # from the gamma_fast fit; the slow mode carries every bin.
+    det = f_val > 3 * f_err
     color  = ecolor(fp)
     lbl    = f'{elapsed(fp):.0f} s'
-    axf.errorbar(Q, tf, yerr=tf_err, marker='o', ls='none', color=color,
+    axf.errorbar(Q[det], tf[det], yerr=tf_err[det], marker='o', ls='none', color=color,
                  markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
                  elinewidth=LW_THIN, capthick=LW_THIN, label=lbl, zorder=2)
     axs.errorbar(Q, ts, yerr=ts_err, marker='s', ls='none', color=color,
                  markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
                  elinewidth=LW_THIN, capthick=LW_THIN, label=lbl, zorder=2)
+    if det.sum() < len(Q):
+        print(f'    (t_w={elapsed(fp):.0f} s: {int((~det).sum())} q bin(s) dropped '
+              f'from the fast-mode panel, f < 3 sigma)')
 
     if len(Q) >= 3:
-        gf, gf_err, gf_A = fit_powerlaw(Q, tf, tf_err)
+        gf, gf_err, gf_A = fit_powerlaw(Q[det], tf[det], tf_err[det]) if det.sum() >= 3 \
+            else (np.nan, np.nan, np.nan)
         gs, gs_err, gs_A = fit_powerlaw(Q, ts, ts_err)
         Q_line = np.linspace(Q.min(), Q.max(), 50)
-        axf.plot(Q_line, gf_A * Q_line**gf, '--', color=color, lw=LW_DATA, zorder=1)
+        if np.isfinite(gf):
+            axf.plot(np.linspace(Q[det].min(), Q[det].max(), 50),
+                     gf_A * np.linspace(Q[det].min(), Q[det].max(), 50)**gf,
+                     '--', color=color, lw=LW_DATA, zorder=1)
         axs.plot(Q_line, gs_A * Q_line**gs, '--', color=color, lw=LW_DATA, zorder=1)
         gamma_rows.append({'elapsed': elapsed(fp), 'fp': fp,
                            'gamma_fast': gf, 'gamma_fast_err': gf_err,
@@ -679,7 +629,7 @@ for a in (axf, axs, axg):
     a.autoscale_view()
 
 fig2.tight_layout(pad=0.4, w_pad=1.4, h_pad=0.8)
-save_fig(fig2, 'FigureS7_Fit_Parameters.pdf')
+save_fig(fig2, 'FigureS9_Fit_Parameters.pdf')
 
 # ============================================================
 # FIGURE 3 (2 panels): ion-chamber -> photon calibration

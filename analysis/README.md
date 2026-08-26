@@ -36,7 +36,7 @@ repo goes from raw beamline files to the PDF figures used in the paper.
 raw .avg files (12-ID-B, /home/8-id-i/2021-1/12-id-b/.../Processed/)
     --> Read_12ID_SAWAXS.py   (merge SAXS+WAXS, scale WAXS onto SAXS, propagate errors)
     --> reduced_data/Merged_*.csv
-    --> Guinier_Plot.py       --> FigureS5_Guinier.pdf
+    --> Guinier_Plot.py       --> FigureS7_Guinier.pdf
     --> Plot_12ID.py          --> Figure2_SAXS_WAXS.pdf
 ```
 
@@ -50,10 +50,10 @@ measurement curves, annotates the high-Q power law, and fits the two
 ```
 raw cluster-result .hdf files (8-ID-I, per-file g2, g2_err, saxs_1d, IC readout)
     --> saxpcs.py            --> Figure3_Isothermal_SAXPCS.pdf,
-                                  FigureS7_Fit_Parameters.pdf,
+                                  FigureS9_Fit_Parameters.pdf,
                                   FigureS3_Calibration.pdf
-    --> saxs_evolution.py    --> FigureS6_SAXS_Evolution.pdf
-    --> g2_grid_SI.py        --> FigureS8_g2_Grid.pdf
+    --> saxs_evolution.py    --> FigureS8_SAXS_Evolution.pdf
+    --> g2_grid_SI.py        --> FigureS10_g2_Grid.pdf
 ```
 
 `saxpcs.py` reads the averaged B0147 (isothermal 30 °C) and D0138 (buffer)
@@ -76,7 +76,7 @@ grouping.
 ```
 cluster-result .hdf files at 4 attenuation settings (E0171-E0174)
 Pind_calibration.csv (PIN-diode <-> ion-chamber calibration sheet)
-    --> g2_SAXPCS_Rad_Cali.py --> FigureS4_Flux_Control.pdf
+    --> g2_SAXPCS_Rad_Cali.py --> FigureS5_Flux_Control.pdf
 ```
 
 Converts each measurement's ion-chamber reading to an on-sample photon flux
@@ -95,13 +95,13 @@ differs, and the top-level `Makefile` resolves it via `TEXINPUTS`.
 | Output PDF | Script | Figure | Panels |
 |---|---|---|---|
 | `SAXS_12id/Figure2_SAXS_WAXS.pdf` | `Plot_12ID.py` | Main Fig. 2 | 1 (+ inset) |
-| `SAXS_12id/FigureS5_Guinier.pdf` | `Guinier_Plot.py` | SI Fig. S5 | 1 |
+| `SAXS_12id/FigureS7_Guinier.pdf` | `Guinier_Plot.py` | SI Fig. S5 | 1 |
 | `SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf` | `saxpcs.py` | Main Fig. 3 | 3 |
-| `SAXPCS_8id/FigureS7_Fit_Parameters.pdf` | `saxpcs.py` | SI Fig. S7 | 4 (2×2) |
+| `SAXPCS_8id/FigureS9_Fit_Parameters.pdf` | `saxpcs.py` | SI Fig. S7 | 4 (2×2) |
 | `SAXPCS_8id/FigureS3_Calibration.pdf` | `saxpcs.py` | SI Fig. S3 | 2 |
-| `SAXPCS_8id/FigureS6_SAXS_Evolution.pdf` | `saxs_evolution.py` | SI Fig. S6 | 1 |
-| `SAXPCS_8id/FigureS8_g2_Grid.pdf` | `g2_grid_SI.py` | SI Fig. S8 | 4 (2×2) |
-| `Rad_Dam_Check/FigureS4_Flux_Control.pdf` | `g2_SAXPCS_Rad_Cali.py` | SI Fig. S4 | 2 |
+| `SAXPCS_8id/FigureS8_SAXS_Evolution.pdf` | `saxs_evolution.py` | SI Fig. S6 | 1 |
+| `SAXPCS_8id/FigureS10_g2_Grid.pdf` | `g2_grid_SI.py` | SI Fig. S8 | 4 (2×2) |
+| `Rad_Dam_Check/FigureS5_Flux_Control.pdf` | `g2_SAXPCS_Rad_Cali.py` | SI Fig. S4 | 2 |
 
 Main Fig. 1 (`manuscript/figures/Setup.pdf`) is an illustrator schematic and is
 not produced by any script here. SI Fig. S1 and the Video S1 still frame are

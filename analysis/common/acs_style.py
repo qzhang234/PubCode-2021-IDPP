@@ -20,6 +20,9 @@ Two deliberate choices go beyond the bare minimums:
   at typesetting time and no bounding box is trimmed.
 """
 
+import inspect
+import os
+
 import matplotlib.pyplot as plt
 
 # --- geometry (in) ---
@@ -102,7 +105,14 @@ def label_panels(axes, dx=-30, dy=2):
 
 
 def save_fig(fig, filename):
-    """Save as vector PDF at exactly the requested figure size.
+    """Save as vector PDF at exactly the requested figure size, NEXT TO THE SCRIPT.
+
+    A bare filename is resolved against the directory of the calling script, not
+    the current working directory.  Every figure therefore lands beside the code
+    that produced it however the script was launched -- `make`, an editor, or a
+    shell sitting somewhere else.  Running a script from the wrong directory used
+    to scatter stray duplicate PDFs around the tree, which then went stale while
+    the real ones were regenerated.  Pass an absolute path to override.
 
     Deliberately no bbox_inches='tight': the media box has to stay exactly
     SINGLE_COL or DOUBLE_COL wide so the journal reproduces the graphic at
@@ -110,9 +120,12 @@ def save_fig(fig, filename):
     rescaled at typesetting and the compliance arithmetic would no longer hold.
     Call fig.tight_layout() (or set constrained layout) before this.
     """
+    if not os.path.isabs(filename):
+        caller = inspect.stack()[1].filename
+        filename = os.path.join(os.path.dirname(os.path.abspath(caller)), filename)
     w, h = fig.get_size_inches()
     fig.savefig(filename, format='pdf')
     ok_w = 'single' if abs(w - SINGLE_COL) < 0.01 else \
            'double' if abs(w - DOUBLE_COL) < 0.01 else 'OFF-SPEC'
-    print(f'wrote {filename}  {w:.3f} x {h:.3f} in ({72 * w:.0f} x {72 * h:.0f} pt)'
+    print(f'wrote {os.path.basename(filename)}  {w:.3f} x {h:.3f} in ({72 * w:.0f} x {72 * h:.0f} pt)'
           f'  width={ok_w}  depth={"ok" if h <= MAX_DEPTH else "OVER 9.167 in"}')

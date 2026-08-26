@@ -9,7 +9,8 @@ from common.acs_style import (SINGLE_COL, MS, MEW, LW_THIN, LW_DATA,
                               apply_style, add_minor_grid, save_fig)
 
 # 1. READ DATA
-data_dir = 'reduced_data'
+# script-relative, so the script runs correctly from any directory
+data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reduced_data')
 df = pd.read_csv(os.path.join(data_dir, 'Merged_Reference_10C.csv'))
 
 # Q is strictly in A^-1
@@ -102,5 +103,5 @@ ax.ticklabel_format(style='sci', axis='x', scilimits=(0,0), useMathText=True)
 ax.legend(loc='center right')
 
 fig.tight_layout(pad=0.4)
-save_fig(fig, 'FigureS5_Guinier.pdf')
+save_fig(fig, 'FigureS7_Guinier.pdf')
 plt.show()
