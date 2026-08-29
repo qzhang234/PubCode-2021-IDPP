@@ -14,10 +14,11 @@ make check      # report undefined citations/references or missing figures
 | `si.tex` | `article` + `natbib`, `achemso` bib style | `build/si.pdf` |
 | `cover_letter.tex` | `article` + `cover_letter_header.tex` | `build/cover_letter.pdf` |
 
-Intermediate files go to `build/` (gitignored); only the finished PDFs are
-written to `build/`, together with the LaTeX aux files. Source -- the `.tex`
-files, `reference.bib`, `figures/` and the vendored `texmf/` tree -- stays
-outside `build/`, because `make distclean` deletes that directory wholesale.
+Everything LaTeX produces goes to `build/`: the finished PDFs, which are kept
+in git so collaborators can read them without a TeX installation, and the aux
+files, which `manuscript/.gitignore` excludes (`build/*` with `!build/*.pdf`). Source -- the `.tex` files,
+`reference.bib`, `figures/` and the vendored `texmf/` tree -- stays outside
+`build/`, because `make distclean` deletes that directory wholesale.
 
 ## Where the figures come from
 
@@ -28,13 +29,31 @@ those names resolve even though the files live under `analysis/`:
 | Figure name in `.tex` | Actual location |
 |---|---|
 | `Setup.pdf` (Fig. 1) | `manuscript/figures/` |
-| `FigureS1_Sample_Cells.png`, `VideoS1_Still.png` | `manuscript/figures/` |
-| `Figure2_SAXS_WAXS.pdf`, `FigureS5_Guinier.pdf` | `analysis/SAXS_12id/` |
-| `Figure3_Isothermal_SAXPCS.pdf`, `FigureS3_Calibration.pdf`, `FigureS6_SAXS_Evolution.pdf`, `FigureS7_Fit_Parameters.pdf`, `FigureS8_g2_Grid.pdf` | `analysis/SAXPCS_8id/` |
-| `FigureS4_Flux_Control.pdf` | `analysis/Rad_Dam_Check/` |
+| `FigureS2_Sample_Cells.png` (Fig. S2), `VideoS1_Still.png` | `manuscript/figures/` |
+| `Figure2_SAXS_WAXS.pdf`, `FigureS7_Guinier.pdf` | `analysis/SAXS_12id/` |
+| `Figure3_Isothermal_SAXPCS.pdf`, `FigureS3_Calibration.pdf`, `FigureS4_Contrast.pdf`, `FigureS6_Thermal_Cycle.pdf`, `FigureS8_SAXS_Evolution.pdf`, `FigureS9_Fit_Parameters.pdf`, `FigureS10_g2_Grid.pdf` | `analysis/SAXPCS_8id/` |
+| `FigureS5_Flux_Control.pdf` | `analysis/Rad_Dam_Check/` |
+
+Figure S1 is a LaTeX-typeset sequence box, so it has no image file; every other
+figure file is named for the number it carries in the text.
 
 Figure 1 is the approved illustrator schematic; everything else with a `.pdf`
 extension is regenerated from the experimental data by `make figures`.
+
+## Referring to figures
+
+No figure number is ever typed by hand. Each figure carries a label --
+`fig:setup`, `fig:static`, `fig:xpcs` in `main.tex`, `fig:S1`--`fig:S10` in
+`si.tex` -- and the text writes `Figure~\ref{fig:S6}`, appending any panel
+letter literally (`Figure~\ref{fig:S6}b`). The two documents also cite each
+other's figures, which `\ref` alone cannot reach, so each loads `xr` and
+imports the other under a prefix: `\externaldocument[SI-]{build/si}` in
+`main.tex` and `\externaldocument[MT-]{build/main}` in `si.tex`. A reference
+across documents therefore reads `Figure~\ref{SI-fig:S7}` or
+`Figure~\ref{MT-fig:xpcs}a`. Because that makes each document depend on the
+other's `.aux`, `make papers` runs si -> main -> si; `make check` reports
+anything left unresolved, which is what a stale or missing `.aux` looks like.
+Renumbering or reordering figures then needs no edit outside the labels.
 
 ## texmf/
 

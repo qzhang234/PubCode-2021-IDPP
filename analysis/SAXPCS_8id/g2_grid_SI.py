@@ -1,4 +1,4 @@
-"""SI figure: 2x2 grid of XPCS g2(tau) for the 4 non-primary q bins.
+"""Figure S10: 2x2 grid of XPCS g2(tau) for the 4 non-primary q bins.
 
 This figure is an EXPANSION of Figure 3b onto the four higher q bins: Figure 3b
 shows q index 0, this shows q indices 1-4.  It therefore has to show the same
@@ -31,9 +31,9 @@ from xpcs_fit import CONTRAST, double_exp, fit_g2_global
 
 FIG_SIZE = (DOUBLE_COL, 5.0)         # 2x2 panels + the shared key row beneath
 LEGEND_H = 0.05                      # height fraction reserved for that key
-G2_YLIM = (0.98, 1.20)               # 0.98 keeps error bars off the frame; the
-                                     # cap trims 2 of 1220 points and 4 error-bar
-                                     # caps, all at the noisiest shortest delays
+G2_YLIM = (0.98, 1.20)               # trims 2 of 1220 points above and 4 below,
+                                     # plus 4 error-bar caps, all at the noisiest
+                                     # shortest delays
 
 # --- PARAMETERS ---
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -84,7 +84,9 @@ def read_g2(hf):
 
 
 # --- DISCOVER FILES ---
-file_paths = sorted(glob.glob(os.path.join(data_dir, '*.hdf')))
+# every range average in data/, including the thermal-cycle groups that belong to
+# Figure S6; the loop below keeps only XPCS_HEADER
+file_paths = sorted(glob.glob(os.path.join(data_dir, 'Average_*.hdf')))
 b0147, start_times = [], {}
 for fp in file_paths:
     if parse_name(fp)[0] != XPCS_HEADER:

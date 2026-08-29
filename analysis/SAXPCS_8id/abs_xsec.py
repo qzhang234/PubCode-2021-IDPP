@@ -1,10 +1,14 @@
 """Absolute scattering cross-section calibration (shared helper).
 
-Merged from IC_pin4/IC_pind4_convert.ipynb and IC_pin4/Abs_Scatt_Cross.ipynb.
-Both saxpcs.py (the main figure) and saxs_evolution.py (SAXS_Evolution_SI.pdf)
-import from here so they use IDENTICAL constants, the same IC->photon
-calibration, and the same per-file coefficient function -- there is only one
+saxpcs.py (Figure 3 and Figure S3) and saxs_evolution.py (Figure S8) both
+import from here, so they use IDENTICAL constants, the same IC->photon
+calibration and the same per-file coefficient function -- there is only one
 place to change if the calibration is revised.
+
+PROVENANCE: this calibration was originally worked out in two beamline Jupyter
+notebooks, IC_pind4_convert.ipynb (steps 1 and 2) and Abs_Scatt_Cross.ipynb
+(step 3).  Those notebooks are NOT part of this repository; the code below is
+the single authoritative implementation and reproduces their numbers.
 
 GOAL
 ----
@@ -38,33 +42,35 @@ These were copied from the raw cluster results into the NeXus files and are
 averaged over each frame range by average_ranges.py -- so every averaged file
 carries the mean Up_IC / Dn_IC of the frames that went into it.
 
-STEP 1 -- ion chamber -> photon flux  (from IC_pind4_convert.ipynb)
-------------------------------------------------------------------
+STEP 1 -- ion chamber -> photon flux
+------------------------------------
 With NO sample in the beam, Up_IC was recorded at eight X-ray attenuation
 ratios together with the photon counts from the downstream PIN diode (pind4,
 converted to photons with the standard 8-ID-I pind4 calibration).  A straight
-line  photons = CAL_A * Up_IC + CAL_B  is fit (the most-attenuated, noisiest
-point is dropped, CAL_CROP=1).  The flux of a real run then follows the
-original notebook convention  F = CAL_A * (Up_IC / t_exp) + CAL_B.
+line  photons = CAL_A * Up_IC + CAL_B  is fit to seven of the eight: the
+UNATTENUATED point is dropped (CAL_CROP=1) because it is off the line the other
+seven define -- keeping it leaves residuals of -2 to -148 % across the set,
+dropping it leaves +-1 % over the middle five.  The flux of a real run then follows the
+original convention  F = CAL_A * (Up_IC / t_exp) + CAL_B.
 
-STEP 2 -- air transmission  (from IC_pind4_convert.ipynb)
----------------------------------------------------------
+STEP 2 -- air transmission
+--------------------------
 With no sample, (Dn_IC - dark) / (Up_IC - dark) is the transmission of the air
 path between the two chambers; it is flat at ~0.868.  The sample/buffer
 transmission is therefore  T = Dn_IC / Up_IC / AIR_TRANSMISSION.
 
-STEP 3 -- coefficient  (from Abs_Scatt_Cross.ipynb)
----------------------------------------------------
+STEP 3 -- coefficient
+---------------------
 abs_xsec_coef() evaluates coef for one open file from its range-averaged
 Up_IC / Dn_IC and the constants below.  It is called once per SAXS curve, so
 each measurement is scaled by ITS OWN flux and transmission (the reason
 average_ranges.py averages the two monitors per range); coef_buf uses the
 D0138 buffer's own Up_IC / Dn_IC.
 
-UNITS: lengths follow the original notebook convention (millimetres for pixel,
-distance and thickness).  This reproduced the published coefficient exactly
-(D0138 -> 7.62e4 with a 1 mm thickness); dOmega is a pure ratio, so its length
-units cancel.  The values below match the beamline log for this experiment.
+UNITS: lengths follow the original convention (millimetres for pixel, distance
+and thickness).  With a 1 mm thickness this reproduces the coefficient of the
+original analysis for the D0138 buffer to about 2 % (7.50e4 here against 7.62e4
+there); dOmega is a pure ratio, so its length units cancel.  The values below match the beamline log for this experiment.
 
     [coef] = 1 / ([T_EXP] [F] [T] [f] [dOmega])
            = 1 / ( s * photons/s * 1 * mm * sr )
@@ -74,8 +80,8 @@ so coef * I(Q) comes out in mm^-1 sr^-1, NOT the cm^-1 sr^-1 that absolute
 cross sections are conventionally quoted in.  SAMPLE_THICKNESS is the only
 dimensional length that survives (dOmega's mm cancel), so the conversion is a
 single factor of ten -- use INV_MM_TO_INV_CM below on anything that is going to
-be labelled cm^-1.  abs_xsec_coef() itself is deliberately left in the notebook
-convention so it still reproduces the published coefficient.
+be labelled cm^-1.  abs_xsec_coef() itself is deliberately left in the millimetre
+convention so it still reproduces the coefficient of the original analysis.
 """
 
 import numpy as np
@@ -90,7 +96,7 @@ FRAME_TIME       = 20e-6     # acquisition (frame) time, 20 us
 T_EXP            = FRAME_TIME * NUM_FRAMES          # total exposure time [s]
 DELTA_OMEGA      = (PIXEL_MM / DET_DIST_MM) ** 2    # pixel solid angle
 
-# abs_xsec_coef() works in the notebook's millimetre convention, so coef * I(Q)
+# abs_xsec_coef() works in the millimetre convention, so coef * I(Q)
 # is in mm^-1.  Multiply by this to report the conventional cm^-1 (1 mm^-1 =
 # 10 cm^-1, since SAMPLE_THICKNESS is the only length left in the coefficient).
 INV_MM_TO_INV_CM = 10.0
@@ -103,7 +109,7 @@ DNIC_DARK   = 204.4          # downstream IC dark reading
 CAL_UPIC    = np.array([257609, 125204, 55586.5, 27036.8, 12296.8, 6028.8, 2714.4, 1361.1])
 CAL_DNIC    = np.array([223888, 108873, 48413.4, 23613.7, 10807.5, 5367.4, 2485.5, 1310.9])
 CAL_PHOTONS = np.array([1.49e10, 8.12e9, 3.75e9, 1.97e9, 1.06e9, 6.71e8, 4.66e8, 3.83e8]) - 3.04e8
-CAL_CROP    = 1              # drop the most-attenuated point before fitting
+CAL_CROP    = 1              # drop the first (unattenuated) point before fitting
 
 # STEP 1: linear fit  photons = CAL_A * Up_IC + CAL_B
 CAL_A, CAL_B = np.polyfit(CAL_UPIC[CAL_CROP:], CAL_PHOTONS[CAL_CROP:], 1)
@@ -125,7 +131,7 @@ def abs_xsec_coef(hf):
 
     Reads the range-averaged upstream (Up_IC) and downstream (Dn_IC)
     ion-chamber intensities and combines them with the beamline constants and
-    the IC->photon calibration (following Abs_Scatt_Cross.ipynb exactly):
+    the IC->photon calibration (see the module docstring):
 
         F    = CAL_A * (Up_IC / T_EXP) + CAL_B          incident flux [photons/s]
         T    = Dn_IC / Up_IC / AIR_TRANSMISSION         transmission  [-]

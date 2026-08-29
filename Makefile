@@ -48,14 +48,15 @@ F_RAD     := $(ANA)/Rad_Dam_Check/FigureS5_Flux_Control.pdf
 FIGURES := $(F_12ID) $(F_GUINIER) $(F_XPCS) $(F_EVOL) $(F_GRID) $(F_RAD) \
             $(F_CYCLE) $(F_BETA)
 
-XPCS_DATA := $(wildcard $(ANA)/SAXPCS_8id/data/*.hdf)
+# every 8-ID-I figure now reads only what average_ranges.py put in data/:
+# the averaged NeXus files, the contrast stack, and the thermal-cycle
+# temperature trace.  Nothing reads the beamline storage at build time.
+XPCS_DATA := $(wildcard $(ANA)/SAXPCS_8id/data/*.hdf) \
+             $(ANA)/SAXPCS_8id/data/thermal_cycle_temperature.csv
 CSV_DATA  := $(wildcard $(ANA)/SAXS_12id/reduced_data/*.csv)
 RAD_DATA  := $(wildcard $(ANA)/Rad_Dam_Check/cluster_results/*.hdf)
 COMMON    := $(ANA)/common/acs_style.py
 XFIT      := $(ANA)/SAXPCS_8id/xpcs_fit.py
-# the thermal-cycle and contrast figures read the reprocessed 2022-1 results
-# directly; they are not part of the reduced data committed to this repo
-CYCLE_SRC := $(ANA)/SAXPCS_8id/thermal_cycle.py $(ANA)/SAXPCS_8id/timelist_2022-1.txt
 
 .PHONY: all figures papers main si cover check clean distclean env
 
@@ -85,10 +86,11 @@ $(F_EVOL): $(ANA)/SAXPCS_8id/saxs_evolution.py $(ANA)/SAXPCS_8id/abs_xsec.py $(X
 $(F_GRID): $(ANA)/SAXPCS_8id/g2_grid_SI.py $(XPCS_DATA) $(COMMON) $(XFIT)
 	cd $(ANA)/SAXPCS_8id && $(PY) g2_grid_SI.py
 
-$(F_CYCLE): $(CYCLE_SRC) $(ANA)/SAXPCS_8id/abs_xsec.py $(COMMON) $(XFIT)
+$(F_CYCLE): $(ANA)/SAXPCS_8id/thermal_cycle.py $(ANA)/SAXPCS_8id/abs_xsec.py \
+            $(XPCS_DATA) $(COMMON) $(XFIT)
 	cd $(ANA)/SAXPCS_8id && $(PY) thermal_cycle.py
 
-$(F_BETA): $(ANA)/SAXPCS_8id/contrast_calibration.py $(COMMON)
+$(F_BETA): $(ANA)/SAXPCS_8id/contrast_calibration.py $(XPCS_DATA) $(COMMON)
 	cd $(ANA)/SAXPCS_8id && $(PY) contrast_calibration.py
 
 $(F_RAD): $(ANA)/Rad_Dam_Check/g2_SAXPCS_Rad_Cali.py $(ANA)/Rad_Dam_Check/Flux_Cal.py $(RAD_DATA) $(COMMON)
@@ -114,7 +116,16 @@ define compile
 	@echo "  -> manuscript/build/$(1).pdf ($$(pdfinfo $(BUILD)/$(1).pdf | awk '/^Pages/{print $$2}') pages)"
 endef
 
-papers: main si cover
+# The xr package makes each document read the other's .aux for cross-document figure
+# numbers, so on a clean tree the pair has to be run si -> main -> si before
+# both directions resolve.  `make main` / `make si` alone stay available for
+# iterating on one document; `make check` reports anything still unresolved.
+papers: $(FIGURES) $(MS)/main.tex $(MS)/si.tex $(MS)/reference.bib \
+        $(MS)/cover_letter.tex $(MS)/cover_letter_header.tex
+	$(call compile,si)
+	$(call compile,main)
+	$(call compile,si)
+	$(call compile,cover_letter)
 
 main: $(FIGURES) $(MS)/main.tex $(MS)/reference.bib
 	$(call compile,main)

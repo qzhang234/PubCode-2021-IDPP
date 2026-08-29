@@ -1,3 +1,22 @@
+"""Helpers for reading and averaging 8-ID-I XPCS cluster-result files.
+
+Only two functions here are on the path from the reduced data in this
+repository to a figure -- ``outlier_removal`` and ``average_datasets``, both
+called by SAXPCS_8id/average_ranges.py.  They are pure array code and need
+nothing but numpy.
+
+Everything else is the beamline-side tooling that produced the raw results in
+the first place: ``read_keys_from_files``, ``read_keys_from_files_parallel``,
+``read_temperature_from_files``, ``process_group`` and
+``process_group_by_range``.  Those walk a directory of per-acquisition result
+files on the beamline storage, and the first two also import ``pyxpcsviewer``
+lazily, which is deliberately NOT in environment.yml.  They are kept for
+provenance and for reprocessing at the beamline; they cannot run from a clone
+of this repository alone, and no figure script calls them.  None of them
+carries a default data directory -- the caller must pass the ``prefix`` that
+applies to the beamtime being reduced.
+"""
+
 import numpy as np
 import sys
 import os
@@ -295,8 +314,8 @@ def _read_xpcs_hdf(fname):
     return tau, g2, g2_err, q_vals
 
 
-def process_group(group='B039',
-                  prefix='/data/xpcs8/2022-1/babnigg202203/cluster_results_reanalysis',
+def process_group(group,
+                  prefix,
                   num_sections=10,
                   zone_idx=1,
                   num_cores=24,
@@ -359,8 +378,8 @@ def process_group(group='B039',
     return avg_all, t_el, ql_dyn, ql_sta
 
 
-def process_group_by_range(group='B0147',
-                            prefix='/data/xpcs8/2022-1/babnigg202203/cluster_results_reanalysis',
+def process_group_by_range(group,
+                            prefix,
                             file_ranges=None,
                             zone_idx=1,
                             num_cores=24):
@@ -376,9 +395,10 @@ def process_group_by_range(group='B0147',
     file_ranges : list of (int, int)
         Each tuple ``(start, end)`` selects files whose embedded frame number
         satisfies ``start <= frame_number <= end`` (inclusive).
-        E.g. ``[(950, 1050), (1051, 1150), (1151, 1250), (1251, 1313)]``.
+        E.g. ``[(951, 1050), (1051, 1150), (1151, 1250), (1251, 1313)]``.
     zone_idx : int or 'auto'
-        Temperature zone index passed to ``get_temperature``.
+        Accepted for signature compatibility with ``process_group``; this
+        function reads no temperature and ignores it.
 
     Returns
     -------
@@ -445,20 +465,12 @@ def process_group_by_range(group='B0147',
     return avg_all, t_el, ql_dyn, None
 
 
-if __name__ == '__main__':
-    # test 01
-    # flist = glob.glob('/home/8ididata/2021-2/babnigg202107_2/cluster_results_QZ/B039*')[0:100]
-    # # print(read_keys_from_files(flist))
-    # # print(read_temperature_from_files(flist))
-    # data_dict = read_keys_from_files(flist)
-    # print(data_dict.keys())
-    # # print(data_dict['g2'].shape)
-    # mask = outlier_removal(data_dict)
-    # print(np.sum(mask))
-    # res = average_datasets(data_dict=data_dict, mask=mask)
-
-    # test 02
-    a, b, c, d = process_group(group='B039', prefix='/home/8ididata/2021-2/babnigg202107_2/cluster_results_QZ',
-                  skip_first_files=0, skip_last_files=30)
-    print(a[0]['saxs_1d'])
+# This module is a library only; it has no __main__ entry point.  The reduction
+# that this repository actually performs is SAXPCS_8id/average_ranges.py, which
+# imports outlier_removal and average_datasets from here.  To use the
+# beamline-side helpers interactively, import them and pass the prefix of the
+# beamtime you are reducing, e.g.::
+#
+#     from common.utils import process_group
+#     avg, t_el, ql_dyn, ql_sta = process_group('B0147', prefix=<beamtime dir>)
     exit(0)

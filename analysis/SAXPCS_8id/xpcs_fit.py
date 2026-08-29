@@ -1,11 +1,11 @@
 """Shared XPCS two-mode fit: the model, the measured contrast, and the global fit.
 
-Figure 3b, Figure S7 and Figure S8 must all show the SAME model applied the SAME
-way -- S8 is an expansion of Figure 3b onto the four higher q bins -- so the
-model and the fitting routine live here and every figure script imports them.
-(Before this module, g2_grid_SI.py carried its own copy that fitted each q bin
-independently with the stretching exponents frozen at 0.5, so Figure S8 was
-showing a different model from the one its caption described.)
+Figure 3b,c, Figure S9 and Figure S10 must all show the SAME model applied the
+SAME way -- Figure S10 is an expansion of Figure 3b onto the four higher q bins
+-- so the model and the fitting routine live here and every figure script
+imports them.  (Before this module, g2_grid_SI.py carried its own copy that
+fitted each q bin independently with the stretching exponents frozen at 0.5, so
+Figure S10 was showing a different model from the one its caption described.)
 
 CONTRAST
 --------
@@ -15,10 +15,10 @@ static reference, and held fixed for every sample fit.
 
 The value below was measured on the 10 nm nano-porous glass standard (Doraglas
 S10-10-1200-50, 10 mm x 1.2 mm, 10 nm pores), dataset F0145, at 6 C: 50 repeat
-acquisitions, q bin 16 (q = 0.02067 A^-1, the bin of highest scattered
-intensity).  Averaging the 50 repeats and fitting the average with a straight
+acquisitions, q bin 16 (q = 0.02067 A^-1, the strongest bin whose averaged
+correlation function is flat).  Averaging the 50 repeats and fitting with a straight
 line in log(delay) gives a flat correlation function -- slope -3.1(1.8)e-5, i.e.
-1.7 sigma from zero, reduced chi^2 = 0.99 -- as a static sample must, with
+1.7 sigma from zero, reduced chi^2 = 1.02 -- as a static sample must, with
 
     g2 = 1 + beta,   beta = 0.13042 +/- 0.00001.
 
@@ -60,7 +60,8 @@ def fit_g2_global(tau, g2, g2_err, q_indices):
 
     Returns a dict:
       {'p1','p1_err','p2','p2_err','red_chi2',
-       'per_q': {q_idx: {'tau_fast','f','tau_slow','f_err'}}}
+       'per_q': {q_idx: {'tau_fast','tau_fast_err','f','f_err',
+                         'tau_slow','tau_slow_err'}}}
     or None if too few q bins have usable data.
     """
     data = []

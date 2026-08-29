@@ -1,3 +1,11 @@
+"""Figure S7: Guinier analysis of the 10 C Reference aliquot from 12-ID-B.
+
+Weighted straight-line fit of ln I(q) against q^2 over 0.020 <= q <= 0.055
+A^-1, giving the apparent radius of gyration of the unassembled ELP.  The data
+are the merged SAXS+WAXS profile written by Read_12ID_SAWAXS.py into
+reduced_data/, so this script needs nothing from the beamline storage.
+"""
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -59,7 +67,7 @@ I_0 = np.exp(intercept)
 I_0_err = I_0 * intercept_err                 # error propagation of exp(intercept)
 
 print("--- Guinier Fit Results (weighted) ---")
-print(f"I_0: {I_0:.4f} ± {I_0_err:.4f} cm^-1")
+print(f"I_0: {I_0:.4f} ± {I_0_err:.4f} (arbs., the units of the merged profile)")
 print(f"R_g: {R_g:.3f} ± {R_g_err:.3f} Å")
 print(f"Max Q*R_g: {q_max * R_g:.4f} (Target < 1.3)")
 print(f"reduced chi^2: {red_chi2:.3f}  (N = {len(x)} points)")

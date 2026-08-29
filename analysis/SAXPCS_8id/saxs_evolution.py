@@ -1,4 +1,4 @@
-"""SI figure: full SAXS 1d evolution for all B0147 files (D0138 subtracted).
+"""Figure S8: full SAXS 1d evolution for all B0147 files (D0138 subtracted).
 
 Every B0147 averaged file is plotted, coloured by elapsed time (time origin =
 first B0147 file, frames 1-200).  B0146 (6 C reference, before the 30 C
@@ -6,7 +6,7 @@ isothermal) is drawn in the same blue square as the 6 C reference in Figure 3a,
 and the y axis carries the same label, so the two figures key and label that
 dataset identically.
 
-Elapsed time is keyed by a COLOURBAR rather than by a 14-entry legend box.  The
+Elapsed time is keyed by a COLOURBAR rather than by an 11-entry legend box.  The
 curves are stacked in y across the whole q range, so there is no corner of the
 axes a box that size can sit in without covering data; the colourbar carries the
 same information outside the frame.  The colormap is plasma, the same
@@ -30,7 +30,7 @@ from matplotlib.colors import Normalize
 # Absolute scattering cross-section calibration lives in the shared module so
 # this figure uses exactly the same constants and per-file coefficient as the
 # main saxpcs.py figure.  See abs_xsec.py for the full derivation.
-from abs_xsec import abs_xsec_coef, calibration_summary
+from abs_xsec import abs_xsec_coef, calibration_summary, INV_MM_TO_INV_CM
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from common.acs_style import (SINGLE_COL, MS, MEW, LW_THIN,
@@ -41,7 +41,7 @@ data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 BACKGROUND_HEADER = 'D0138'
 # Absolute scattering cross-section: convert the raw SAXS 1d to an absolute
 # differential cross section (cm^-1) as
-#     I_abs(q) = coef_sam * I_sample(q) - coef_buf * I_buffer(q)
+#     I_abs(q) = INV_MM_TO_INV_CM * [coef_sam * I_sample(q) - coef_buf * I_buffer(q)]
 # coef_sam / coef_buf are NOT hard-coded any more: each is computed by
 # abs_xsec_coef() from that file's own range-averaged ion-chamber readings, so a
 # drift in incident flux across the time series is handled per file.  coef_buf
@@ -89,7 +89,9 @@ def read_saxs_iq(hf, phi_average=True):
 
 
 # --- DISCOVER FILES ---
-file_paths = sorted(glob.glob(os.path.join(data_dir, '*.hdf')))
+# every range average in data/, including the thermal-cycle groups that belong to
+# Figure S6; only XPCS_HEADER and the 6 C reference are kept below
+file_paths = sorted(glob.glob(os.path.join(data_dir, 'Average_*.hdf')))
 by_header, start_times = {}, {}
 for fp in file_paths:
     header = parse_name(fp)[0]
@@ -124,6 +126,7 @@ for fp in by_header.get('B0146', []):
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
         coef_sam = abs_xsec_coef(hf)                       # this file's own coefficient
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
+    I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
     pos = I > 0
     # same colour and marker as the 6 C reference in Figure 3a, so the two
     # figures key that dataset identically
@@ -135,6 +138,7 @@ for fp in b0147:
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
         coef_sam = abs_xsec_coef(hf)                       # this file's own coefficient
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
+    I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
     pos = I > 0
     ax.plot(q[pos], I[pos], color=CMAP(norm(elapsed[fp])), marker='o', ls='none',
             ms=MS, mfc='none', mew=MEW)
@@ -143,7 +147,7 @@ ax.set_xscale('log')
 ax.set_yscale('log')
 ax.set_xlabel(r'$Q$ ($\AA^{-1}$)')
 # same axis label as Figure 3a: the quantity is an absolute differential cross
-# section, and the units belong in the caption (see the note in saxpcs.py)
+# section, and the units are on the axis (see the note in saxpcs.py)
 ax.set_ylabel(r'$I(Q)$ (cm$^{-1}$)')
 add_minor_grid(ax)
 # only the 6 C reference needs a legend entry; elapsed time is the colourbar

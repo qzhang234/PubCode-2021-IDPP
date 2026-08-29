@@ -1,27 +1,30 @@
-"""Combined SAXS + XPCS analysis, reading the averaged HDF files directly.
+"""Combined SAXS + XPCS analysis, reading the averaged HDF files in data/.
 
-One figure, three panels:
+This one script writes three of the paper's figures: Figure 3 of the main text,
+Figure S9 and Figure S3.
+
+Figure 3, three panels:
   1. SAXS I(q) for B0146, the first B0147 file (frames 1-200), and the last five
      B0147 files (frames 801-1313), with the D0138 buffer subtracted.
   2. XPCS g2(tau) at one q for the first + last-five B0147 files, with fits.
   3. Fitted fast fraction f vs elapsed time, per q bin.
-A second figure (2x2 panels) plots the fit parameters: (a) shared exponents p1,
-p2 vs elapsed time, (b) tau_fast vs Q, (c) tau_slow vs Q, and (d) the power-law
+Figure S9 (2x2 panels) plots the fit parameters: (a) shared exponents p1, p2 vs
+elapsed time, (b) tau_fast vs Q, (c) tau_slow vs Q, and (d) the power-law
 scaling exponents gamma_fast, gamma_slow obtained by fitting each elapsed
-time's tau(Q) in (b)/(c) to tau = A * Q**gamma.  A third figure (2 panels)
-documents the absolute-cross-section calibration: the ion-chamber -> photon
-linear fit and the air transmission (both merged from the IC_pin4 notebooks;
-see the ABSOLUTE SCATTERING CROSS-SECTION section below).
+time's tau(Q) in (b)/(c) to tau = A * Q**gamma.  Figure S3 (2 panels) documents
+the absolute-cross-section calibration: the ion-chamber -> photon linear fit
+and the air transmission (see the ABSOLUTE SCATTERING CROSS-SECTION section
+below and abs_xsec.py).
 
 The SAXS panel is still put on an absolute scale (d(Sigma)/d(Omega)) via a
 coefficient computed PER FILE from that file's own range-averaged ion-chamber
 readings, so a drift in incident flux across the time series is handled
-correctly -- the axis is simply labelled I(Q) and the absolute units belong in
-the caption.  See abs_xsec_coef() and the long note in the ABSOLUTE SCATTERING
-CROSS-SECTION section.
+correctly.  The axis carries the units (cm^-1); the calibration behind them is
+in abs_xsec_coef() and in the long note in the ABSOLUTE SCATTERING CROSS-SECTION
+section.
 
 Colour encodes elapsed time and is CONSISTENT across all three panels (e.g. the
-7863 s dataset is the same red everywhere).  In the fit panel the marker SHAPE
+7863 s dataset is the same gold everywhere).  In the fit panel the marker SHAPE
 encodes the q bin.  B0146 is a 6 C reference taken before the 30 C isothermal
 run; its acquisition time is not a time origin, so it appears in the SAXS panel
 only.  Because colour means the same thing everywhere, ONE elapsed-time key
@@ -34,7 +37,7 @@ bottom-left corner, beside its own curve.  The marker-shape -> q key stays
 inside panel (c), flattened to three columns so it too costs little headroom.
 
 Figure geometry follows the ACS figure-preparation guidelines through
-common/acs_style.py: both multi-panel figures are double-column (7.0 in = the
+common/acs_style.py: all three multi-panel figures are double-column (7.0 in = the
 504 pt ACS maximum) and every character is 8 pt Arial.  Axis limits are set a
 clear margin outside the data everywhere, so no point is drawn on top of a
 frame.
@@ -45,7 +48,9 @@ The g2 model is a double stretched-exponential (Siegert form):
 
     g2 = contrast * ( f e^-(tau/tau_fast)^p1 + (1-f) e^-(tau/tau_slow)^p2 )^2 + 1
 
-with contrast = 0.135 (read from g2) and baseline = 1 both fixed.  For each
+with the contrast fixed at beta = 0.13042, the instrumental value measured on a
+static reference by contrast_calibration.py (Figure S4), and the baseline fixed
+at 1.  For each
 elapsed time all fitted q bins are fit SIMULTANEOUSLY (a global fit): the
 stretching exponents p1 (fast) and p2 (slow) are SHARED across q -- they depend
 only on elapsed time -- while tau_fast, f and tau_slow are independent per q.
@@ -88,7 +93,7 @@ from common.acs_style import (DOUBLE_COL, MS, MS_SPARSE, MEW, LW_THIN, LW_DATA,
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 # --- ACS FIGURE GEOMETRY (see common/acs_style.py) ---
-# Both of these have three or four panels, so both are double-column figures at
+# All three have two or more panels, so all three are double-column figures at
 # the 7.0 in (504 pt) ACS maximum.  Depths are far inside the 9.167 in cap.
 FIG1_SIZE = (DOUBLE_COL, 3.15)        # 3 panels + the shared key row beneath them
 FIG1_LEGEND_H = 0.075                # fraction of the height reserved at the
@@ -111,9 +116,12 @@ N_LAST = 5                           # number of last (highest-frame) files
 target_q_idx = 0                     # q bin shown in the g2 panel
 fit_q_indices = [0, 1, 2, 3, 4]      # q bins fitted for the f-vs-time panel
 Q_MARKERS = ['o', 's', '^', 'D', 'v']   # one marker per fit q bin
-CHI2_MAX = 10.0                      # skip fits worse than this reduced chi^2
-                                     # (the liquid t=0 file does not obey the
-                                     # arrested double-exp model: chi^2 ~ 1e2-1e3)
+CHI2_MAX = 10.0                      # skip fits worse than this reduced chi^2.
+                                     # A guard only: the five fitted files give
+                                     # 0.78-1.89, so it never fires.  The liquid
+                                     # t=0 file, which it was written for, is not
+                                     # in the fit set at all (chi^2 ~ 2e3 if it
+                                     # were: it does not obey the arrested model)
 PHI_AVERAGE = True                   # azimuthally average I(q) over phi sectors
 # XPCS elapsed-time colours: the N_LAST times are mapped to evenly-spaced
 # positions of this colormap (maximises separation so times are easy to tell
@@ -137,10 +145,9 @@ contrast = CONTRAST                  # local alias used in the panels below
 # ============================================================================
 # The calibration constants, the IC->photon linear fit, the air transmission
 # and the per-file coefficient function abs_xsec_coef() all live in the shared
-# module abs_xsec.py (merged there from IC_pin4/IC_pind4_convert.ipynb and
-# IC_pin4/Abs_Scatt_Cross.ipynb).  saxpcs.py and saxs_evolution.py both import
-# from it so the absolute scale is computed identically in every figure.  See
-# abs_xsec.py for the full derivation and unit notes.
+# module abs_xsec.py.  saxpcs.py and saxs_evolution.py both import from it so
+# the absolute scale is computed identically in every figure.  See abs_xsec.py
+# for the full derivation, its provenance and the unit notes.
 from abs_xsec import (                                     # noqa: E402
     CAL_A, CAL_B, CAL_UPIC, CAL_PHOTONS, CAL_CROP,
     AIR_TRANS_SERIES, AIR_TRANSMISSION, AIR_TRANS_STD,
@@ -225,7 +232,9 @@ def fit_powerlaw(Q, tau, tau_err):
 
 
 # --- DISCOVER FILES ---
-file_paths = sorted(glob.glob(os.path.join(data_dir, '*.hdf')))
+# every range average in data/, including the thermal-cycle groups that belong to
+# Figure S6; the headers wanted here are selected out of by_header below
+file_paths = sorted(glob.glob(os.path.join(data_dir, 'Average_*.hdf')))
 assert file_paths, f'no HDF files found in {data_dir}'
 by_header, start_times = {}, {}
 for fp in file_paths:
@@ -303,7 +312,7 @@ if BACKGROUND_HEADER in by_header:
         coef_buf = abs_xsec_coef(hf)
     print(f'coef_buf ({BACKGROUND_HEADER}) = {coef_buf:.3e}')
 
-time_handles = []                         # the six elapsed times -> the 3x2 key
+time_handles = []                         # the six elapsed times -> the key row
 ref_handles = []                          # the 6 C reference -> its own small key
 saxs_I_lo, saxs_I_hi = np.inf, 0.0        # data range, for the panel-(a) headroom
 for fp in by_header.get('B0146', []):                        # 6 C reference (distinct)
@@ -349,8 +358,11 @@ add_minor_grid(ax1)
 ax1.set_xlim(2.6e-3, 4.4e-2)
 ax1.xaxis.set_major_locator(FixedLocator([4e-3, 1e-2, 3e-2]))
 ax1.xaxis.set_major_formatter(FixedFormatter(['0.004', '0.01', '0.03']))
+# Minor ticks only at integer multiples of the decade (2, 3, ... x 10^n).
+# Half-decade positions such as 0.015 or 0.025 put grid lines at values a reader
+# cannot name, which makes the grid harder to read rather than easier.
 ax1.xaxis.set_minor_locator(FixedLocator([3e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3,
-                                          1.5e-2, 2e-2, 2.5e-2, 3.5e-2, 4e-2]))
+                                          2e-2, 4e-2]))
 ax1.xaxis.set_minor_formatter(NullFormatter())
 
 # The elapsed-time key lives at the bottom of the FIGURE (below), so panel (a)
@@ -385,7 +397,7 @@ for fp in xpcs_files:
         t_fit = np.logspace(np.log10(tt.min()), np.log10(tt.max()), 200)
         g2_fit = double_exp(t_fit, pq['tau_fast'], pq['f'], pq['tau_slow'],
                             r['p1'], r['p2'])
-        # LW_DATA (1.4 pt) against 0.5 pt marker outlines is enough contrast on
+        # LW_DATA (1.0 pt) against 0.6 pt marker outlines is enough contrast on
         # its own -- deliberately NO white casing under the line, which would
         # blank out the very data points the fit is meant to be judged against.
         ax2.plot(t_fit, g2_fit, color=color, lw=LW_DATA, solid_capstyle='round',
@@ -395,7 +407,7 @@ ax2.set_xscale('log')
 ax2.set_xlabel(r'Delay Time, $\tau$ (s)')
 ax2.set_ylabel(r'$g_2$')
 ax2.set_ylim(1.0, 1.18)
-# two-decimal ticks: '1.000'-style labels are wide enough at 9 pt to squeeze
+# two-decimal ticks: '1.000'-style labels are wide enough at 8 pt to squeeze
 # the three panels together, and the extra digit carries no information here.
 ax2.yaxis.set_major_locator(FixedLocator([1.00, 1.05, 1.10, 1.15]))
 ax2.yaxis.set_major_formatter(FixedFormatter(['1.00', '1.05', '1.10', '1.15']))
@@ -482,11 +494,11 @@ fig.tight_layout(pad=0.4, w_pad=1.1, rect=(0, FIG1_LEGEND_H, 1, 1))
 save_fig(fig, 'Figure3_Isothermal_SAXPCS.pdf')
 
 # ============================================================
-# FIGURE 2 (2x2): (a) p1, p2 vs elapsed time;      (b) tau_fast vs Q
-#                 (d) gamma_fast, gamma_slow vs t;  (c) tau_slow vs Q
+# FIGURE S9 (2x2): (a) p1, p2 vs elapsed time;      (b) tau_fast vs Q
+#                  (d) gamma_fast, gamma_slow vs t;  (c) tau_slow vs Q
 # Column 0 (a, d) shares the elapsed-time x-axis; column 1 (b, c) shares the Q
 # x-axis -- so only the bottom row needs x tick labels / an x-axis label.
-# All XPCS colours use the same elapsed-time scale as figure 1.
+# All XPCS colours use the same elapsed-time scale as Figure 3.
 # ============================================================
 fig2, ((axp, axf), (axg, axs)) = plt.subplots(2, 2, figsize=FIG2_SIZE,
                                               sharex='col')
@@ -579,7 +591,8 @@ for fp in xpcs_files:
 # Q ticks: label the mantissa (4..8); the x10^-3 factor is folded into the
 # shared x-axis label on the bottom row instead of a separate corner text.
 _q_major = [4e-3, 5e-3, 6e-3, 7e-3, 8e-3]
-_q_minor = [3.5e-3, 4.5e-3, 5.5e-3, 6.5e-3, 7.5e-3, 8.5e-3, 9e-3]
+# integer multiples of 10^-3 only; see the note on Figure 3a above
+_q_minor = [9e-3]
 for a in (axf, axs):
     a.set_xscale('log')
     a.set_yscale('log')
@@ -632,11 +645,11 @@ fig2.tight_layout(pad=0.4, w_pad=1.4, h_pad=0.8)
 save_fig(fig2, 'FigureS9_Fit_Parameters.pdf')
 
 # ============================================================
-# FIGURE 3 (2 panels): ion-chamber -> photon calibration
+# FIGURE S3 (2 panels): ion-chamber -> photon calibration
 #   (left)  air transmission across the calibration measurements (mean ~0.868)
 #   (right) photon counts vs upstream IC, with the linear fit CAL_A/CAL_B
-# This reproduces IC_pin4/IC_pind4_convert.ipynb inside this analysis; the same
-# CAL_A, CAL_B and AIR_TRANSMISSION feed abs_xsec_coef() (in abs_xsec.py).
+# The same CAL_A, CAL_B and AIR_TRANSMISSION feed abs_xsec_coef(), so this
+# figure documents exactly the calibration the SAXS panels are scaled by.
 # ============================================================
 fig3, (axt, axc) = plt.subplots(1, 2, figsize=FIG3_SIZE)
 label_panels((axt, axc))

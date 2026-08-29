@@ -5,8 +5,9 @@ one log-log I(Q) panel with the WAXS peak region inset at the top right -- but
 everything is drawn through common/acs_style.py, and three things were moved so
 that no text sits on top of data at 8 pt:
 
-  * the main y-axis is given a decade of clear space below the data so the
-    four-entry key fits in the lower-left corner;
+  * the main y-axis floor is set just under the data and the four-entry key is
+    made narrow enough to fit in the clear lower-left corner (see the note at
+    set_ylim);
   * the inset is given headroom above its highest point, and the two peak
     labels sit in that clear strip instead of over the rising edge at 0.22 A^-1
     (the real-space spacings they used to carry are already in the caption);

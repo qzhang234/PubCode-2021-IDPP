@@ -13,8 +13,8 @@ weights and one pair of column widths.
 Two deliberate choices go beyond the bare minimums:
 
 * FONT_SIZE is 8 pt, not the 4.5 pt floor.  8 pt is the largest size that still
-  lets the elapsed-time key sit inside Figure 3a and the WAXS inset stay
-  uncollided inside single-column Figure 2, which is what sets the ceiling.
+  lets the WAXS inset and its peak labels stay uncollided inside single-column
+  Figure 2, which is what sets the ceiling.
 * Figures are saved at exactly SINGLE_COL or DOUBLE_COL wide and embedded in
   the LaTeX at natural size, so 8 pt drawn is 8 pt printed.  Nothing is scaled
   at typesetting time and no bounding box is trimmed.
@@ -83,7 +83,19 @@ def apply_style():
 
 def add_minor_grid(ax):
     """Grid on major and minor ticks, at the 0.5 pt minimum but pale enough to
-    stay behind the data."""
+    stay behind the data.
+
+    Minor grid lines must never land on the exact midpoint between two labelled
+    major ticks: a line at 0.015 sitting halfway between 0.01 and 0.02 reads as
+    a value the axis never names, and the grid becomes harder to use rather than
+    easier.  On LINEAR axes matplotlib's AutoMinorLocator subdivides by 5 whenever
+    the major step has mantissa 1, 2.5, 5 or 10, which covers every linear axis
+    here, so it is left alone; a major step of 2 would subdivide by 4 and would
+    need the same care.  LOG axes are the ones
+    that need care, because a hand-written FixedLocator can easily be given
+    half-decade positions (1.5, 2.5, 3.5 x 10^n); the call sites here list only
+    integer multiples of the decade.
+    """
     ax.minorticks_on()
     ax.set_axisbelow(True)
     ax.grid(which='major', ls='-', lw=LW_THIN, color='0.85')
