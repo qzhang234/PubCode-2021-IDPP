@@ -471,7 +471,7 @@ axG.set_xscale('log')
 # so their error bars run far outside the correlation itself; the limits show the
 # correlation and let those few caps clip.
 axG.set_ylim(0.94, 1.28)
-axG.set_xlabel(r'Delay Time, $\tau$ (s)')
+axG.set_xlabel(r'Delay Time, $\Delta t$ (s)')
 axG.set_ylabel('$g_2$')
 axG.axhline(1 + CONTRAST, color='0.6', ls=':', lw=LW_THIN)
 axG.text(0.985, 1 + CONTRAST, '$1+\\beta$', transform=axG.get_yaxis_transform(),

@@ -143,7 +143,7 @@ axg.errorbar(tau[m], gbar[m], yerr=ebar[m], fmt='o', color='k', mfc='none',
              capthick=LW_THIN, zorder=2)
 axg.plot(tau[m], intercept + slope * np.log10(tau[m]), 'r-', lw=LW_DATA, zorder=3)
 axg.set_xscale('log')
-axg.set_xlabel(r'Delay Time, $\tau$ (s)')
+axg.set_xlabel(r'Delay Time, $\Delta t$ (s)')
 axg.set_ylabel('$g_2$')
 axg.set_ylim(1.10, 1.16)
 axg.set_title(rf'$Q = {q[Q_INDEX]:.5f}\ \AA^{{-1}}$')

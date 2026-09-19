@@ -150,7 +150,7 @@ _i_lo = min(d['saxs_1d'][d['saxs_1d'] > 0].min() for d in data.values())
 axs[0].set_ylim(_i_lo * 0.6, _i_hi * 12)
 axs[0].legend(title='Flux on sample', loc='upper right')
 
-axs[1].set_xlabel(r'Delay Time, $\tau$ (s)')
+axs[1].set_xlabel(r'Delay Time, $\Delta t$ (s)')
 axs[1].set_ylabel(r'$g_2$')
 axs[1].set_xscale('log')
 add_minor_grid(axs[1])

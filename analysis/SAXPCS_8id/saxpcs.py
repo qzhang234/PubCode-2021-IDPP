@@ -343,7 +343,7 @@ for fp in xpcs_files:
                  zorder=3)
 
 ax2.set_xscale('log')
-ax2.set_xlabel(r'Delay Time, $\tau$ (s)')
+ax2.set_xlabel(r'Delay Time, $\Delta t$ (s)')
 ax2.set_ylabel(r'$g_2$')
 ax2.set_ylim(1.0, 1.18)
 # two-decimal ticks: '1.000'-style labels are wide enough at 8 pt to squeeze

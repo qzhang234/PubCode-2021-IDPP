@@ -126,7 +126,7 @@ leg = fig.legend(handles=t_handles, loc='lower center', bbox_to_anchor=(0.5, 0.0
 leg.get_frame().set_linewidth(LW_THIN)
 
 for ax in axes[-1, :]:
-    ax.set_xlabel(r'Delay Time, $\tau$ (s)')
+    ax.set_xlabel(r'Delay Time, $\Delta t$ (s)')
 for ax in axes[:, 0]:
     ax.set_ylabel('$g_2$')
 
