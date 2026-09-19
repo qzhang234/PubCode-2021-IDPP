@@ -495,7 +495,9 @@ GAP   = 1.20 * FS                    # white space between labels and markers
 PAD   = 0.55 * FS                    # inside the frame
 
 TITLE = 'Thermal cycle'
-ROW_LAB = [f'{T_HOLD:.0f} °C', f'{T_MID:.0f} °C', f'{T_TOP:.0f} °C']
+# One decimal on the two ramp windows: rounding them to 32 and 34 C put the
+# key at odds with the 31.9 and 33.8 C quoted in the text and the caption.
+ROW_LAB = [f'{T_HOLD:.0f} °C', f'{T_MID:.1f} °C', f'{T_TOP:.1f} °C']
 
 # width of the label column, measured rather than guessed
 fig.canvas.draw()

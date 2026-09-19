@@ -200,3 +200,227 @@ produce PDFs that differ only in `/CreationDate`.
   The five analyzed XPCS groups are 63–150.
 - **12-ID-B beamline citations** are papers that used the beamline rather than
   an instrument paper. There is no instrument paper; this is normal practice.
+
+---
+
+## 9. Response to the 25 PDF comments
+
+All 25 comments bound one-to-one to the 25 highlighted spans, in document
+order. Line numbers are those of the commented draft.
+
+### Page 2
+
+**C1 · L15 · "Double-check all references in the Introduction section."**
+26 distinct references are cited before the Figure 1 paragraph. All 26 carry
+title, authors, journal, year, volume and pages; all 41 cited keys resolve in
+`reference.bib`, and no cited key is missing. Metadata matches the published
+record for every one I can check offline. The newest and therefore highest-risk
+entry, Pálmadóttir 2025, was verified live: DOI 10.1063/5.0236947 resolves to
+*Biophysics Reviews* **6**(1), 011303, "On the reversibility of amyloid fibril
+formation". **Caveat:** live web search is blocked by organization policy on
+this machine, so the remaining 25 were checked against the bibliography and
+against known metadata, not against a fresh lookup of each publisher record.
+
+### Page 3
+
+**C2 · L54 · "The observation of the paper is important. Break it into a new sentence."**
+- **Was:** "…falls progressively with elapsed time, so the central result is a reversible structural transition coexisting with…"
+- **Now:** "…falls progressively with elapsed time. The central result is therefore a reversible structural transition coexisting with…"
+
+### Page 4
+
+**C3 · L77 · "That's not the same with what the figure shows. Should we show the fitting in Fig. 2, or at least draw Q^-3.2 as a guide to the eye?"**
+The fit *was* already drawn — a black dashed line over 0.012–0.040 Å⁻¹ — but it
+runs straight through the 30 °C data it was fitted to and was invisible against
+the markers at print size. It is now **red dashed with `zorder=5`**, matching
+the colour this figure already uses for a fit (the two Gaussian peak fits in the
+inset). Position unchanged, so it still shows the quality of the fit rather than
+being an offset guide. The residual mismatch is rounding only: the in-figure
+label prints `slope` to one decimal (−3.2) while the text quotes −3.17 and
+−3.15.
+
+**C4 · L78 · "Break into new sentence. The high Q peaks are important."**
+- **Was:** "…for the Measurement aliquot) **and the same pair of high-$Q$ features, at** $Q=1.38$…"
+- **Now:** "…for the Measurement aliquot). **Both also develop the same pair of high-$Q$ features, at** $Q=1.38$…"
+
+**C5 · L87 · "I need to read this part to better understand how the error falls back to 7%. Honestly I think it's Ok even if the error is not 7%…"**
+**Kept as written.** The detrending is what explains the one number in that
+sentence that looks bad — the 33 % spread at the mid-ramp state. Dropping the
+explanation would leave a 33 % sitting unexplained in the main text next to 9 %
+and 5 %, which invites exactly the referee question the sentence forecloses.
+The mechanism is in SI Section 6.2: the seven cycles cross acquisitions 241–250
+between 31.62 and 32.48 °C, ln *I* tracks that window temperature at
+*r* = 0.974 with d ln *I*/d*T* = 0.95 °C⁻¹, and removing the trend takes the
+spread from 32.6 % to 7.1 %. Say the word and I will cut it.
+
+### Page 5
+
+**C6 · Figure 1 caption · "Yeah this definitely needs to be shorter … Focus more on what SAXS and SA-XPCS measures."**
+Rewritten, **244 → 184 words**. Dropped: the explanation of the microfocused
+beam, the Peltier/multi-zone thermal path (both already in the Experimental
+Section), the beam-footprint bar, and the "one repeat unit … extended length"
+gloss. Added, as the new centre of the caption:
+
+> Averaging them gives the SAXS intensity $I(Q)$: how much structure the sample
+> has at each length scale $2\pi/Q$, which grows at low $Q$ on heating.
+> Correlating them in time gives $g_2(Q,\Delta t)$: how fast the structure at
+> that same length scale rearranges, a decay meaning the density fluctuations at
+> $2\pi/Q$ are still moving and a flat $g_2$ that they are frozen over the
+> accessible delay.
+
+The "illustrative, not data" and "conceptual illustration, not a real-space
+observation" disclaimers are kept verbatim.
+
+### Page 7
+
+**C7 · L98 · "Need more explanation … is it really necessary over such a smoking gun evidence?"**
+The hedge is kept — concurrence in two $Q$ ranges genuinely cannot identify the
+contacts as the junctions — but it is no longer a bare assertion. **Added:**
+"…: the same two signatures would appear if the ordered contacts sat inside the
+protein-rich domains rather than at the links between them, and the two $Q$
+ranges cannot distinguish those cases." A referee who sees *why* the caveat is
+there reads it as rigour; one who sees only the caveat reads it as doubt.
+
+**C8 · L104 · "The slow ramp protocol should be spelled out more clearly here."**
+- **Was:** "…was brought to 30 °C on the slow ramp given in the Experimental Section."
+- **Now:** "…was held at 6 °C for more than 30 min, warmed to 20 °C at 5 °C min⁻¹, and then brought to 30 °C at 1 °C min⁻¹, the slow final ramp limiting overshoot past the target."
+
+**C9 · L105 · "Again, spell out where the RTD is."**
+- **Now:** "the calibrated RTD, **embedded in the Peltier stage adjacent to the cell**, read 30 °C".
+
+**C10 · L106 · "I won't call it 'first isothermal acquisition' … Change it to something like 'high temperature SAXS measurement shown in Fig. 2'."**
+Phrase removed as asked, but **not** replaced with the suggested wording — see
+§10 below. The sentence is about the 8-ID-I isothermal series, so it now reads
+"…that moment is also the start of the first acquisition plotted in Figure 3."
+
+**C11 · L107 · "I believe only one group is 63 measurements."**
+Correct — only the last. **Was:** "a group of 63–200 consecutive 2 s
+acquisitions". **Now:** "The groups are not all the same size. The five analyzed
+for $g_2$ hold 150, 100, 100, 100 and 63 acquisitions … the last is short only
+because the measurement ended there. The $t_w=0$ SAXS profile of Figure 3a
+averages the first 200 acquisitions."
+
+**C12 · L109 · "spell out the duration of the groups clearly."**
+- **Was:** "a group spans 7–16 min" — which was also wrong, because it excluded
+  the $t_w=0$ group.
+- **Now:** "…and run 15.5, 10.4, 10.4, 10.7 and 6.7 min … [the $t_w=0$ group]
+  over 20.8 min." Durations are from the recorded acquisition start times
+  (cadence 6.2–6.5 s per 2 s acquisition, the rest being stage motion and
+  readout).
+
+**C13 · L116 · "Shouldn't this be 'shows'?"**
+"Data … show" is correct — *data* is plural in ACS usage — so the original was
+not an error. But the question is worth not provoking in a referee, so the
+sentence was recast to make the subject singular and shorter:
+- **Was:** "The temperature-ramp data of Figure S6c **show** the still-mobile limit directly:"
+- **Now:** "Figure S6c **shows** the still-mobile limit directly:"
+
+### Page 8
+
+**C14 · L117 · "The legend in Fig. S6c shows 32 C. Please fix that."**
+Real bug. `thermal_cycle.py` formatted the key rows with `:.0f`, rounding 31.9
+and 33.8 to 32 and 34 while the text and caption said 31.9 and 33.8. Now `:.1f`
+for the two ramp windows (6 °C stays `:.0f`). Figure regenerated; the key reads
+6 °C / 31.9 °C / 33.8 °C.
+
+**C15 · L129 · "1. … 'on the experimental time window' … makes the sentence very hard to read. 2. … should be broken into two sentences."**
+- **Was:** "The fraction of fast dynamics therefore decreases while the fraction of dynamics arrested on the experimental time window increases, rather than all relaxation times shifting uniformly."
+- **Now:** "The fraction of fast dynamics therefore decreases while the arrested fraction increases. What changes is the weight carried by each population; the relaxation times themselves do not simply shift together."
+
+**C16 · L137 · "It's recommended to show in Eq. 2 that tau_fast and tau_slow are q dependent."**
+Done — and `f` was given the same treatment, because leaving it as bare `f`
+beside `τ(Q)` would imply the fast fraction is $Q$-independent, which is the one
+thing the paper's main result contradicts. Eq. 2 and SI Eq. S4 now read
+$f(Q)$, $\tau_\mathrm{fast}(Q)$, $\tau_\mathrm{slow}(Q)$;
+$p_\mathrm{fast}$ and $p_\mathrm{slow}$ deliberately carry no argument, which
+now encodes the global fit in the equation itself.
+
+**C17 · L140 · "Are you referring to the global fitting of p_fast and p_slow? … emphasize that fewer fitting parameters reduce fit uncertainty."**
+- **Now:** "The stretching exponents … carry no $Q$ argument because they are the
+  shared parameters of a global fit: at each elapsed time the five measured $Q$
+  bins were fitted simultaneously with both exponents common to all five.
+  Sharing them reduces the free parameters from 25 to 17 and tightens the ones
+  that remain." (25 = 5 bins × 5 parameters; 17 = 2 shared + 5 × 3.)
+
+### Page 9
+
+The whole page-9 paragraph was rebuilt around C18–C24 and split in two at
+C22's request.
+
+**C18 · L144 · "Spell out which value corresponds to which Q."**
+- **Now:** "At $t_w=5039$ s it rises across the five bins from $f=0.42$ at
+  $Q=0.00376$ Å⁻¹ (167 nm) to 0.71 at $Q=0.00827$ Å⁻¹ (76 nm); by $t_w=7863$ s
+  the same bins give 0.00 to 0.13 … so $1-f$ has gone from 0.58 and 0.29 at
+  those two $Q$ values to 1.00 and 0.87."
+
+**C19 · L148 · "'an increasing fraction' over what? Q or t_w?"**
+- **Now:** "**As $t_w$ grows**, an increasing fraction of the scattering ensemble
+  is therefore arrested within the accessible delay range, and this holds at
+  every length scale probed."
+
+**C20 · L154 · "What is this statement doing here?"**
+The clause "independent of elapsed time" was carrying an argument it never
+stated. **Now:** "That ordering holds separately within each acquisition, so it
+reflects length scale rather than the overall trend with $t_w$, and it ties the
+growing low-$Q$ SAXS structure to the arrest fraction measured on the very same
+frames. It is what coarsening predicts: the largest structural features become
+the least mobile."
+
+**C21 · L155 · "Add something like 'Note that' in the front."**
+- **Now:** "**Note that** XPCS does not locate those dynamically arrested regions…"
+
+**C22 · L157 · "It might be better to start a new paragraph … Right now everything is intertwined."**
+New paragraph starts at "The auxiliary fit parameters behave consistently across
+the series." The arrest result and the supporting fit parameters are now
+separate paragraphs. A bulleted list was not used: Nano Letters Letters run as
+continuous prose with no subsection structure.
+
+**C23 · L159 · "Describe the trend briefly. How does it vary with t_w and Q?"**
+- **Now:** "$\tau_\mathrm{fast}(Q)$ decreases with $Q$ at every analyzed time
+  with an approximately diffusive-like exponent, $\gamma_\mathrm{fast}=-2.0$ to
+  $-2.4$, and that exponent shows no systematic drift with $t_w$: the fast mode
+  keeps the same $Q$ dependence while steadily losing amplitude."
+  (Values in $t_w$ order: −2.29, −2.42, −2.20, −1.99, −2.35 — scattered, not
+  monotonic.)
+
+**C24 · L163 · "Highlight APS-U which provides the higher flux."**
+- **Now:** "an independent control at **23–41 times the flux used here, a
+  comparison the beam delivered by the APS Upgrade made possible**, shows no
+  systematic flux-dependent change…"
+
+### Page 11
+
+**C25 · L172 · "Don't you want to add that the higher Q lost mobility faster …?"**
+Added, but **with the direction reversed** — see §10.
+- **Now:** "…the low-$Q$ assembly progressively loses mobility, **doing so
+  fastest at the lowest $Q$ — the largest structures stop moving first, as a
+  coarsening network should.**"
+
+---
+
+## 10. Two comments not implemented as written
+
+**C10 — the suggested replacement points at the wrong dataset.** The sentence is
+about the 8-ID-I isothermal series: it defines $t_w=0$ as the moment the RTD
+reached 30 °C. Redirecting it to "high temperature SAXS measurement shown in
+Fig. 2" would point the reader at the 12-ID-B capillary data, which is a
+different sample, a different beamline and has no waiting-time axis at all —
+the SI says so explicitly. The objectionable phrase is gone; the pointer now
+goes to Figure 3, which is the isothermal series being defined.
+
+**C25 — the direction is the other way round.** $f$ is the **fast** fraction and
+it *increases* with $Q$, so the arrested fraction $1-f$ is largest at the
+**lowest** $Q$. At $t_w=7863$ s, $1-f = 1.00$ at $Q=0.00376$ Å⁻¹ (167 nm) and
+0.87 at $Q=0.00827$ Å⁻¹ (76 nm). Mobility is therefore lost fastest at the
+largest length scale, not the smallest. Written as "the higher $Q$ lost mobility
+faster" the sentence would contradict Figure 3c and the paragraph on page 9.
+The coarsening reading you want is right and is now stated in the summary — it
+just runs low-$Q$-first.
+
+---
+
+## 11. Updated counts
+
+Abstract 129 words (limit 150). Main text **2782 words excluding captions**
+(limit 3000), 3280 including them. Captions: Figure 1 184, Figure 2 119,
+Figure 3 195. Main PDF is 19 pages; `make check` is clean.

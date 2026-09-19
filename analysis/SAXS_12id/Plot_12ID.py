@@ -99,8 +99,11 @@ slope, intercept = np.polyfit(log_q, log_i, 1)
 q_line = np.linspace(q_min_scale, q_max_scale, 50)
 i_line = (10**intercept) * (q_line**slope)
 
-# Plot the scaling line
-ax.plot(q_line, i_line, 'k--', lw=LW_DATA)
+# Plot the scaling line.  Red, not black: the fit runs straight through the
+# 30 C data it was fitted to, and in black it was indistinguishable from the
+# markers at print size.  Red is already this figure's colour for a fit -- the
+# inset uses it for the two Gaussian peak fits.
+ax.plot(q_line, i_line, 'r--', lw=LW_DATA, zorder=5)
 
 # Add the scaling label at the top-left start of the fit line (offset vertically)
 q_start = q_min_scale
