@@ -280,7 +280,7 @@ spread from 32.6 % to 7.1 %. Say the word and I will cut it.
 ### Page 5
 
 **C6 · Figure 1 caption · "Yeah this definitely needs to be shorter … Focus more on what SAXS and SA-XPCS measures."**
-Rewritten, **244 → 184 words**. Dropped: the explanation of the microfocused
+Rewritten, **240 → 198 words** (counted consistently; an earlier note said 244 → 184 using a looser word counter). Dropped: the explanation of the microfocused
 beam, the Peltier/multi-zone thermal path (both already in the Experimental
 Section), the beam-footprint bar, and the "one repeat unit … extended length"
 gloss. Added, as the new centre of the caption:
@@ -499,3 +499,160 @@ is better when there are twenty-five of them.
 What does **not** work is pasting comment text without the anchors, or
 screenshots of the Comments pane: both drop the link between each note and its
 highlight, which is the part that costs the time.
+
+---
+
+## 13. Second round of comments (`note.md`)
+
+Nine comments, bound to the line numbers of the 19-page build. Figure 1 was
+replaced by the author in this round; it is now Arial-only (the two Times New
+Roman ellipses are gone) and the page box is unchanged at 489 × 293 pt.
+
+### N1 · L87–89 · "Now that I understand how the error range goes from 33% to 7%, I believe this belongs to the SI … The goal for Fig. S6 in the main manuscript is only to show the repeatability at 6 °C and the fact the sample did gel at the highest temperature during every cycle."
+
+The 31.9 °C error budget is out of the main text entirely.
+
+- **Was:** "…recovers to within a 9% relative standard deviation and the 33.8 °C
+  profile to within 5%, with no systematic drift, so the transition is
+  repeatable on one and the same material. The spread at the mid-ramp 31.9 °C
+  state is larger, 33%, but that is a sampling artifact of crossing the steep
+  part of the transition at a slightly different temperature in each cycle, and
+  falls to 7% once that is accounted for (SI Section 6.2)."
+- **Now:** "…recovers to within a 9% relative standard deviation with no
+  systematic drift, and at 33.8 °C the correlation function is flat at 1+β in
+  every cycle, the signature of an arrested state. The sample therefore gelled
+  on every heating and returned to the same low-temperature state on every
+  cooling (SI Section 6.2)."
+
+The replacement states exactly the two things you named. Note it also makes the
+high-temperature half *stronger* than it was: a flat g₂ is direct evidence the
+sample gelled, where the 5% intensity RSD only said the profiles repeat.
+
+The 31.9 °C state still appears later in the main text (L124–126), but for a
+different purpose — it is the still-mobile limit that justifies the
+*t*_w ≥ 5039 s cut, not part of a reversibility error budget.
+
+**SI expanded** as asked, so the procedure is reproducible from the text alone:
+
+> The correction is a single one-parameter regression over the seven cycles,
+> not a fit to each cycle separately: the band-averaged ln *I* of a cycle is
+> regressed on the mean temperature of that cycle's window, which gives
+> d ln *I*/d*T* = 0.95 °C⁻¹ with *r* = 0.974, and the relative standard
+> deviation is then recomputed on the residuals about that line rather than on
+> the raw intensities. It falls from 32.6% to 7.1%. The same regression at
+> 33.8 °C, where the windows span only 33.53–34.00 °C and the transition has
+> flattened to d ln *I*/d*T* = 0.28 °C⁻¹, takes 4.8% to 1.4%. The 33% is
+> therefore a statement about where on the ramp each cycle was sampled, not
+> about how well the cycles repeat.
+
+### N2 · L103 · "The transition is too sudden. How is this statement connected to the sentences before and after?"
+
+The sentence had no connective at all — it sat between "we cannot prove these
+are the junctions" and "therefore they are plausible junctions", carrying the
+whole inference silently.
+
+- **Was:** "…the two *Q* ranges cannot distinguish those cases. **Hydrated or
+  weakly packed β-sheet interfaces can form** dynamic hydrogel contacts and
+  reversible fibrils."
+- **Now:** "…the two *Q* ranges cannot distinguish those cases. **What the
+  literature does establish is that contacts of this kind are capable of the
+  role: hydrated or weakly packed β-sheet interfaces form** dynamic hydrogel
+  contacts and reversible fibrils."
+
+The three sentences now read as one argument: we cannot prove it → but such
+contacts demonstrably can do this job → so ours are plausible, and labile.
+
+### N3 · L119 · "Shouldn't it be clarified that the intensity rises as t_w progresses?"
+
+- **Was:** "…and subsequently rises by more than two orders of magnitude at low *Q*"
+- **Now:** "…and then rises, **as *t*_w advances**, by more than two orders of magnitude at low *Q*"
+
+### N4 · L138–139 · "This line is still confusing … Maybe move it to later in the manuscript, or just simply skip it."
+
+Deleted. "What changes is the weight carried by each population; the relaxation
+times themselves do not simply shift together." is gone. You are right that it
+cannot be stated properly before *f*(*Q*) exists, and the paragraph at L155–170
+makes the point quantitatively. The preceding sentence — "The fraction of fast
+dynamics therefore decreases while the arrested fraction increases." — stands
+on its own.
+
+### N5 · L150 · "'This phenomenological decomposition' … Say something like 'shared global fitting parameters'."
+
+- **Was:** "**This phenomenological decomposition** describes the observed first decay and persistent plateau…"
+- **Now:** "**Fitted this way, with the two exponents as shared global fitting parameters, the two-mode form** describes the observed first decay and persistent plateau…"
+
+### N6 · L162 · "How is sigma calculated and is it really necessary to calculate sigma here?"
+
+Not necessary in the main text — Figure 3c already plots the uncertainties, so
+the reader can see the separation. Moved to the SI, where σ is also now defined.
+
+- **Was:** "…increases monotonically and significantly with *Q* (adjacent-*Q*
+  differences of 1.8–2.9σ at *t*_w = 5039 s and 8σ or more thereafter; across
+  the full *Q* range, 9σ or more at every time), so arrest develops…"
+- **Now:** "…increases monotonically with *Q*, by margins larger than the fit
+  uncertainties plotted in Figure 3c (SI Section 4), so arrest develops…"
+
+**SI now answers the first half of the question.** σ is the square root of the
+diagonal of the covariance matrix, estimated as the Moore–Penrose pseudo-inverse
+of *J*ᵀ*J* — already stated there — and the added text says how the two are
+combined:
+
+> These are the uncertainties plotted in Figure 3c, and the significance of the
+> *Q* dependence of *f* is formed from them: the difference between two bins is
+> compared with σ = √(σᵢ² + σⱼ²). For adjacent bins at *t*_w = 5039 s the four
+> differences are 2.0, 2.2, 2.9 and 1.8σ; at the four later times the smallest
+> adjacent difference is 8.6, 11.4, 13.3 and 10.8σ. Taken end to end … 9.0, 57,
+> 62, 87 and 39σ at the five elapsed times.
+
+### N7 · L167 · "You have this writing style in which you end the paragraph with the exception disclaimer … Can you reverse the order to make the paragraph land on the conclusion?"
+
+Reversed. The paragraph now ends on the physics.
+
+- **Was:** "…**It is what coarsening predicts: the largest structural features
+  become the least mobile.** Note that XPCS does not locate those dynamically
+  arrested regions, and 1 − *f* is not a direct geometric volume fraction…"
+- **Now:** "…**Note that** XPCS does not locate those dynamically arrested
+  regions, and 1 − *f* is not a direct geometric volume fraction, because the
+  scattering contribution is weighted by structure and contrast. **What the
+  ordering does establish is the signature of coarsening: the largest
+  structural features become the least mobile.**"
+
+The "Note that" you asked for in the previous round is kept — it now marks the
+caveat as a parenthesis inside the paragraph instead of its destination.
+
+### N8 · L179–182 · "Break it into shorter sentences … Also remove 'although that control was recorded on a more dilute and still-mobile sample'."
+
+One 44-word sentence became three, and the trailing caveat is gone from the
+main text. It remains stated in SI Section 5, which is where a referee who
+wants it will look.
+
+- **Now:** "Two checks bound radiation effects. Every acquisition was taken at a
+  previously unexposed position, so dose does not accumulate along the
+  elapsed-time axis. An independent control then raised the flux to 23–41 times
+  the value used here, which the APS Upgrade beam made possible. The
+  correlation decay showed no systematic flux dependence (Figure S5 and SI
+  Section 5)."
+
+### N9 · L188–192 · "Sentence is long, convoluted and difficult to read. Break it into shorter sentences. Get rid of the dash line."
+
+One 52-word sentence became four, and the em dash is gone.
+
+- **Now:** "The present measurements add a local structural element from a
+  separate experiment. The high-temperature state of (VPAVG)₃₀ contains
+  thermally reversible β-sheet-like contacts. In the isothermal experiment, the
+  low-*Q* assembly progressively loses mobility, and it does so fastest at the
+  lowest *Q*. The largest structures stop moving first, as a coarsening network
+  should."
+
+### DOIs added to `reference.bib`
+
+All 20 remaining cited entries now carry a DOI (Tanaka and Ozgulbas were added
+during the citation audit, so all 40 journal articles are covered). The
+rendered reference list is unchanged — `achemso` does not print DOIs — so this
+changes nothing for the reader, and `tools/check_refs.py` now resolves every
+entry by DOI rather than by title search.
+
+### Counts after this round
+
+Abstract 129 words (limit 150). Main text **2775 words excluding captions**
+(limit 3000), 3287 including them. `make check` clean, 19 pages.
