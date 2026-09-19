@@ -99,7 +99,9 @@ txt = (f'$I_0$ = {I_0:.3f} ± {I_0_err:.3f}\n'
        f'$R_g$ = {R_g:.2f} ± {R_g_err:.2f} $\\AA$\n'
        f'$Q_{{max}}$·$R_g$ = {q_max * R_g:.3f}')
 ax.text(0.97, 0.95, txt, transform=ax.transAxes, va='top', ha='right',
-        bbox=dict(boxstyle='round', fc='white', ec='0.5', lw=LW_THIN))
+        # square frame in black, matching the legend box in the same panel
+        # (rcParam legend.fancybox is False everywhere in this paper)
+        bbox=dict(boxstyle='square,pad=0.35', fc='white', ec='black', lw=LW_THIN))
 
 # Formatting
 add_minor_grid(ax)

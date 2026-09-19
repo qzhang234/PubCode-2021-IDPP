@@ -45,6 +45,13 @@ P_EXP_HI = [3.0, 3.0]
 
 
 def double_exp(tau, tau_fast, f, tau_slow, p1, p2):
+    """Two-mode g2: a fraction f of the scattering relaxes fast, 1-f slowly.
+
+    Each mode is a stretched exponential (Kohlrausch-Williams-Watts): p = 1 is
+    a plain exponential, p < 1 stretches the decay, p > 1 compresses it.  The
+    two are added as FIELDS and then squared, because g2 is the intensity
+    correlation and the field correlation is what decays (Siegert relation).
+    """
     decay_fast = f * np.exp(-(tau / tau_fast)**p1)
     decay_slow = (1 - f) * np.exp(-(tau / tau_slow)**p2)
     return CONTRAST * (decay_fast + decay_slow)**2 + BASELINE
@@ -62,7 +69,7 @@ def fit_g2_global(tau, g2, g2_err, q_indices):
       {'p1','p1_err','p2','p2_err','red_chi2',
        'per_q': {q_idx: {'tau_fast','tau_fast_err','f','f_err',
                          'tau_slow','tau_slow_err'}}}
-    or None if too few q bins have usable data.
+    or None if no q bin has usable data.
     """
     data = []
     for qi in q_indices:
@@ -77,6 +84,8 @@ def fit_g2_global(tau, g2, g2_err, q_indices):
         p1, p2 = p[0], p[1]
         parts = []
         for i, (qi, tv, gv, ev) in enumerate(data):
+            # p = [p1, p2, then three numbers per q bin], so bin i owns
+            # p[2 + 3i], p[3 + 3i], p[4 + 3i].
             tf, f, ts = p[2 + 3 * i: 5 + 3 * i]
             parts.append((double_exp(tv, tf, f, ts, p1, p2) - gv) / ev)
         return np.concatenate(parts)

@@ -18,11 +18,8 @@ rather than matching hues between figures.
 
 import glob
 import os
-import re
 import sys
-from datetime import datetime
 
-import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
@@ -30,18 +27,18 @@ from matplotlib.colors import Normalize
 # Absolute scattering cross-section calibration lives in the shared module so
 # this figure uses exactly the same constants and per-file coefficient as the
 # main saxpcs.py figure.  See abs_xsec.py for the full derivation.
-from abs_xsec import abs_xsec_coef, calibration_summary, INV_MM_TO_INV_CM
+from abs_xsec import abs_xsec_coef, calibration_summary
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from common.acs_style import (SINGLE_COL, MS, MEW, LW_THIN,
-                              apply_style, add_minor_grid, save_fig)
+                              apply_style, add_minor_grid, q_log_ticks, save_fig)
 
 # --- PARAMETERS ---
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 BACKGROUND_HEADER = 'D0138'
 # Absolute scattering cross-section: convert the raw SAXS 1d to an absolute
-# differential cross section (cm^-1) as
-#     I_abs(q) = INV_MM_TO_INV_CM * [coef_sam * I_sample(q) - coef_buf * I_buffer(q)]
+# differential cross section (mm^-1) as
+#     I_abs(q) = coef_sam * I_sample(q) - coef_buf * I_buffer(q)
 # coef_sam / coef_buf are NOT hard-coded any more: each is computed by
 # abs_xsec_coef() from that file's own range-averaged ion-chamber readings, so a
 # drift in incident flux across the time series is handled per file.  coef_buf
@@ -50,42 +47,8 @@ PHI_AVERAGE = True
 CMAP = plt.cm.plasma
 COLOR_6C = '#1f77b4'                 # identical to COLOR_6C in saxpcs.py
 
-SAXS_PATH       = '/xpcs/temporal_mean/scattering_1d'
-STATIC_MAP_PATH = '/xpcs/qmap/static_index_mapping'
-STATIC_Q_PATH   = '/xpcs/qmap/static_v_list_dim0'
-STATIC_PHI_PATH = '/xpcs/qmap/static_v_list_dim1'
-START_TIME_PATH = '/entry/start_time'
-TIME_FORMAT     = '%Y-%m-%d %H:%M:%S'
-
-_name_re = re.compile(r'Average_([A-Za-z]\d+)_.*?_(\d+)_(\d+)_results')
-
-
-def parse_name(fname):
-    m = _name_re.search(os.path.basename(fname))
-    return (m.group(1), int(m.group(2)), int(m.group(3))) if m else (None, -1, -1)
-
-
-def read_start_time(hf):
-    raw = hf[START_TIME_PATH][()]
-    if isinstance(raw, np.ndarray):
-        raw = raw.reshape(-1)[0]
-    if isinstance(raw, bytes):
-        raw = raw.decode('utf-8')
-    return datetime.strptime(str(raw).strip(), TIME_FORMAT)
-
-
-def read_saxs_iq(hf, phi_average=True):
-    intensity = np.asarray(hf[SAXS_PATH][()]).reshape(-1)
-    idx_map = hf[STATIC_MAP_PATH][()]
-    q_list = hf[STATIC_Q_PATH][()]
-    n_phi = hf[STATIC_PHI_PATH].shape[0]
-    q_idx = idx_map // n_phi
-    uq = np.unique(q_idx)
-    if phi_average and n_phi > 1:
-        inten = np.array([np.nanmean(intensity[q_idx == qi]) for qi in uq])
-    else:
-        inten = np.array([intensity[q_idx == qi][0] for qi in uq])
-    return q_list[uq], inten
+# Field locations and readers are shared with the other 8-ID figure scripts.
+from nexus_read import parse_name, read_start_time, read_saxs_iq
 
 
 # --- DISCOVER FILES ---
@@ -126,7 +89,6 @@ for fp in by_header.get('B0146', []):
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
         coef_sam = abs_xsec_coef(hf)                       # this file's own coefficient
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
-    I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
     pos = I > 0
     # same colour and marker as the 6 C reference in Figure 3a, so the two
     # figures key that dataset identically
@@ -138,7 +100,6 @@ for fp in b0147:
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
         coef_sam = abs_xsec_coef(hf)                       # this file's own coefficient
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
-    I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
     pos = I > 0
     ax.plot(q[pos], I[pos], color=CMAP(norm(elapsed[fp])), marker='o', ls='none',
             ms=MS, mfc='none', mew=MEW)
@@ -146,9 +107,10 @@ for fp in b0147:
 ax.set_xscale('log')
 ax.set_yscale('log')
 ax.set_xlabel(r'$Q$ ($\AA^{-1}$)')
+q_log_ticks(ax)   # same three named Q ticks as Figure 3a
 # same axis label as Figure 3a: the quantity is an absolute differential cross
 # section, and the units are on the axis (see the note in saxpcs.py)
-ax.set_ylabel(r'$I(Q)$ (cm$^{-1}$)')
+ax.set_ylabel(r'$I(Q)$ (mm$^{-1}$)')
 add_minor_grid(ax)
 # only the 6 C reference needs a legend entry; elapsed time is the colourbar
 ax.legend(loc='lower left', borderaxespad=0.4)

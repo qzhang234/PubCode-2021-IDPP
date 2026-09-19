@@ -24,8 +24,10 @@ It produces three kinds of file:
 For each range this script:
   * globs the group's result files and selects those whose frame number is in
     the range,
-  * removes outliers (cross-correlation threshold on g2, g2_err, saxs_1d),
-    and then any frames listed for that group in ``MANUAL_EXCLUDE``,
+  * removes outliers in two passes: a cross-correlation threshold on the SHAPE
+    of g2, g2_err and saxs_1d, then a robust cut on acquisitions sitting far
+    above the group median in the 0.004-0.008 A^-1 band (``spike_removal``),
+    and finally any frames listed for that group in ``MANUAL_EXCLUDE``,
   * averages g2, g2_err and saxs_1d over the surviving files,
   * ALSO averages the two scalar ion-chamber monitors -- the incident
     (upstream) and transmitted (downstream) beam intensities -- over the same
@@ -113,29 +115,100 @@ FILE_RANGES = {
     'D0080': [(1, 50)],
 }
 
-# Acquisitions dropped BY HAND, on top of outlier_removal():
-#   group -> (start, end) -> [frame numbers to drop]
-#
+# --- SECOND-STAGE CUT: acquisitions far above the group at low q ---------
 # outlier_removal() cuts on the SHAPE of log10 I(q) across the whole q range.
-# An acquisition that is normal everywhere except the three lowest q bins stays
+# An acquisition that is normal everywhere except the lowest q bins stays
 # nearly parallel to the group mean and survives it.  That is exactly what a
 # large object drifting through the 10 x 10 um beam during one 2 s exposure
 # looks like: a low-q spike with ordinary counting statistics above 0.01 A^-1.
+# Averaging such an acquisition into the group puts the scatterer, not the
+# sample, into the group mean.  This second cut catches those.
 #
-# B0083 is cycle 4 of the Figure S6 thermal-cycling series and is the group
-# where this happens badly enough to move the group mean.  Its I(0.0035) is
-# strongly right-skewed -- the largest acquisition reads 8.0x the group median
-# while the same acquisitions at 0.02 A^-1 scatter by only ~9 % -- so the mean
-# of the group is set by a handful of exposures rather than by the sample.  The
-# eleven listed here were identified by inspecting the per-acquisition I(q) of
-# the group; every one of them exceeds 1.4x the group median at 0.0035 A^-1.
-# The same threshold flags two more in this group (frames 9 and 22, at 1.9x and
-# 1.7x) which were judged borderline and kept, and it flags 6-12 acquisitions
-# in each of the other six cycles, which are NOT removed -- see the
-# "manual exclusion" note in thermal_cycle.py for what that asymmetry costs.
-MANUAL_EXCLUDE = {
-    'B0083': {(1, 50): [2, 3, 5, 15, 20, 25, 35, 36, 40, 45, 47]},
-}
+# SPIKE_BAND is the q window the test is made in.  It is the same window
+# Figure S6b already reports its intensities over, so the cut introduces no new
+# choice of q range, and the per-acquisition mean of I(q) over that window is
+# the test statistic.  The test is therefore on the intensity in one band, not
+# on the low-q rise as such: an acquisition that is bright across the whole
+# detector fails it too (B0147 frames 774 and 794, 2x the group median at low q
+# and 4x at high q, are removed for that reason).  That is the intended
+# behaviour -- neither kind of acquisition is measuring the sample -- but it is
+# worth knowing that the band is where the test looks, not what it diagnoses.
+#
+# The test is a one-sided iterated modified z-score (Iglewicz & Hoaglin): an
+# acquisition is dropped when its band mean lies more than SPIKE_Z robust
+# standard deviations ABOVE the median, where the scale is 1.4826 x MAD and
+# both the median and the MAD are recomputed from the survivors until the set
+# stops changing.  Median and MAD are used rather than mean and standard
+# deviation because a handful of 8x acquisitions inflate the ordinary
+# statistics enough to hide themselves.  The test is one-sided because the
+# artefact only ever ADDS scattering; a low reading means lost flux, which the
+# monitor normalisation and the shape cut already handle.
+#
+# SPIKE_Z = 3 is the conventional value and is not tuned: in the worst group
+# the same acquisitions are selected for any threshold from 2.5 to 3.0, and the
+# selection is unchanged if SPIKE_BAND is moved to 0.0032-0.006 or 0.003-0.005.
+#
+# The cut removes 35 of the 1708 acquisitions that survive outlier_removal()
+# (2.0 %).  It is nearly inert on the isothermal series behind Figures 3 and
+# S8-S10 -- 2 acquisitions of B0147, which move that group's absolute-scale
+# coefficient by 0.03 % and leave every fitted g2 parameter unchanged -- and
+# does its work on the Figure S6 thermal cycles, where transient scatterers are
+# common: 4, 2, 1, 11, 4, 1 and 1 acquisitions in the seven 6 C groups and 2
+# and 7 in the two buffer groups, against none at all in any of the fourteen
+# ten-acquisition 34 C windows.  See the "spike removal" note in
+# thermal_cycle.py.
+SPIKE_BAND = (0.004, 0.008)          # A^-1
+SPIKE_Z = 3.0
+
+
+def static_q(fname):
+    """q of every column of saxs_1d, read from the file's own static q map.
+
+    scattering_1d is stored as one value per (q, phi) bin, flattened; the index
+    map gives each bin's position in the (dim0 = q, dim1 = phi) grid.
+    """
+    with h5py.File(fname, 'r') as hf:
+        idx = hf['/xpcs/qmap/static_index_mapping'][()]
+        q_list = hf['/xpcs/qmap/static_v_list_dim0'][()]
+        n_phi = hf['/xpcs/qmap/static_v_list_dim1'].shape[0]
+    return q_list[idx // n_phi]
+
+
+def spike_removal(saxs_1d, q, mask, band=SPIKE_BAND, z=SPIKE_Z):
+    """Flag acquisitions whose low-q band mean sits far above the group median.
+
+    ``saxs_1d`` is (n_acquisitions, n_bins) as stored in the file, ``q`` the
+    matching q of every bin from static_q(), and ``mask`` the acquisitions
+    still standing after outlier_removal().  The statistic is built from the
+    WHOLE group, not from ``mask``'s survivors, so the two cuts are independent
+    tests of the same acquisitions rather than a chain in which the second one
+    inherits the first one's percentile; ``mask`` is applied only at the end.
+    Returns a keep-mask.
+    """
+    sel = (q >= band[0]) & (q < band[1])
+    stat = np.nanmean(saxs_1d[:, sel], axis=1)
+    keep = np.ones(len(stat), dtype=bool)
+    for _ in range(20):
+        med = np.median(stat[keep])
+        scale = 1.4826 * np.median(np.abs(stat[keep] - med))
+        if not scale > 0:
+            break
+        new = keep & (stat - med <= z * scale)
+        if np.array_equal(new, keep):
+            break
+        keep = new
+    return mask & keep
+
+
+# Acquisitions dropped BY HAND, on top of the two automatic cuts:
+#   group -> (start, end) -> [frame numbers to drop]
+# Empty, and kept only as the escape hatch for a defect the two automatic cuts
+# cannot see.  The eleven acquisitions of B0083 that were once listed here by
+# eye are now removed by spike_removal(), which takes eleven acquisitions of
+# that group, ten of them the same: it also takes frame 9, and frame 47 of the
+# hand list survives.  Those two sit at the boundary of the group's own scatter
+# and no ranking separates them, which is why the by-eye list was replaced.
+MANUAL_EXCLUDE = {}
 
 # Groups whose per-acquisition temperature and time are written to TRACE_CSV,
 # in the order they were measured.  Figure S6a needs every acquisition, not the
@@ -326,7 +399,16 @@ def process_group(group, file_ranges, timelist):
         mask = outlier_removal(data_dict, label=label, percentile=percentile)
         print(f'  kept {np.sum(mask)} of {len(mask)} files after outlier removal')
 
-        # hand-listed frames, dropped on top of the automatic cut
+        # transient low-q scatterers, invisible to the shape-based cut above
+        spike = spike_removal(data_dict['saxs_1d'], static_q(read_files[0]), mask)
+        n_spike = int(np.sum(mask & ~spike))
+        if n_spike:
+            hit = sorted(extract_frame(f) for f, m in zip(read_files, mask & ~spike) if m)
+            print(f'  dropped {n_spike} more as low-q spikes {hit} '
+                  f'-> {np.sum(spike)} remain')
+        mask = spike
+
+        # hand-listed frames, dropped on top of the automatic cuts
         drop = MANUAL_EXCLUDE.get(group, {}).get((start, end), [])
         if drop:
             hit = np.array([extract_frame(f) in drop for f in read_files])

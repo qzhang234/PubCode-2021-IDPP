@@ -19,7 +19,7 @@ below and abs_xsec.py).
 The SAXS panel is still put on an absolute scale (d(Sigma)/d(Omega)) via a
 coefficient computed PER FILE from that file's own range-averaged ion-chamber
 readings, so a drift in incident flux across the time series is handled
-correctly.  The axis carries the units (cm^-1); the calibration behind them is
+correctly.  The axis carries the units (mm^-1); the calibration behind them is
 in abs_xsec_coef() and in the long note in the ABSOLUTE SCATTERING CROSS-SECTION
 section.
 
@@ -72,22 +72,19 @@ now folded in honestly).
 
 import glob
 import os
-import re
 import sys
-from datetime import datetime
 
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
 from matplotlib.lines import Line2D
 from matplotlib.ticker import (FixedLocator, FixedFormatter, NullFormatter,
                                FuncFormatter, LogLocator)
-from scipy.optimize import least_squares
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from common.acs_style import (DOUBLE_COL, MS, MS_SPARSE, MEW, LW_THIN, LW_DATA,
-                              apply_style, add_minor_grid, label_panels, save_fig)
+                              apply_style, add_minor_grid, label_panels,
+                              q_log_ticks, save_fig)
 
 # --- PARAMETERS ---
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -135,9 +132,7 @@ COLOR_6C = '#1f77b4'                 # B0146 (6 C reference, before isothermal)
 # --- FIT MODEL ---
 # The model, the measured contrast and the global fit live in xpcs_fit.py so
 # that Figure 3b, Figure S9 and Figure S10 provably share one implementation.
-from xpcs_fit import (CONTRAST, BASELINE, double_exp, fit_g2_global,  # noqa: E402
-                      PQ_P0, PQ_LO, PQ_HI, P_EXP_P0, P_EXP_LO, P_EXP_HI)
-contrast = CONTRAST                  # local alias used in the panels below
+from xpcs_fit import double_exp, fit_g2_global   # noqa: E402
 
 
 # ============================================================================
@@ -151,64 +146,17 @@ contrast = CONTRAST                  # local alias used in the panels below
 from abs_xsec import (                                     # noqa: E402
     CAL_A, CAL_B, CAL_UPIC, CAL_PHOTONS, CAL_CROP,
     AIR_TRANS_SERIES, AIR_TRANSMISSION, AIR_TRANS_STD,
-    INCIDENT_PATH, TRANSMITTED_PATH, INV_MM_TO_INV_CM,
     abs_xsec_coef, calibration_summary,
 )
 
 print(calibration_summary())
 
 
-# --- HDF field locations ---
-START_TIME_PATH = '/entry/start_time'
-TIME_FORMAT     = '%Y-%m-%d %H:%M:%S'
-FRAME_TIME_PATH = '/entry/instrument/detector_1/frame_time'
-DELAY_PATH      = '/xpcs/multitau/delay_list'
-G2_PATH         = '/xpcs/multitau/normalized_g2'
-G2_ERR_PATH     = '/xpcs/multitau/normalized_g2_err'
-DYN_Q_PATH      = '/xpcs/qmap/dynamic_v_list_dim0'
-SAXS_PATH       = '/xpcs/temporal_mean/scattering_1d'
-STATIC_MAP_PATH = '/xpcs/qmap/static_index_mapping'
-STATIC_Q_PATH   = '/xpcs/qmap/static_v_list_dim0'
-STATIC_PHI_PATH = '/xpcs/qmap/static_v_list_dim1'
-
-_name_re = re.compile(r'Average_([A-Za-z]\d+)_.*?_(\d+)_(\d+)_results')
-
-
-# --- READ HELPERS ---
-def parse_name(fname):
-    m = _name_re.search(os.path.basename(fname))
-    return (m.group(1), int(m.group(2)), int(m.group(3))) if m else (None, -1, -1)
-
-
-def read_start_time(hf):
-    raw = hf[START_TIME_PATH][()]
-    if isinstance(raw, np.ndarray):
-        raw = raw.reshape(-1)[0]
-    if isinstance(raw, bytes):
-        raw = raw.decode('utf-8')
-    return datetime.strptime(str(raw).strip(), TIME_FORMAT)
-
-
-def read_saxs_iq(hf, phi_average=True):
-    intensity = np.asarray(hf[SAXS_PATH][()]).reshape(-1)
-    idx_map = hf[STATIC_MAP_PATH][()]
-    q_list = hf[STATIC_Q_PATH][()]
-    n_phi = hf[STATIC_PHI_PATH].shape[0]
-    q_idx = idx_map // n_phi
-    uq = np.unique(q_idx)
-    if phi_average and n_phi > 1:
-        inten = np.array([np.nanmean(intensity[q_idx == qi]) for qi in uq])
-    else:
-        inten = np.array([intensity[q_idx == qi][0] for qi in uq])
-    return q_list[uq], inten
-
-
-def read_g2(hf):
-    t0 = hf[FRAME_TIME_PATH][()]
-    t0 = t0.item() if isinstance(t0, np.ndarray) else t0
-    tau = hf[DELAY_PATH][()] * t0
-    tau = tau[:, 0] if tau.ndim > 1 else tau
-    return tau, hf[G2_PATH][()], hf[G2_ERR_PATH][()], hf[DYN_Q_PATH][()]
+# --- READING THE AVERAGED HDF FILES ---
+# The field locations and the four readers are shared with the other three
+# 8-ID figure scripts, so all four provably read the files the same way.
+from nexus_read import (parse_name, read_start_time,   # noqa: E402
+                        read_saxs_iq, read_g2)
 
 
 def fit_powerlaw(Q, tau, tau_err):
@@ -321,7 +269,6 @@ for fp in by_header.get('B0146', []):                        # 6 C reference (di
         coef_sam = abs_xsec_coef(hf)                          # this file's own coefficient
     print(f'coef_sam (B0146 {parse_name(fp)[1]}-{parse_name(fp)[2]}) = {coef_sam:.3e}')
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
-    I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
     pos = I > 0
     saxs_I_lo, saxs_I_hi = min(saxs_I_lo, I[pos].min()), max(saxs_I_hi, I[pos].max())
     ax1.plot(q[pos], I[pos], color=COLOR_6C, marker='s', ls='none', ms=MS,
@@ -336,7 +283,6 @@ for fp in saxs_files:                                        # first (0 s) + las
         coef_sam = abs_xsec_coef(hf)                          # this file's own coefficient
     print(f'coef_sam (B0147 {parse_name(fp)[1]}-{parse_name(fp)[2]}) = {coef_sam:.3e}')
     I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
-    I = INV_MM_TO_INV_CM * I          # abs_xsec_coef() is mm^-1; the axis is cm^-1
     pos = I > 0
     saxs_I_lo, saxs_I_hi = min(saxs_I_lo, I[pos].min()), max(saxs_I_hi, I[pos].max())
     color = ecolor(fp)
@@ -349,21 +295,14 @@ for fp in saxs_files:                                        # first (0 s) + las
 ax1.set_xscale('log')
 ax1.set_yscale('log')
 ax1.set_xlabel(r'$Q$ ($\AA^{-1}$)')
-ax1.set_ylabel(r'$I(Q)$ (cm$^{-1}$)')
+ax1.set_ylabel(r'$I(Q)$ (mm$^{-1}$)')
 add_minor_grid(ax1)
-# Q spans only ~1 decade (0.0033-0.034), so the automatic log locator labels a
-# single tick (10^-2).  Label three well-separated decimal positions instead --
-# far enough apart that the labels cannot touch at 8 pt.  The limits sit well
+# Three named Q ticks instead of the single 10^-2 the automatic log locator
+# finds in this ~1-decade range; shared with Figures S6b and S8 so the three
+# absolute-scale profiles can be compared tick for tick.  The limits sit well
 # outside the data so no point sits on the frame.
 ax1.set_xlim(2.6e-3, 4.4e-2)
-ax1.xaxis.set_major_locator(FixedLocator([4e-3, 1e-2, 3e-2]))
-ax1.xaxis.set_major_formatter(FixedFormatter(['0.004', '0.01', '0.03']))
-# Minor ticks only at integer multiples of the decade (2, 3, ... x 10^n).
-# Half-decade positions such as 0.015 or 0.025 put grid lines at values a reader
-# cannot name, which makes the grid harder to read rather than easier.
-ax1.xaxis.set_minor_locator(FixedLocator([3e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3,
-                                          2e-2, 4e-2]))
-ax1.xaxis.set_minor_formatter(NullFormatter())
+q_log_ticks(ax1)
 
 # The elapsed-time key lives at the bottom of the FIGURE (below), so panel (a)
 # needs no headroom for it.  Only the one-line 6 C reference key sits inside,
@@ -495,14 +434,14 @@ save_fig(fig, 'Figure3_Isothermal_SAXPCS.pdf')
 
 # ============================================================
 # FIGURE S9 (2x2): (a) p1, p2 vs elapsed time;      (b) tau_fast vs Q
-#                  (d) gamma_fast, gamma_slow vs t;  (c) tau_slow vs Q
-# Column 0 (a, d) shares the elapsed-time x-axis; column 1 (b, c) shares the Q
+#                  (c) gamma_fast, gamma_slow vs t;  (d) tau_slow vs Q
+# Column 0 (a, c) shares the elapsed-time x-axis; column 1 (b, d) shares the Q
 # x-axis -- so only the bottom row needs x tick labels / an x-axis label.
 # All XPCS colours use the same elapsed-time scale as Figure 3.
 # ============================================================
 fig2, ((axp, axf), (axg, axs)) = plt.subplots(2, 2, figsize=FIG2_SIZE,
                                               sharex='col')
-label_panels((axp, axf, axs, axg))
+label_panels((axp, axf, axg, axs))   # reading order: a b / c d
 
 # --- (a) shared stretching exponents vs elapsed time (colour = time) ---
 exp_rows = [{'elapsed': elapsed(fp), 'fp': fp,
@@ -578,8 +517,8 @@ for fp in xpcs_files:
         gs, gs_err, gs_A = fit_powerlaw(Q, ts, ts_err)
         Q_line = np.linspace(Q.min(), Q.max(), 50)
         if np.isfinite(gf):
-            axf.plot(np.linspace(Q[det].min(), Q[det].max(), 50),
-                     gf_A * np.linspace(Q[det].min(), Q[det].max(), 50)**gf,
+            Q_line_fast = np.linspace(Q[det].min(), Q[det].max(), 50)
+            axf.plot(Q_line_fast, gf_A * Q_line_fast**gf,
                      '--', color=color, lw=LW_DATA, zorder=1)
         axs.plot(Q_line, gs_A * Q_line**gs, '--', color=color, lw=LW_DATA, zorder=1)
         gamma_rows.append({'elapsed': elapsed(fp), 'fp': fp,

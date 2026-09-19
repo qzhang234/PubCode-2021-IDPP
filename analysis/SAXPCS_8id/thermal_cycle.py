@@ -16,9 +16,10 @@ write "the same aliquot as Figure 3" anywhere.
 One consequence is visible in panel (b): the 6 C profile here falls off more
 steeply at the lowest q (log-log slope -1.0 below 0.01 A^-1) than the 6 C
 reference of Figure 3a (-0.5).  Both are reduced the same way -- same absolute
-scaling, same automatic outlier removal (plus the hand cut on cycle 4 described
-below), same unscaled buffer subtraction -- and between
-0.005 and 0.032 A^-1 the two subtracted profiles agree to within 18 %.  The
+scaling, same two automatic outlier cuts (described below), same unscaled
+buffer subtraction -- and between
+0.005 and 0.032 A^-1 the two subtracted profiles agree in shape to within
+22 %.  The
 difference is in the acquisitions themselves.  Within a single 6 C group here,
 the per-acquisition intensity at 0.0035 A^-1 is strongly right-skewed: B0075 has
 an RSD of 51 % with a maximum 3.4x its median, B0083 an RSD of 96 % with a
@@ -32,39 +33,48 @@ property of this loading: it has I(0.004)/I(0.02) = 4.0 against 2.7 for Figure
 0.333 (transmissions 0.351 and 0.384 after the air correction), i.e. it was the
 less completely dissolved of the two.
 
-MANUAL EXCLUSION -- the one place this figure is not uniformly reduced.
-outlier_removal() does NOT catch those low-q spikes.  Its cut is a cosine
-similarity on log10 I(q) over the whole q range, so it rejects curves of the
-wrong SHAPE; a curve that is 8x high in three low-q bins and normal everywhere
-else stays nearly parallel to the group mean and survives.  Eleven acquisitions
-of B0083 (cycle 4) -- frames 2, 3, 5, 15, 20, 25, 35, 36, 40, 45 and 47, every
-one of them above 1.4x the group median at 0.0035 A^-1 -- are therefore dropped
-by hand, through the MANUAL_EXCLUDE table in average_ranges.py, leaving 32 of
-50.  That was an author decision taken by inspecting the per-acquisition curves
-of the group, not an automatic cut.
+SPIKE REMOVAL.  outlier_removal() does NOT catch those low-q spikes.  Its cut
+is a cosine similarity on log10 I(q) over the whole q range, so it rejects
+curves of the wrong SHAPE; a curve that is 8x high in three low-q bins and
+normal everywhere else stays nearly parallel to the group mean and survives.
+spike_removal() in average_ranges.py is the second cut that does catch them: a
+one-sided iterated modified z-score (median + 1.4826 x MAD, threshold 3) on the
+per-acquisition mean of I(q) over 0.004-0.008 A^-1, which is the same band this
+figure reports its intensities over.  It is applied to every group in the
+paper on the same terms, with no per-group list.
 
-  BE CLEAR ABOUT WHAT IT DOES.  Cycle 4 was 31 % ABOVE the mean of the other six
-  over 0.004-0.008 A^-1; it is now 11 % BELOW it, and the cycle-to-cycle RSD of
-  the 6 C state falls from 12.6 % to 7.7 %.  The cut is applied to cycle 4 ONLY.
-  The same 1.4x threshold flags acquisitions in every cycle -- 6, 7, 12, 13, 10,
-  7 and 7 for cycles 1-7 -- so applying it uniformly is the fairer comparison.
-  Doing that puts cycle 4 at 0.810 against 0.788-0.822 for cycles 1-5, i.e. dead
-  centre and no longer an outlier in either direction, and gives an RSD of 9.5 %
-  whose residual now comes from cycles 6 and 7 (0.928 and 1.01) rather than from
-  cycle 4.  Both numbers are reported in SI Section 7.1.  Switching to the
-  uniform variant means extending MANUAL_EXCLUDE to the other six groups and
-  re-running ``python average_ranges.py`` for them.
+  BE CLEAR ABOUT WHAT IT DOES.  In the seven 6 C groups it removes 4, 2, 1, 11,
+  4, 1 and 1 acquisitions, and 2 and 7 from the two buffers; it removes none at
+  all from any of the fourteen ten-acquisition 34 C windows, consistent with
+  the skew being a low-temperature, low-q effect.  Cycle 4 was 31 % ABOVE the
+  mean of the other six over 0.004-0.008 A^-1 and is now 7 % below it, no
+  longer an outlier in either direction, and the cycle-to-cycle RSD of the 6 C
+  state falls from 12.6 % to 8.6 %.  What is left is a monotone rise across the
+  last two cycles (0.881, 0.857, 0.936, 0.874, 0.903, 0.990, 1.08), not one
+  contaminated group.
+
+  The threshold is not tuned to this figure.  The eleven acquisitions it takes
+  from cycle 4 are the same for any threshold from 2.5 to 3.0 and for bands of
+  0.0032-0.006 or 0.003-0.005 A^-1, and ten of them are among the
+  eleven that were once identified by eye (it also takes frame 9, and frame 47
+  of that list survives; those two differ by less than the scatter of the
+  group, which is why the by-eye list was replaced).  Across the whole paper the cut removes 35 of
+  the 1708 acquisitions that survive outlier_removal(), 2.0 %.  It is nearly
+  inert on the isothermal series behind Figures 3 and S8-S10 -- two
+  acquisitions of B0147, shifting one absolute-scale coefficient by 0.03 % and
+  leaving every fitted g2 parameter unchanged -- so it is a Figure S6 effect in
+  practice while remaining a uniform rule in definition.
 
 WHY CYCLE 4 STOOD OUT was two different things in the two states, and neither
 was irreversibility:
 
   6 C (circles).  A handful of acquisitions, not the group.  B0083's MEDIAN
   I(0.0035) was 2.80, squarely inside the 2.55-2.96 spread of the other six; its
-  MEAN was 4.36 because four of its 43 surviving acquisitions read 22.2, 17.3,
+  MEAN was 4.36 because four of its 43 shape-cut survivors read 22.2, 17.3,
   14.6 and 10.8, i.e. 4-8x the median.  They sat at frames 25, 5, 20 and 45 --
   scattered, not contiguous -- so this was not a drift or a temperature
   excursion but transient objects crossing the beam.  Those four are among the
-  eleven now excluded.
+  eleven that spike_removal() excludes.
 
   31.9 C (squares).  Not outliers at all: cycle 4's window simply landed hotter.
   The seven ramps cross acquisitions 241-250 at 31.62, 31.87, 31.91, 32.48,
@@ -114,7 +124,7 @@ average is put on an absolute differential cross section by abs_xsec_coef() from
 the group's own mean ion-chamber readings, and the averaged
 buffer (D0077 + D0080, 78 surviving of 89 acquisitions) is subtracted.  The two
 buffer measurements agree to within 6 % at every q below 0.01 A^-1 once filtered
--- I(0.0035) = 1.179 and 1.238 cm^-1, I(0.02) = 0.131 and 0.126 -- and show no
+-- I(0.0035) = 0.1179 and 0.1238 mm^-1, I(0.02) = 0.0131 and 0.0126 -- and show no
 systematic offset above it (only growing bin-to-bin scatter, where both buffers
 are weak), so neither is scaled against
 the other; scaling only one of them is equivalent to changing BG_SCALE and is
@@ -144,8 +154,9 @@ import matplotlib.colors as mcolors
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from common.acs_style import (DOUBLE_COL, MS, MS_DENSE, MS_SPARSE, MEW, LW_THIN, LW_DATA,
-                              apply_style, add_minor_grid, label_panels, save_fig)
-from abs_xsec import abs_xsec_coef, INV_MM_TO_INV_CM
+                              apply_style, add_minor_grid, label_panels,
+                              q_log_ticks, save_fig)
+from abs_xsec import abs_xsec_coef
 from xpcs_fit import CONTRAST
 
 # Everything this figure reads was written by average_ranges.py into data/: one
@@ -191,17 +202,17 @@ T_HOLD = 6.0                         # C, the temperature held between cycles
 #
 #   BG    I_6C(0.004)   fraction of the   low-q slope   RSD over the 7 cycles
 #                       BG x 1.0 signal   of the 6 C     6 C        34 C
-#   1.0      1.411           100 %          -1.04        7.7 %      4.8 %
-#   1.2      1.237            88 %          -0.97        8.5 %      4.8 %
-#   1.8      0.712            50 %          -0.61       12.2 %      4.8 %
-#   2.5      0.101             7 %          +1.03       24.9 %      4.8 %
+#   1.0      1.446           100 %          -1.05        8.6 %      4.8 %
+#   1.2      1.296            90 %          -1.00        9.3 %      4.8 %
+#   1.8      0.846            59 %          -0.77       12.9 %      4.8 %
+#   2.5      0.321            22 %          +0.12       23.2 %      4.8 %
 #
-# The buffer is only about 40 % of the 6 C signal at low q (buffer/sample = 0.40
-# at 0.0035 A^-1), so flattening the slope means subtracting essentially the
-# whole low-q signal: at BG = 2.5 it destroys 93 % of it, turns the slope
-# positive, and degrades the cycle-to-cycle repeatability -- the actual result
-# of this figure -- from 7.7 % to 25 %, while leaving the 34 C curves untouched
-# (4.8 % either way).  A "background" term that changes one curve by 93 % and
+# The buffer is only about a third of the 6 C signal at low q (buffer/sample =
+# 0.35 at 0.0035 A^-1), so flattening the slope means subtracting most of the
+# low-q signal: at BG = 2.5 it destroys 78 % of it, turns the slope positive,
+# and degrades the cycle-to-cycle repeatability -- the actual result of this
+# figure -- from 8.6 % to 23 %, while leaving the 34 C curves untouched
+# (4.8 % either way).  A "background" term that changes one curve by 78 % and
 # another by 0.4 % is not a shared background.
 # The residual low-q rise is therefore treated as sample or cell-window
 # scattering, not as mis-subtracted solvent, and is left in.
@@ -214,10 +225,9 @@ T_HOLD = 6.0                         # C, the temperature held between cycles
 # make this figure's background convention differ from the rest of the paper.
 BG_SCALE = 1.0
 
-SAXS_PATH       = '/xpcs/temporal_mean/scattering_1d'
-STATIC_MAP_PATH = '/xpcs/qmap/static_index_mapping'
-STATIC_Q_PATH   = '/xpcs/qmap/static_v_list_dim0'
-STATIC_PHI_PATH = '/xpcs/qmap/static_v_list_dim1'
+# Field locations and the phi-averaged I(Q) reader are shared with the other
+# 8-ID figure scripts.
+from nexus_read import read_saxs_iq
 FRAME_TIME_PATH = '/entry/instrument/detector_1/frame_time'
 DELAY_PATH      = '/xpcs/multitau/delay_list'
 G2_PATH         = '/xpcs/multitau/normalized_g2'
@@ -253,17 +263,6 @@ def load_trace(path):
     return trace, state
 
 
-def read_saxs_iq(hf):
-    """phi-averaged static I(q), identical to saxpcs.py."""
-    inten = np.asarray(hf[SAXS_PATH][()]).reshape(-1)
-    idx = hf[STATIC_MAP_PATH][()]
-    q_list = hf[STATIC_Q_PATH][()]
-    n_phi = hf[STATIC_PHI_PATH].shape[0]
-    q_idx = idx // n_phi
-    uq = np.unique(q_idx)
-    return q_list[uq], np.array([np.nanmean(inten[q_idx == qi]) for qi in uq])
-
-
 def group(header, lo, hi):
     """Everything Figure S6 needs from one averaged group.
 
@@ -271,10 +270,9 @@ def group(header, lo, hi):
     its error, the delay times, that bin's q, the mean elapsed time and
     temperature of the group, and how many acquisitions it holds.
 
-    The averaged file was produced by average_ranges.py with the same automatic
-    outlier removal, the same cutoff and the same routine applied to the Figure
-    3 groups; the ONE exception in this paper is cycle 4 (B0083), which also has
-    eleven hand-listed frames removed (see MANUAL EXCLUSION above).  Its
+    The averaged file was produced by average_ranges.py with the same two
+    automatic outlier cuts, the same cutoffs and the same routine applied to
+    the Figure 3 groups; nothing here is reduced by hand.  Its
     /xpcs/average/file_list names the acquisitions that survived, and every
     quantity reported here is an average over exactly those: the curves, the g2,
     and the time and temperature at which the group is marked on panel (a).
@@ -291,6 +289,7 @@ def group(header, lo, hi):
     with h5py.File(avg_path(header, lo, hi), 'r') as hf:
         q, I = read_saxs_iq(hf)
         I = abs_xsec_coef(hf) * I
+        # frame_time is a tiny array, shape (1,) or (1, 1); flatten and take [0]
         ft = float(np.asarray(hf[FRAME_TIME_PATH][()]).reshape(-1)[0])
         t = np.asarray(hf[DELAY_PATH][()])
         tau = (t[:, 0] if t.ndim > 1 else t) * ft
@@ -299,7 +298,10 @@ def group(header, lo, hi):
         g2e = hf[G2_ERR_PATH][()][:, 0]
         kept = [s.decode() if isinstance(s, bytes) else s for s in hf[FILE_LIST][()]]
     kept = [k.replace('_results.hdf', '') for k in kept]
-    hrs, T = (float(np.mean([STATE[k][i] for k in kept])) for i in (0, 1))
+    # STATE[dataset_name] is (hours_since_start, temperature_C) for one
+    # acquisition; average both over the acquisitions this group kept.
+    hrs = float(np.mean([STATE[k][0] for k in kept]))
+    T = float(np.mean([STATE[k][1] for k in kept]))
     return Group(q, I, tau, g2, g2e, qv, hrs, T, len(kept))
 
 
@@ -396,7 +398,7 @@ RSD_BAND = (0.004, 0.008)
 band_I = [[], [], []]
 for ci, (cold, ramp) in enumerate(CYCLES):
     g = group(cold, *COLD_RANGE)
-    Ia = (g.I - BG_SCALE * bI) * INV_MM_TO_INV_CM
+    Ia = g.I - BG_SCALE * bI
     pos = Ia > 0
     axS.plot(g.q[pos], Ia[pos], color=COLORS[ci], marker=STATE_MARK[0], ls='none',
              ms=MS_DENSE, mfc='none', mew=LW_THIN)
@@ -409,7 +411,7 @@ for ci, (cold, ramp) in enumerate(CYCLES):
 
     for hi, rng in enumerate(HOT_RANGES):
         g = group(ramp, *rng)
-        Ia = (g.I - BG_SCALE * bI) * INV_MM_TO_INV_CM
+        Ia = g.I - BG_SCALE * bI
         pos = Ia > 0
         axS.plot(g.q[pos], Ia[pos], color=COLORS[ci], marker=STATE_MARK[hi + 1],
                  ls='none', ms=MS_DENSE, mfc='none', mew=LW_THIN)
@@ -461,7 +463,8 @@ for y in (T_HOLD, T_MID, T_TOP):
 axS.set_xscale('log')
 axS.set_yscale('log')
 axS.set_xlabel(r'$Q$ ($\AA^{-1}$)')
-axS.set_ylabel(r'$I(Q)$ (cm$^{-1}$)')
+q_log_ticks(axS)   # same three named Q ticks as Figure 3a
+axS.set_ylabel(r'$I(Q)$ (mm$^{-1}$)')
 add_minor_grid(axS)
 axG.set_xscale('log')
 # The shortest delays average only 10 acquisitions (against 63-200 in Figure 3),

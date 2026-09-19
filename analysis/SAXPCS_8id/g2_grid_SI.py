@@ -16,9 +16,7 @@ curves; the parameters shown here are now the ones the paper reports.)
 
 import glob
 import os
-import re
 import sys
-from datetime import datetime
 
 import numpy as np
 import h5py
@@ -27,7 +25,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 from common.acs_style import (DOUBLE_COL, MS, MEW, LW_THIN, LW_DATA,
                               apply_style, add_minor_grid, label_panels, save_fig)
 from matplotlib.lines import Line2D
-from xpcs_fit import CONTRAST, double_exp, fit_g2_global
+from xpcs_fit import double_exp, fit_g2_global
 
 FIG_SIZE = (DOUBLE_COL, 5.0)         # 2x2 panels + the shared key row beneath
 LEGEND_H = 0.05                      # height fraction reserved for that key
@@ -49,38 +47,8 @@ CMAP_LO, CMAP_HI = 0.10, 0.88
 fit_q_indices = [0, 1, 2, 3, 4]      # all five bins enter the global fit ...
 grid_q_indices = [1, 2, 3, 4]        # ... these four are the ones plotted here
 
-# --- HDF paths ---
-START_TIME_PATH = '/entry/start_time'
-TIME_FORMAT     = '%Y-%m-%d %H:%M:%S'
-FRAME_TIME_PATH = '/entry/instrument/detector_1/frame_time'
-DELAY_PATH      = '/xpcs/multitau/delay_list'
-G2_PATH         = '/xpcs/multitau/normalized_g2'
-G2_ERR_PATH     = '/xpcs/multitau/normalized_g2_err'
-DYN_Q_PATH      = '/xpcs/qmap/dynamic_v_list_dim0'
-
-_name_re = re.compile(r'Average_([A-Za-z]\d+)_.*?_(\d+)_(\d+)_results')
-
-
-def parse_name(fname):
-    m = _name_re.search(os.path.basename(fname))
-    return (m.group(1), int(m.group(2)), int(m.group(3))) if m else (None, -1, -1)
-
-
-def read_start_time(hf):
-    raw = hf[START_TIME_PATH][()]
-    if isinstance(raw, np.ndarray):
-        raw = raw.reshape(-1)[0]
-    if isinstance(raw, bytes):
-        raw = raw.decode('utf-8')
-    return datetime.strptime(str(raw).strip(), TIME_FORMAT)
-
-
-def read_g2(hf):
-    t0 = hf[FRAME_TIME_PATH][()]
-    t0 = t0.item() if isinstance(t0, np.ndarray) else t0
-    tau = hf[DELAY_PATH][()] * t0
-    tau = tau[:, 0] if tau.ndim > 1 else tau
-    return tau, hf[G2_PATH][()], hf[G2_ERR_PATH][()], hf[DYN_Q_PATH][()]
+# Field locations and readers are shared with the other 8-ID figure scripts.
+from nexus_read import parse_name, read_start_time, read_g2
 
 
 # --- DISCOVER FILES ---

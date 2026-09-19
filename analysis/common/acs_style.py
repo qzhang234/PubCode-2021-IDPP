@@ -24,6 +24,7 @@ import inspect
 import os
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FixedFormatter, FixedLocator, NullFormatter
 
 # --- geometry (in) ---
 SINGLE_COL = 3.33     # 240 pt, the ACS single-column maximum
@@ -102,13 +103,41 @@ def add_minor_grid(ax):
     ax.grid(which='minor', ls='-', lw=LW_THIN, color='0.93')
 
 
-def label_panels(axes, dx=-30, dy=2):
+def q_log_ticks(ax, axis='x'):
+    """Label 0.004, 0.01 and 0.03 on a log Q axis.
+
+    The 8-ID Q range spans only about one decade (0.0033-0.034 Ainv), so
+    matplotlib's automatic log locator finds a single decade inside it and
+    labels one tick, 10^-2.  A reader then has no way to read a value off the
+    axis.  The three named ticks below are integer multiples of a decade, so
+    they satisfy the add_minor_grid() rule about half-decade positions, and the
+    same three are used on every Q axis in the paper (Figures 3a, S5a, S6b
+    and S8) so
+    the profiles can be compared tick for tick.
+    """
+    a = ax.xaxis if axis == 'x' else ax.yaxis
+    a.set_major_locator(FixedLocator([4e-3, 1e-2, 3e-2]))
+    a.set_major_formatter(FixedFormatter(['0.004', '0.01', '0.03']))
+    a.set_minor_locator(FixedLocator([3e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3,
+                                      2e-2, 4e-2, 5e-2]))
+    a.set_minor_formatter(NullFormatter())
+
+
+def label_panels(axes, dx=-30, dy=5):
     """Bold (a), (b), (c)... just outside the top-left corner of each axes.
 
     The offset is in POINTS, not axes fractions, so every panel label in the
     paper sits the same distance out no matter how wide its panel is.  As a
     fraction, a wide panel (the 2x2 SI grids) pushed the label off the canvas
     while a narrow one (a 1-of-3 panel) tucked it against the tick labels.
+
+    dy clears the TOPMOST Y TICK LABEL, which is centred on the top spine and
+    therefore reaches about half a cap height (2.9 pt at 8 pt Arial) above it.
+    Panels whose left margin is narrow -- Figure S4, where the y tick labels are
+    short and tight_layout leaves only ~17 pt of margin -- put the label and
+    that tick label at the same x, so the two collided at the original dy = 2.
+    Raising it to 5 leaves 2.1 pt of clear space in the worst case and changes
+    nothing else: no figure in the paper draws anything else in that corner.
     """
     for ax, letter in zip(axes, 'abcdefgh'):
         ax.annotate(f'({letter})', xy=(0, 1), xycoords='axes fraction',

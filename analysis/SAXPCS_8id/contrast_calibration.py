@@ -75,6 +75,8 @@ FIG_SIZE = (DOUBLE_COL, 2.9)
 def load(path):
     """Delay times, q bins, and the (repeat, delay, q) g2 and g2_err stacks."""
     with h5py.File(path, 'r') as hf:
+        # frame_time is stored as a tiny array, shape (1,) or (1, 1) depending
+        # on the file, so flatten to 1-D and take the first entry.
         ft = float(np.asarray(hf['/entry/instrument/detector_1/frame_time'][()]).reshape(-1)[0])
         t = np.asarray(hf['/xpcs/multitau/delay_list'][()])
         tau = (t[:, 0] if t.ndim > 1 else t) * ft
@@ -152,7 +154,9 @@ axg.text(0.03, 0.06, rf'$\beta = {beta:.4f}$', transform=axg.transAxes,
 axq.plot(q[bq], bb, 'ko', mfc='none', ms=MS, mew=MEW)
 axq.axhline(beta, color='r', ls='-', lw=LW_DATA)
 axq.axvspan(0.00376, 0.00827, color='0.88', zorder=0)
-axq.text(0.0058, 0.1465, 'range used\nfor the sample', ha='center', va='top', color='0.35')
+# Left-aligned ON the left edge of the shaded band, not centred on it: the
+# label is wider than the band, so centring pushed it 2.9 pt past the y axis.
+axq.text(0.00376, 0.1465, 'range used\nfor the sample', ha='left', va='top', color='0.35')
 axq.set_xlabel(r'$Q$ ($\AA^{-1}$)')
 axq.set_ylabel(r'Contrast, $\beta$')
 axq.set_ylim(0.10, 0.15)

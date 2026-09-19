@@ -24,8 +24,14 @@ norm_ring_current = 1.0                  # ring-current normalisation (1.0 = non
 loss_factor = loss_mirror*loss_diamond*norm_ring_current
 
 # Constants for flux calculation
-ev2J = 1.6e-19                           # Conversion from eV to Joule  
-E_0p1bw = 9.89e-05/1e-3                  # From Xianbo's calculation on 07/22/2025  
+# ev2J is the charge of a single electron, e, in coulombs.  One electron-volt is
+# the energy an electron gains across a one-volt potential, so 1 eV = e joules
+# and multiplying an energy in eV by e converts it to joules.
+# 1.6e-19 is e rounded to two digits, 0.14 % below the exact value
+# (e = 1.602176634e-19 C).  That is far inside the uncertainty on the diode
+# responsivity and the loss factors, and it does not move any flux quoted in
+# Figure S5, whose legend carries one digit after the point.
+ev2J = 1.6e-19                           # electron charge [C]; converts eV -> J
 
 # Calculation of raw and corrected flux
 Beam_Power = Pind_Current/Spec_Res

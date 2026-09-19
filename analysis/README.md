@@ -77,14 +77,18 @@ thermal-cycling sequence, and the 50 individual correlation functions of the
 contrast standard. Every figure script below reads only `data/`, so the whole
 analysis can be rerun from this repository alone.
 
-One group is not reduced purely automatically. `MANUAL_EXCLUDE` at the top of
-`average_ranges.py` lists acquisitions dropped by hand on top of
-`outlier_removal()`, which cuts on the *shape* of log10 I(q) and therefore
-cannot see a curve that spikes in the three lowest q bins and is normal
-everywhere else. The table currently holds eleven acquisitions of B0083, cycle
-4 of the Figure S6 series; SI Section 7.1 states what removing them does and
-what a uniform cut across all seven cycles would give instead. Re-reduce just
-that group with `python average_ranges.py B0083`.
+Every group goes through two outlier cuts. `outlier_removal()` cuts on the
+*shape* of log10 I(q) and therefore cannot see a curve that spikes in the three
+lowest q bins and is normal everywhere else — which is what a large object
+crossing the beam during one exposure looks like. `spike_removal()` in
+`average_ranges.py` is the second cut: a one-sided iterated modified z-score
+(median + 1.4826 × MAD, threshold 3) on the per-acquisition mean of I(q) over
+0.004–0.008 Å⁻¹, the same band Figure S6b reports. It is applied to every group
+on identical terms, removes 35 of the 1708 shape-cut survivors (2.0 %), and is
+nearly inert outside the Figure S6 thermal cycles. `MANUAL_EXCLUDE` remains as
+an empty escape hatch for anything neither cut can see. SI Section 7.1 states
+what the cut does to the figure. Re-reduce one group with
+`python average_ranges.py B0083`.
 
 `saxpcs.py` reads the averaged B0147 (isothermal 30 °C) and D0138 (buffer)
 HDF files directly with h5py, fits a double-exponential (KWW) model to g2(τ)
@@ -97,7 +101,9 @@ intensities to an absolute differential cross section via `abs_xsec.py`
 that file), and calibrates the upstream ion-chamber reading against the
 incident photon flux. `saxs_evolution.py`
 reuses the same absolute-cross-section calibration to show the full SAXS
-evolution across all B0147 files. `g2_grid_SI.py` repeats the g2 fit for the
+evolution across all B0147 files. Every absolute-scale axis in the paper is
+mm⁻¹ — the coefficient's own unit, plotted with no further scaling. The
+literature more often quotes cm⁻¹, which is ten times larger. `g2_grid_SI.py` repeats the g2 fit for the
 four secondary q bins not shown in the main figure. `thermal_cycle.py` puts the
 seven thermal cycles of the reversibility control on the same absolute scale
 with the same buffer subtraction, and `contrast_calibration.py` measures the
@@ -143,8 +149,7 @@ differs, and the top-level `Makefile` resolves it via `TEXINPUTS`.
 Main Fig. 1 (`manuscript/figures/Setup.pdf`) is an illustrator schematic and is
 not produced by any script here. SI Fig. S1 is a LaTeX-typeset box of
 oligonucleotide sequences with no image file. SI Fig. S2 is a photograph of the
-sample cells; its image file is `manuscript/figures/FigureS1_Sample_Cells.png`,
-whose name predates the current SI figure order. The Video S1 still frame
+sample cells (`manuscript/figures/FigureS2_Sample_Cells.png`). The Video S1 still frame
 (`manuscript/figures/VideoS1_Still.png`) is likewise a photograph.
 
 ## Environment
@@ -191,7 +196,13 @@ Nano Letters author guide), centralized in `common/acs_style.py`:
   `bbox_inches='tight'` trimming, so the media box stays exactly one or two
   columns wide and the manuscript can embed it unscaled — 8 pt drawn is 8 pt
   printed.
-- Multi-panel figures are labeled (a), (b), (c)... via `label_panels()`.
+- Multi-panel figures are labeled (a), (b), (c)... via `label_panels()`, in
+  reading order across then down.
+- Every log Q axis is labeled 0.004, 0.01 and 0.03 Å⁻¹ via `q_log_ticks()`.
+  The 8-ID Q range spans about one decade, so matplotlib's automatic log
+  locator labels a single tick (10⁻²); the shared helper gives Figures 3a,
+  S5a, S6b and S8 the same three named ticks so they compare tick for tick.
+  Call it *after* `set_xscale('log')` -- setting a scale resets the locators.
 
 Regenerate a figure by running its script directly from its own directory,
 e.g. `cd SAXPCS_8id && python3 saxpcs.py` (headless environments can set

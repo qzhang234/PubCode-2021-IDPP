@@ -14,7 +14,6 @@ The IC readout is stored in each results file at
 """
 
 import os
-import glob
 import sys
 
 import numpy as np
@@ -24,7 +23,8 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from common.acs_style import (DOUBLE_COL, MS, MEW, LW_THIN,
-                              apply_style, add_minor_grid, label_panels, save_fig)
+                              apply_style, add_minor_grid, label_panels,
+                              q_log_ticks, save_fig)
 
 # --- PATHS (all local, relative to this script) ---
 here = os.path.dirname(os.path.abspath(__file__))
@@ -51,7 +51,7 @@ IC_SCALE = 1e-9                          # apply to the stored IC readout
 # already corresponds to the attenuated flux hitting the sample.
 SPEC_RES      = 0.1882
 PHOTON_ENERGY = 12.4e3                   # eV
-EV2J          = 1.6e-19
+EV2J          = 1.6e-19                  # electron charge [C]; converts eV -> J
 LOSS_MIRROR   = 0.94 * 0.94             # mirror reflectivity
 LOSS_DIAMOND  = 0.735                    # BPM + CVD diamond window at 8-ID-E
 LOSS_FACTOR   = LOSS_MIRROR * LOSS_DIAMOND
@@ -110,7 +110,9 @@ for key in ORDER:
     pind = slope * ic
     flux = pind_to_flux(pind)
     data[key] = dict(ic=ic, flux=flux, g2=g2, g2_err=g2_err, saxs_1d=saxs_1d,
-                     q_saxs=ql_sta * 10.0, t_g2=t_el * t0)
+                     # static_v_list_dim0 is already in Ainv; the rest of the
+                     # paper plots Q in Ainv, so no nm^-1 conversion here
+                     q_saxs=ql_sta, t_g2=t_el * t0)
     print(f'{key:>7}   {ic:.3e}   {pind:.3e}    {flux:.3e}')
 
 # --- FIGURE ---
@@ -135,10 +137,11 @@ for key in ORDER:
                     elinewidth=LW_THIN, capthick=LW_THIN,
                     color=color, ls='none', label=label)
 
-axs[0].set_xlabel(r'$Q$ (nm$^{-1}$)')
+axs[0].set_xlabel(r'$Q$ ($\AA^{-1}$)')
 axs[0].set_ylabel('Intensity (photon/pixel/frame)')
 axs[0].set_xscale('log')
 axs[0].set_yscale('log')
+q_log_ticks(axs[0])   # after set_xscale: setting a scale resets the locators
 add_minor_grid(axs[0])
 # I(Q) falls from the top left, so open a decade of headroom for the key to
 # sit in rather than letting it cover the high-Q end of the curves
@@ -147,7 +150,7 @@ _i_lo = min(d['saxs_1d'][d['saxs_1d'] > 0].min() for d in data.values())
 axs[0].set_ylim(_i_lo * 0.6, _i_hi * 12)
 axs[0].legend(title='Flux on sample', loc='upper right')
 
-axs[1].set_xlabel('Delay Time (s)')
+axs[1].set_xlabel(r'Delay Time, $\tau$ (s)')
 axs[1].set_ylabel(r'$g_2$')
 axs[1].set_xscale('log')
 add_minor_grid(axs[1])

@@ -18,7 +18,6 @@ applies to the beamtime being reduced.
 """
 
 import numpy as np
-import sys
 import os
 import h5py
 import glob
@@ -63,32 +62,26 @@ def read_keys_from_files_parallel(flist_list, num_cores=24):
 
     
 def read_keys_from_files(flist, keys=('g2', 'g2_err', 'saxs_1d')):
+    """Read the named datasets out of each beamline result file.
+
+    BEAMLINE-ONLY: needs pyxpcsviewer and the raw per-acquisition files, so it
+    cannot run from a clone of this repository.
+
+    Parameters
+    ----------
+    flist : list of str
+        Paths to per-acquisition XPCS result files.
+    keys : tuple of str
+        Which datasets to pull out of each file.
+
+    Returns
+    -------
+    dict
+        One key per entry in ``keys``; each value is an array with one row per
+        file, in the order ``flist`` was given.  A 2-D ``saxs_1d`` is collapsed
+        to one curve by averaging over its rows, ignoring NaNs.
+    """
     from pyxpcsviewer import XpcsFile as XF
-    """
-    This module provides functionalities to read, process, and analyze XPCS (X-ray Photon Correlation Spectroscopy) datasets. 
-    It supports parallel reading of data files, splitting arrays into n-segments, averaging datasets, applying cross-correlation thresholds,
-    and removing outliers based on correlation matrices.
-
-    Functions
-    ---------
-    - split(arr, n_segments)
-        Splits an array into specified number of segments.
-
-    - read_keys_from_files_parallel(flist_list, num_cores)
-        Reads keys from a list of files and processes them in parallel.
-
-    - read_keys_from_files(flist, keys)
-        Reads specific keys from a list of files.
-
-    - average_datasets(flist, data_dict, mask)
-        Averages datasets from a list of files or a dictionary with pre-read data.
-
-    - apply_cross_corr_threshold(x0, percentile, style, debug_fig_ax, label)
-        Applies a cross-correlation threshold to data using the specified percentile as the cutoff value.
-
-    - outlier_removal(data_dict, label, percentile, plot_debug)
-        Removes outliers from the data dictionary based on the correlation matrix.
-    """
 
     def get_field(xf_obj, key):
         if key == 'saxs_1d':
@@ -96,7 +89,6 @@ def read_keys_from_files(flist, keys=('g2', 'g2_err', 'saxs_1d')):
             assert x.ndim in [1, 2]
             if x.ndim == 2:
                 try:
-                    # print(np.sum(~np.isnan(x)))
                     x = np.nanmean(x, axis=0)
                 except:
                     print(xf_obj.saxs_1d['Iq'])
@@ -125,6 +117,18 @@ def read_keys_from_files(flist, keys=('g2', 'g2_err', 'saxs_1d')):
 
 
 def average_datasets(flist=None, data_dict=None, mask=None):
+    """Average the acquisitions a mask keeps, one averaged curve per dataset.
+
+    Give it either an already-stacked ``data_dict`` (what average_ranges.py
+    does) or a file list to read first.  Each array in ``data_dict`` has one row
+    per acquisition; ``mask`` is the keep-mask from the outlier cuts.
+
+    'g2' and 'saxs_1d' are averaged with nanmean.  'g2_err' is NOT: averaging N
+    measurements whose individual uncertainties are sigma_i gives the mean an
+    uncertainty of sqrt(sum sigma_i^2) / N, which is what the else-branch below
+    computes.  N is counted per point (the number of non-NaN entries), so a
+    point that is missing from some acquisitions still gets the right divisor.
+    """
     if data_dict is None and flist is not None:
         keys=('g2', 'g2_err', 'saxs_1d')
         data_dict = read_keys_from_files(flist)
@@ -165,6 +169,10 @@ def apply_cross_corr_threshold(x0, percentile=5, style='linear', debug_fig_ax=No
         x[x <= 0] = 1
         x = np.log10(x)
 
+    # Similarity between every pair of acquisitions: the cosine similarity of
+    # their curves, i.e. the dot product divided by the two vector lengths.  It
+    # is 1 for two curves of identical shape and drops as the shapes diverge;
+    # dividing by the lengths is what makes it blind to overall level.
     num = x.shape[0]
     result = np.zeros((num, num), dtype=np.float64)
     for n in range(num):
@@ -180,59 +188,43 @@ def apply_cross_corr_threshold(x0, percentile=5, style='linear', debug_fig_ax=No
         debug_fig_ax.plot(result_1d, 'o')
         debug_fig_ax.hlines(low_cutoff, xmin=-1, xmax=len(result_1d))
         debug_fig_ax.set_title(title)
-        # plt.savefig(f'debug_{label}.png', dpi=300)
 
     mask = result_1d >= low_cutoff
     return mask
 
 
 def outlier_removal(data_dict, label='testrun', percentile=5, plot_debug=False):
-    """
-    Remove outliers from the data dictionary based on the correlation matrix.
+    """Flag acquisitions whose curves do not look like the rest of the group.
+
+    For each dataset in ``data_dict`` (g2, g2_err, saxs_1d), every acquisition
+    is compared with every other by cross-correlation, giving each acquisition
+    a similarity score against the group.  The lowest ``percentile`` of those
+    scores is rejected.  An acquisition has to pass on ALL datasets to be kept.
+
+    This cut sees the SHAPE of a curve, not its level: an acquisition that is
+    anomalously bright in a few q bins but normal elsewhere stays close to the
+    group mean by this measure and survives.  That is what the second,
+    level-based cut in SAXPCS_8id/average_ranges.py is for.
+
+    Parameters
+    ----------
+    data_dict : dict of str -> array
+        One entry per dataset; each array has one row per acquisition.
+    label : str
+        Name used in the log line and in the debug figure filename.
+    percentile : float
+        Percentage of acquisitions rejected per dataset (5 means the least
+        similar 5 %).
+    plot_debug : bool
+        Write ``debug/debug_outlier_<label>.png`` showing the scores.
+
+    Returns
+    -------
+    numpy.ndarray of bool
+        One entry per acquisition, True to keep.
     """
     mask_all = np.ones(len(data_dict['g2']), dtype=bool)
     num_features = len(data_dict.keys()) + 1
-    """
-    This module supports various data processing operations related to segmenting, reading, averaging, and filtering datasets.
-
-    It supports parallel reading of data files, splitting arrays into n-segments, averaging datasets, applying cross-correlation thresholds,
-    and removing outliers based on correlation matrices.
-
-    Functions
-    ---------
-    - split(arr, n_segments)
-        Splits an array into the specified number of segments.
-
-    - read_keys_from_files_parallel(flist_list, num_cores)
-        Reads keys from a list of files and processes them in parallel.
-
-    - read_keys_from_files(flist, keys)
-        Reads specific keys from a list of files.
-
-    - average_datasets(flist, data_dict, mask)
-        Averages datasets from a list of files or a dictionary with pre-read data.
-
-    - apply_cross_corr_threshold(x0, percentile, style, debug_fig_ax, label)
-        Applies a cross-correlation threshold to data using the specified percentile as the cutoff value.
-
-    - outlier_removal(data_dict, label, percentile, plot_debug)
-        Removes outliers from the data dictionary based on the correlation matrix.
-
-    - average_datasets_without_outlier(args)
-        Averages datasets after outlier removal.
-
-    - average_datasets_without_outlier_parallel(args, num_cores)
-        Averages datasets after outlier removal in parallel usage.
-
-    - get_temperature(fname, zone_idx)
-        Extracts temperature information from given file.
-
-    - read_temperature_from_files(fnames, zone_idx)
-        Reads temperature information from list of files.
-
-    - process_group(group, prefix, num_sections, zone_idx, num_cores, skip_first_files, skip_last_files)
-        Processes data group by reading file list, extracting temperatures, and optionally segmenting data and averaging datasets.
-    """
 
     if plot_debug:
         fig, ax = plt.subplots(num_features, 1, figsize=(4, 2.4 * num_features),

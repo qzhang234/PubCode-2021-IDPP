@@ -22,6 +22,14 @@ def Read_12ID(fn_full):
     return data[:, 0], data[:, 1], data[:, 2]
 
 def get_scaling_factor(q_sa, i_sa, q_wa, i_wa):
+    """Factor that puts WAXS on the SAXS intensity scale.
+
+    The two detectors sit at different distances and are not cross-calibrated,
+    so their intensities differ by an unknown constant.  Over the q interval
+    both cover they are measuring the same thing, so the ratio of their mean
+    intensities there is that constant.  Returns 1.0 if the two ranges happen
+    not to overlap.
+    """
     q_min = max(q_sa.min(), q_wa.min())
     q_max = min(q_sa.max(), q_wa.max())
     mask_sa = (q_sa >= q_min) & (q_sa <= q_max)
@@ -67,6 +75,12 @@ _, SA_Iq_30C_Buf, SA_eq_30C_Buf = Read_12ID(fn_path + 'SBufferB_30C_00077.avg')
 _, WA_Iq_30C_Buf, WA_eq_30C_Buf = Read_12ID(fn_path + 'WBufferB_30C_00077.avg')
 
 # 3. SUBTRACT BACKGROUND (errors add in quadrature: sig_sub = sqrt(sig_s^2 + a^2 sig_b^2))
+# The capillary-plus-buffer profile is subtracted with a factor of 1.00 from
+# SAXS.  WAXS keeps the empirical 0.95 used in the original 12-ID-B reduction:
+# it is the only non-unity scale factor anywhere in this analysis, and it is
+# disclosed in SI Section 3.1.  Nothing in the paper uses an absolute WAXS
+# intensity -- only the two peak positions and widths, which do not move with
+# this factor.
 alpha_SA, alpha_WA = 1.0, 0.95
 SA_10C_1_sub = SA_Iq_10C_1 - alpha_SA * SA_Iq_10C_Buf
 WA_10C_1_sub = WA_Iq_10C_1 - alpha_WA * WA_Iq_10C_Buf
@@ -88,6 +102,10 @@ WA_10C_2_e = np.sqrt(WA_eq_10C_2**2 + (alpha_WA * WA_eq_10C_Buf)**2)
 SA_30C_2_e = np.sqrt(SA_eq_30C_2**2 + (alpha_SA * SA_eq_30C_Buf)**2)
 WA_30C_2_e = np.sqrt(WA_eq_30C_2**2 + (alpha_WA * WA_eq_30C_Buf)**2)
 
+# Usable part of each detector, trimmed by eye from the reduced profiles: the
+# first points of the SAXS range sit in the beamstop shadow and the last points
+# of each range are noise past the edge of the detector.  These crops set the q
+# span of Figure 2 and are the same for both aliquots at a given temperature.
 pl_range_10C_SA = np.arange(30,len(SA_Iq_10C_1)-10)
 pl_range_30C_SA = np.arange(10,len(SA_Iq_30C_1)-10)
 pl_range_10C_WA = np.arange(2,len(WA_Iq_10C_1)-240)

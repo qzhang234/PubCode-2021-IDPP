@@ -31,6 +31,68 @@ from a clone of this repository alone** — no beamline account, no network, no
 raw data. The two scripts above have to be rerun only if the raw data are
 reprocessed, and they will only run at the beamline.
 
+### Code that reads outside this repository
+
+There are exactly three places in the Python where a path can point outside the
+repository, and **none of them is on the path from the committed data to a
+figure** — `make figures` never executes any of them.
+
+| Where | Out-of-repo location | How the path is set |
+|---|---|---|
+| `analysis/SAXS_12id/Read_12ID_SAWAXS.py`, `fn_path` (line 54) | `/home/8-id-i/2021-1/12-id-b/ZuoApr13/Processed/` — the 12-ID-B reduced `.avg` profiles from the 2021-1 run | hard-coded |
+| `analysis/SAXPCS_8id/average_ranges.py`, `prefix` (line 80) | `/home/8-id-i/2022-1/babnigg202203_nexus/reprocess_results` — the 8-ID-I per-acquisition cluster results from the 2022-1 run | hard-coded |
+| `analysis/common/utils.py`, beamline-side helpers | wherever the caller points them | **no default** — `prefix` must be passed in |
+
+The `utils.py` helpers in question are `read_keys_from_files`,
+`read_keys_from_files_parallel`, `get_temperature`,
+`read_temperature_from_files`, `_read_xpcs_hdf`, `process_group` and
+`process_group_by_range`. They are kept for provenance and for reprocessing at
+the beamline; two of them also import `pyxpcsviewer`, which is deliberately not
+in `environment.yml`. The only two functions in that module that a figure
+depends on are `outlier_removal` and `average_datasets`, and both take numpy
+arrays — neither ever opens a file.
+
+Those three are the only absolute path literals in the whole tree. Every other
+script anchors its input and output on
+`os.path.dirname(os.path.abspath(__file__))`, so it reads and writes inside its
+own directory and runs correctly from any working directory.
+
+## Source data integrity
+
+No data file is modified by the act of producing a figure. Checked three ways.
+
+**1. Every read is read-only.** Every `h5py.File` call in every plotting script
+opens with mode `'r'`. The tree contains exactly one `'r+'` open, in
+`average_ranges.py:save_average`, and it acts on the *destination* of a
+`shutil.copyfile` under `analysis/SAXPCS_8id/data/` — never on a source file.
+The complete list of things any script writes is: the four
+`SAXS_12id/reduced_data/*.csv`, the contents of `SAXPCS_8id/data/`, and the ten
+figure PDFs. One in-place-mutation hazard is guarded explicitly:
+`apply_cross_corr_threshold` copies its input before rewriting NaNs and
+non-positive values to make the similarity metric well defined, so those
+injected values cannot leak back into `saxs_1d`.
+
+**2. Syscall trace.** A full `make figures` was run under `strace`, tracing
+`open`/`openat`/`unlink`/`rename`/`truncate` across all child processes. The
+complete set of paths opened for writing is the ten figure PDFs, four
+`__pycache__/*.pyc` files, and matplotlib's scratch files in `/tmp`. No `.hdf`
+or `.csv` is opened for writing, and no `unlink`, `rename` or `truncate` touches
+a data file. All 46 data files appear in the trace as `O_RDONLY` only. Nothing
+outside the repository is read except Python/conda libraries, matplotlib's font
+cache and `/proc`–`/sys`.
+
+**3. Checksums.** md5 of all 46 committed data files — 40 `.hdf` and 6 `.csv` —
+taken before and after a full `make figures`, repeated. All 46 identical every
+time.
+
+Related, and for the same reason: nothing is rescaled between the calibration
+and the plot. `abs_xsec_coef()` is built from millimetres, so every absolute
+intensity axis in this work is **mm⁻¹**, plotted as the coefficient comes out
+with no conversion factor applied. (The literature more often quotes cm⁻¹, which
+is ten times larger.) The single non-unity coefficient anywhere in the analysis
+is the empirical `alpha_WA = 0.95` in the 12-ID WAXS reduction, disclosed in SI
+Section 3.1.
+
 ## Layout
 
 | Path | What it is |

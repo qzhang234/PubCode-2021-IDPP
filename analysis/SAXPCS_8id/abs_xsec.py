@@ -68,20 +68,31 @@ average_ranges.py averages the two monitors per range); coef_buf uses the
 D0138 buffer's own Up_IC / Dn_IC.
 
 UNITS: lengths follow the original convention (millimetres for pixel, distance
-and thickness).  With a 1 mm thickness this reproduces the coefficient of the
-original analysis for the D0138 buffer to about 2 % (7.50e4 here against 7.62e4
-there); dOmega is a pure ratio, so its length units cancel.  The values below match the beamline log for this experiment.
+and thickness); dOmega is a pure ratio, so its length units cancel.  The
+constants below are the ones in the beamline log for this experiment.
+
+THE SAMPLE THICKNESS IS 2 mm.  That is the cell used in this experiment, it is
+what SAMPLE_THICKNESS is set to below, and it is what every number in the paper
+is built on: coef_buf = 3.75e4 for the D0138 buffer.
+
+The only reason 1 mm is mentioned anywhere is the cross-check against the
+original beamline notebook, which had been written for a 1 mm cell.  Setting
+SAMPLE_THICKNESS = 1 here reproduces that notebook to 2 % (7.50e4 here against
+7.62e4 there), which is how this implementation was confirmed to be the same
+calculation.  Thickness enters only as 1/f, so 1 mm and 2 mm differ by exactly a
+factor of two and nothing else.  The 1 mm value is NOT used by this analysis.
 
     [coef] = 1 / ([T_EXP] [F] [T] [f] [dOmega])
            = 1 / ( s * photons/s * 1 * mm * sr )
            = 1 / (photons mm sr)
 
-so coef * I(Q) comes out in mm^-1 sr^-1, NOT the cm^-1 sr^-1 that absolute
-cross sections are conventionally quoted in.  SAMPLE_THICKNESS is the only
-dimensional length that survives (dOmega's mm cancel), so the conversion is a
-single factor of ten -- use INV_MM_TO_INV_CM below on anything that is going to
-be labelled cm^-1.  abs_xsec_coef() itself is deliberately left in the millimetre
-convention so it still reproduces the coefficient of the original analysis.
+so coef * I(Q) comes out in mm^-1 sr^-1.  Every absolute-scale figure in this
+work reports that number as it stands: the plotted quantity is exactly
+coef * I(Q), with no further scaling.  Absolute cross sections are more often
+quoted in cm^-1; SAMPLE_THICKNESS is the only dimensional length that survives
+(dOmega's mm cancel), so a reader comparing with the literature multiplies by
+ten.  That factor is deliberately NOT applied anywhere in this repository, so
+that what is plotted is the coefficient the calibration actually produces.
 """
 
 import numpy as np
@@ -95,11 +106,6 @@ NUM_FRAMES       = 100000    # frames per measurement
 FRAME_TIME       = 20e-6     # acquisition (frame) time, 20 us
 T_EXP            = FRAME_TIME * NUM_FRAMES          # total exposure time [s]
 DELTA_OMEGA      = (PIXEL_MM / DET_DIST_MM) ** 2    # pixel solid angle
-
-# abs_xsec_coef() works in the millimetre convention, so coef * I(Q)
-# is in mm^-1.  Multiply by this to report the conventional cm^-1 (1 mm^-1 =
-# 10 cm^-1, since SAMPLE_THICKNESS is the only length left in the coefficient).
-INV_MM_TO_INV_CM = 10.0
 
 # --- IC -> photon calibration data (no sample; only the air gap attenuates) ---
 UPIC_DARK   = 83.6           # upstream IC dark reading
@@ -139,6 +145,8 @@ def abs_xsec_coef(hf):
 
     Returns the scalar coefficient that multiplies this file's I(Q).
     """
+    # These are stored as tiny arrays whose shape varies between files -- (1,)
+    # in some, (1, 1) in others -- so flatten to 1-D and take the first entry.
     up_ic = float(np.asarray(hf[INCIDENT_PATH][()]).ravel()[0])
     dn_ic = float(np.asarray(hf[TRANSMITTED_PATH][()]).ravel()[0])
     flux = CAL_A * (up_ic / T_EXP) + CAL_B

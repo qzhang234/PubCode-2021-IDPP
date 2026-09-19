@@ -37,8 +37,14 @@ df_ref30 = pd.read_csv(os.path.join(data_dir, 'Merged_Reference_30C.csv'))
 df_meas10 = pd.read_csv(os.path.join(data_dir, 'Merged_Measurement_10C.csv'))
 df_meas30 = pd.read_csv(os.path.join(data_dir, 'Merged_Measurement_30C.csv'))
 
-# Define a local Gaussian peak with a linear background
 def gauss_bg(x, a, x0, sigma, m, c):
+    """A Gaussian peak of height a, centre x0 and width sigma, on the sloping
+    background m*x + c that the wing of the neighbouring scattering leaves under
+    each WAXS peak.
+
+    curve_fit returns the fitted parameters in this same order, so the peak
+    centre is element [1] and its width is element [2] of the result below.
+    """
     return a * np.exp(-(x - x0)**2 / (2 * sigma**2)) + m * x + c
 
 # 2. EXECUTE PLOT
@@ -123,6 +129,7 @@ p1_opt, _ = curve_fit(gauss_bg, q1, i1, p0=[np.ptp(i1), 0.74, 0.15, 0, np.min(i1
 print(f"\nPeak 1 (Inter-sheet spacing):")
 print(f"  Position (Q0): {p1_opt[1]:.4f} A^-1  (d = {2*np.pi/p1_opt[1]:.2f} A)")
 print(f"  Width (Sigma): {p1_opt[2]:.4f} A^-1")
+# FWHM = 2*sqrt(2*ln 2)*sigma = 2.355*sigma for a Gaussian
 print(f"  Width (FWHM):  {2.355 * p1_opt[2]:.4f} A^-1")
 
 ax_ins.plot(q1, gauss_bg(q1, *p1_opt), 'r-', lw=LW_DATA)
