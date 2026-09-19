@@ -97,7 +97,11 @@ for k in cited:
 
     cy = (msg.get('issued',{}).get('date-parts') or [[None]])[0][0]
     cv = str(msg.get('volume','') or '')
-    cp = str(msg.get('page','') or '')
+    # Journals that number articles rather than paginate leave `page` empty and
+    # put the number in `article-number`.  Without this the page check silently
+    # passed for a third of the bibliography -- it is how a "1--10" placeholder
+    # survived in an entry whose real locator is article 196.
+    cp = str(msg.get('page','') or msg.get('article-number','') or '')
     cj = (msg.get('container-title') or [''])[0]
     ct = (msg.get('title') or [''])[0]
     by, bv = clean(field(body,'year')), clean(field(body,'volume'))
