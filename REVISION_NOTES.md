@@ -424,3 +424,54 @@ just runs low-$Q$-first.
 Abstract 129 words (limit 150). Main text **2782 words excluding captions**
 (limit 3000), 3280 including them. Captions: Figure 1 184, Figure 2 119,
 Figure 3 195. Main PDF is 19 pages; `make check` is clean.
+
+---
+
+## 12. A less painful way to send comments next time
+
+Screenshots of the Comments pane arrive detached from the highlights, so the
+notes and the marked text have to be matched up by hand. Three options, best
+first.
+
+**1. Export the comments and commit them (recommended).** In Acrobat: Comments
+pane → the "…" menu → *Export All to Data File* → save as `.xfdf` under
+`review/` in this repo, alongside the PDF you annotated. Then:
+
+```
+python3 tools/pdf_comments.py review/comments.xfdf manuscript/build/main.pdf
+```
+
+prints every note next to the exact words it marks, in document order:
+
+```
+--- C7  page 7
+    marked : but does not by itself prove that the contacts are the network junctions
+    comment: Need more explanation. I understand you are trying to sound safe...
+```
+
+`.xfdf` is XML, so the note text is directly readable, and the word boxes come
+from `pdftotext -bbox-layout`. Standard library and poppler only — no PDF
+package needed, none is installed on the beamline machines. The script is
+tested on single-line and multi-line spans.
+
+**2. Commit the annotated PDF itself.** Dropping `main_QZ_commented.pdf` into
+`review/` also works and needs no export step; the annotations can be read off
+it directly. Slightly less robust than the `.xfdf`, because Acrobat may store
+the annotation dictionaries inside compressed object streams.
+
+**3. Line numbers, no tooling at all.** `main.pdf` already carries line numbers
+down the margin — the `lineno` package is loaded for exactly this. A plain file
+like `review/comments.md` with
+
+```
+L54  break into a new sentence, the observation is the important part
+L107 only one group is 63 -- spell the sizes out
+L117 Fig. S6c key says 32 C
+```
+
+is unambiguous and takes no parsing. Good for a short pass; the `.xfdf` route
+is better when there are twenty-five of them.
+
+What does **not** work is pasting comment text without the anchors, or
+screenshots of the Comments pane: both drop the link between each note and its
+highlight, which is the part that costs the time.
