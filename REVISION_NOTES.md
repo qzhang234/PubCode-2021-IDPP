@@ -211,15 +211,39 @@ order. Line numbers are those of the commented draft.
 ### Page 2
 
 **C1 · L15 · "Double-check all references in the Introduction section."**
-26 distinct references are cited before the Figure 1 paragraph. All 26 carry
-title, authors, journal, year, volume and pages; all 41 cited keys resolve in
-`reference.bib`, and no cited key is missing. Metadata matches the published
-record for every one I can check offline. The newest and therefore highest-risk
-entry, Pálmadóttir 2025, was verified live: DOI 10.1063/5.0236947 resolves to
-*Biophysics Reviews* **6**(1), 011303, "On the reversibility of amyloid fibril
-formation". **Caveat:** live web search is blocked by organization policy on
-this machine, so the remaining 25 were checked against the bibliography and
-against known metadata, not against a fresh lookup of each publisher record.
+Done for the whole bibliography, not only the Introduction, against the live
+CrossRef record:
+
+```
+python3 tools/check_refs.py
+```
+
+**41 cited references; 40 journal articles all verified, 0 discrepancies.** The
+41st is the 12-ID-B beamline page, a `@misc` web citation with no CrossRef
+record. Each entry is looked up by DOI where it has one and by title otherwise,
+and its year, volume, first page, journal and title are compared with the
+publisher record.
+
+Two genuine errors found and fixed — both titles that spelled out a Greek
+letter the published title sets as a symbol:
+
+| Key | Was | Now |
+|---|---|---|
+| `Serpell2000-pnas` | "…Synthetic **Alpha**-Synuclein Filaments Shows Amyloid-Like Cross-**Beta** Conformation" | "…Synthetic **$\alpha$**-Synuclein Filaments Shows Amyloid-Like Cross-**$\beta$** Conformation" |
+| `Sawaya2007-nature` | "Atomic Structures of Amyloid Cross-**Beta** Spines…" | "Atomic Structures of Amyloid Cross-**$\beta$** Spines…" |
+
+Both now render as α and β in the reference list, matching the published titles
+and the β used throughout the paper. `Pan1993-pnas` keeps "Alpha-Helices" and
+"Beta-Sheets" because the 1993 PNAS title really does spell them out.
+
+Also added: a DOI for `Tanaka2000-qq` (10.1088/0953-8984/12/15/201). Nothing
+was wrong with the entry — J. Phys.: Condens. Matter **12**, R207–R264 (2000)
+is correct — but "Viscoelastic phase separation" is too generic a title for a
+search to rank reliably, and the DOI pins the lookup for future runs.
+
+Three journal names the first pass flagged are *not* errors and the checker no
+longer reports them: "Annu. Rev. Biomed. Eng." and "Methods Mol. Biol." (×2)
+are correct ACS abbreviations.
 
 ### Page 3
 
