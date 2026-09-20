@@ -4,7 +4,7 @@ BEAMLINE-ONLY.  Together with SAXPCS_8id/average_ranges.py this is one of the
 two scripts in the repository that read raw beamline storage; ``fn_path`` below
 points at the 12-ID-B processed directory and exists only there.  Its outputs
 are committed under reduced_data/, so Plot_12ID.py (Figure 2) and
-Guinier_Plot.py (Figure S7) run from a clone of this repository alone and this
+Guinier_Plot.py (Figure S4) run from a clone of this repository alone and this
 script does not have to be rerun unless the raw data are reprocessed.
 
 For each of the four conditions (Reference / Measurement at 10 and 30 C) it

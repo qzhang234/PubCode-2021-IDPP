@@ -1,7 +1,7 @@
 """Combined SAXS + XPCS analysis, reading the averaged HDF files in data/.
 
 This one script writes three of the paper's figures: Figure 3 of the main text,
-Figure S9 and Figure S3.
+Figure S9 and Figure S7.
 
 Figure 3, three panels:
   1. SAXS I(q) for B0146, the first B0147 file (frames 1-200), and the last five
@@ -11,7 +11,7 @@ Figure 3, three panels:
 Figure S9 (2x2 panels) plots the fit parameters: (a) shared exponents p1, p2 vs
 elapsed time, (b) tau_fast vs Q, (c) tau_slow vs Q, and (d) the power-law
 scaling exponents gamma_fast, gamma_slow obtained by fitting each elapsed
-time's tau(Q) in (b)/(c) to tau = A * Q**gamma.  Figure S3 (2 panels) documents
+time's tau(Q) in (b)/(c) to tau = A * Q**gamma.  Figure S7 (2 panels) documents
 the absolute-cross-section calibration: the ion-chamber -> photon linear fit
 and the air transmission (see the ABSOLUTE SCATTERING CROSS-SECTION section
 below and abs_xsec.py).
@@ -49,7 +49,7 @@ The g2 model is a double stretched-exponential (Siegert form):
     g2 = contrast * ( f e^-(tau/tau_fast)^p1 + (1-f) e^-(tau/tau_slow)^p2 )^2 + 1
 
 with the contrast fixed at beta = 0.13042, the instrumental value measured on a
-static reference by contrast_calibration.py (Figure S4), and the baseline fixed
+static reference by contrast_calibration.py (Figure S8), and the baseline fixed
 at 1.  For each
 elapsed time all fitted q bins are fit SIMULTANEOUSLY (a global fit): the
 stretching exponents p1 (fast) and p2 (slow) are SHARED across q -- they depend
@@ -181,7 +181,7 @@ def fit_powerlaw(Q, tau, tau_err):
 
 # --- DISCOVER FILES ---
 # every range average in data/, including the thermal-cycle groups that belong to
-# Figure S6; the headers wanted here are selected out of by_header below
+# Figure S5; the headers wanted here are selected out of by_header below
 file_paths = sorted(glob.glob(os.path.join(data_dir, 'Average_*.hdf')))
 assert file_paths, f'no HDF files found in {data_dir}'
 by_header, start_times = {}, {}
@@ -298,7 +298,7 @@ ax1.set_xlabel(r'$Q$ ($\AA^{-1}$)')
 ax1.set_ylabel(r'$I(Q)$ (mm$^{-1}$)')
 add_minor_grid(ax1)
 # Three named Q ticks instead of the single 10^-2 the automatic log locator
-# finds in this ~1-decade range; shared with Figures S6b and S8 so the three
+# finds in this ~1-decade range; shared with Figures S5b and S8 so the three
 # absolute-scale profiles can be compared tick for tick.  The limits sit well
 # outside the data so no point sits on the frame.
 ax1.set_xlim(2.6e-3, 4.4e-2)
@@ -615,6 +615,6 @@ axc.legend(loc='upper left')
 add_minor_grid(axc)
 
 fig3.tight_layout(pad=0.4, w_pad=1.4)
-save_fig(fig3, 'FigureS3_Calibration.pdf')
+save_fig(fig3, 'FigureS7_Calibration.pdf')
 
 plt.show()

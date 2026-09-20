@@ -1,4 +1,4 @@
-"""Figure S6: thermal-cycling repeatability of (VPAVG)30 at 8-ID-I.
+"""Figure S5: thermal-cycling repeatability of (VPAVG)30 at 8-ID-I.
 
 This is the direct reversibility control for the SA-XPCS experiment: ONE aliquot
 taken through seven consecutive 6 -> 34 -> 6 C cycles.  Unlike the 12-ID-B
@@ -62,7 +62,7 @@ paper on the same terms, with no per-group list.
   the 1708 acquisitions that survive outlier_removal(), 2.0 %.  It is nearly
   inert on the isothermal series behind Figures 3 and S8-S10 -- two
   acquisitions of B0147, shifting one absolute-scale coefficient by 0.03 % and
-  leaving every fitted g2 parameter unchanged -- so it is a Figure S6 effect in
+  leaving every fitted g2 parameter unchanged -- so it is a Figure S5 effect in
   practice while remaining a uniform rule in definition.
 
 WHY CYCLE 4 STOOD OUT was two different things in the two states, and neither
@@ -264,7 +264,7 @@ def load_trace(path):
 
 
 def group(header, lo, hi):
-    """Everything Figure S6 needs from one averaged group.
+    """Everything Figure S5 needs from one averaged group.
 
     q and I(Q) on the absolute scale [mm^-1], the g2 of the lowest q bin with
     its error, the delay times, that bin's q, the mean elapsed time and
@@ -530,5 +530,5 @@ for ci in range(n_col):
                               ls='none', mfc='none', mec=COLORS[ci], mew=MEW,
                               ms=MS, transform=fig.transFigure, zorder=5))
 
-save_fig(fig, 'FigureS6_Thermal_Cycle.pdf')
+save_fig(fig, 'FigureS5_Thermal_Cycle.pdf')
 plt.show()

@@ -39,7 +39,7 @@ repo goes from raw beamline files to the PDF figures used in the paper.
 raw .avg files (12-ID-B beamline storage; BEAMLINE-ONLY)
     --> Read_12ID_SAWAXS.py   (merge SAXS+WAXS, scale WAXS onto SAXS, propagate errors)
     --> reduced_data/Merged_*.csv
-    --> Guinier_Plot.py       --> FigureS7_Guinier.pdf
+    --> Guinier_Plot.py       --> FigureS4_Guinier.pdf
     --> Plot_12ID.py          --> Figure2_SAXS_WAXS.pdf
 ```
 
@@ -61,11 +61,11 @@ raw cluster-result .hdf files (8-ID-I, per-file g2, g2_err, saxs_1d, IC readout)
 data/
     --> saxpcs.py              --> Figure3_Isothermal_SAXPCS.pdf,
                                     FigureS9_Fit_Parameters.pdf,
-                                    FigureS3_Calibration.pdf
-    --> saxs_evolution.py      --> FigureS8_SAXS_Evolution.pdf
+                                    FigureS7_Calibration.pdf
+    --> saxs_evolution.py      --> FigureS6_SAXS_Evolution.pdf
     --> g2_grid_SI.py          --> FigureS10_g2_Grid.pdf
-    --> thermal_cycle.py       --> FigureS6_Thermal_Cycle.pdf
-    --> contrast_calibration.py --> FigureS4_Contrast.pdf
+    --> thermal_cycle.py       --> FigureS5_Thermal_Cycle.pdf
+    --> contrast_calibration.py --> FigureS8_Contrast.pdf
 ```
 
 `average_ranges.py` is the second of the two beamline-only scripts and the
@@ -83,9 +83,9 @@ lowest q bins and is normal everywhere else — which is what a large object
 crossing the beam during one exposure looks like. `spike_removal()` in
 `average_ranges.py` is the second cut: a one-sided iterated modified z-score
 (median + 1.4826 × MAD, threshold 3) on the per-acquisition mean of I(q) over
-0.004–0.008 Å⁻¹, the same band Figure S6b reports. It is applied to every group
+0.004–0.008 Å⁻¹, the same band Figure S5b reports. It is applied to every group
 on identical terms, removes 35 of the 1708 shape-cut survivors (2.0 %), and is
-nearly inert outside the Figure S6 thermal cycles. `MANUAL_EXCLUDE` remains as
+nearly inert outside the Figure S5 thermal cycles. `MANUAL_EXCLUDE` remains as
 an empty escape hatch for anything neither cut can see. SI Section 7.1 states
 what the cut does to the figure. Re-reduce one group with
 `python average_ranges.py B0083`.
@@ -115,7 +115,7 @@ then holds fixed.
 ```
 cluster-result .hdf files at 4 attenuation settings (E0171-E0174)
 Pind_calibration.csv (PIN-diode <-> ion-chamber calibration sheet)
-    --> g2_SAXPCS_Rad_Cali.py --> FigureS5_Flux_Control.pdf
+    --> g2_SAXPCS_Rad_Cali.py --> FigureS3_Flux_Control.pdf
 ```
 
 Converts each measurement's ion-chamber reading to an on-sample photon flux
@@ -136,15 +136,15 @@ differs, and the top-level `Makefile` resolves it via `TEXINPUTS`.
 | Output PDF | Script | Figure | Panels |
 |---|---|---|---|
 | `SAXS_12id/Figure2_SAXS_WAXS.pdf` | `Plot_12ID.py` | Main Fig. 2 | 1 (+ inset) |
-| `SAXS_12id/FigureS7_Guinier.pdf` | `Guinier_Plot.py` | SI Fig. S7 | 1 |
+| `SAXS_12id/FigureS4_Guinier.pdf` | `Guinier_Plot.py` | SI Fig. S4 | 1 |
 | `SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf` | `saxpcs.py` | Main Fig. 3 | 3 |
 | `SAXPCS_8id/FigureS9_Fit_Parameters.pdf` | `saxpcs.py` | SI Fig. S9 | 4 (2×2) |
-| `SAXPCS_8id/FigureS3_Calibration.pdf` | `saxpcs.py` | SI Fig. S3 | 2 |
-| `SAXPCS_8id/FigureS4_Contrast.pdf` | `contrast_calibration.py` | SI Fig. S4 | 2 |
-| `SAXPCS_8id/FigureS6_Thermal_Cycle.pdf` | `thermal_cycle.py` | SI Fig. S6 | 3 |
-| `SAXPCS_8id/FigureS8_SAXS_Evolution.pdf` | `saxs_evolution.py` | SI Fig. S8 | 1 |
+| `SAXPCS_8id/FigureS7_Calibration.pdf` | `saxpcs.py` | SI Fig. S7 | 2 |
+| `SAXPCS_8id/FigureS8_Contrast.pdf` | `contrast_calibration.py` | SI Fig. S8 | 2 |
+| `SAXPCS_8id/FigureS5_Thermal_Cycle.pdf` | `thermal_cycle.py` | SI Fig. S5 | 3 |
+| `SAXPCS_8id/FigureS6_SAXS_Evolution.pdf` | `saxs_evolution.py` | SI Fig. S6 | 1 |
 | `SAXPCS_8id/FigureS10_g2_Grid.pdf` | `g2_grid_SI.py` | SI Fig. S10 | 4 (2×2) |
-| `Rad_Dam_Check/FigureS5_Flux_Control.pdf` | `g2_SAXPCS_Rad_Cali.py` | SI Fig. S5 | 2 |
+| `Rad_Dam_Check/FigureS3_Flux_Control.pdf` | `g2_SAXPCS_Rad_Cali.py` | SI Fig. S3 | 2 |
 
 Main Fig. 1 (`manuscript/figures/Setup.pdf`) is an illustrator schematic and is
 not produced by any script here. SI Fig. S1 is a LaTeX-typeset box of
@@ -201,7 +201,7 @@ Nano Letters author guide), centralized in `common/acs_style.py`:
 - Every log Q axis is labeled 0.004, 0.01 and 0.03 Å⁻¹ via `q_log_ticks()`.
   The 8-ID Q range spans about one decade, so matplotlib's automatic log
   locator labels a single tick (10⁻²); the shared helper gives Figures 3a,
-  S5a, S6b and S8 the same three named ticks so they compare tick for tick.
+  S3a, S5b and S8 the same three named ticks so they compare tick for tick.
   Call it *after* `set_xscale('log')` -- setting a scale resets the locators.
 
 Regenerate a figure by running its script directly from its own directory,

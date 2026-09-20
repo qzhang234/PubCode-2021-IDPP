@@ -53,7 +53,7 @@ from nexus_read import parse_name, read_start_time, read_g2
 
 # --- DISCOVER FILES ---
 # every range average in data/, including the thermal-cycle groups that belong to
-# Figure S6; the loop below keeps only XPCS_HEADER
+# Figure S5; the loop below keeps only XPCS_HEADER
 file_paths = sorted(glob.glob(os.path.join(data_dir, 'Average_*.hdf')))
 b0147, start_times = [], {}
 for fp in file_paths:
