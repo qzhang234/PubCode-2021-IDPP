@@ -57,6 +57,40 @@ script anchors its input and output on
 `os.path.dirname(os.path.abspath(__file__))`, so it reads and writes inside its
 own directory and runs correctly from any working directory.
 
+### Where the 8-ID-I data actually live
+
+The 2022-1 beamtime exists in three places on APS storage. Only the third is
+what `average_ranges.py` currently reads.
+
+| Path | What it holds | Size |
+|---|---|---|
+| `/gdata/s8id-dmdtn/2022-1/babnigg202203` | Raw detector frames. The archival copy. | 3.0 TB |
+| `/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/` | NeXus metadata rewritten for the current pipeline. `reprocess_results/` holds the per-acquisition correlation results. The `.bin` files alongside are symlinks into `babnigg202203`, so this directory holds no second copy of the frames. | 51 GB |
+| `/home/8-id-i/2022-1/babnigg202203_nexus/reprocess_results` | A copy of the `reprocess_results` above, on a 164.x machine. `average_ranges.py`, `prefix` on line 80, points here. | 51 GB |
+
+**Why the `_nexus` directory exists.** 8-ID-I moved to NeXus around 2024, and
+`boost_corr_bin` (M. Chu) was changed permanently to read NeXus metadata. That
+is incompatible with the older Data Exchange schema the 2022 data were written
+under (De Carlo *et al.*, *J. Synchrotron Rad.* **21**, 1224–1230, 2014,
+[10.1107/S160057751401604X](https://doi.org/10.1107/S160057751401604X)).
+Rewriting the metadata into `babnigg202203_nexus` while leaving the frames in
+`babnigg202203` lets the 2022 beamtime be reanalysed with the current
+`boost_corr_bin`.
+
+**Why the `/home/8-id-i` copy exists.** `/gdata` sits on the private 10.x
+network; the analysis machine is on the routable 164.x network, and the VS Code
+SSH tunnel to the 10.x hosts is unreliable. Keeping a copy on the 164.x side
+lets the whole reduction run in one place.
+
+**Planned.** Point `average_ranges.py` at
+`/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/reprocess_results` so the archival
+copy is the single source and the `/home/8-id-i` duplicate can go. This changes
+nothing downstream: the committed files in `analysis/SAXPCS_8id/data/` are the
+same either way.
+
+The 12-ID-B equivalent is the single `fn_path` in the table above; that run has
+no NeXus rewrite and no second copy.
+
 ## Source data integrity
 
 No data file is modified by the act of producing a figure. Checked three ways.
