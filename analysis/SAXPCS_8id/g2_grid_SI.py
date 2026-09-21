@@ -1,9 +1,9 @@
-"""Figure S10: 2x2 grid of XPCS g2(tau) for the 4 non-primary q bins.
+"""Figure S9: 2x2 grid of XPCS g2(tau) for the 4 non-primary q bins.
 
 This figure is an EXPANSION of Figure 3b onto the four higher q bins: Figure 3b
 shows q index 0, this shows q indices 1-4.  It therefore has to show the same
 model, fitted the same way -- so the curves here come from exactly the same
-global fit that produces Figure 3c and Figure S9, imported from xpcs_fit.py.
+global fit that produces Figure 3c and Figure S8, imported from xpcs_fit.py.
 
 For each elapsed time the five q bins are fitted SIMULTANEOUSLY with the two
 stretching exponents shared across q and the contrast fixed at the measured
@@ -43,7 +43,7 @@ XPCS_CMAP = plt.cm.plasma
 CMAP_LO, CMAP_HI = 0.10, 0.88
 
 # The model, the measured contrast and the global fit come from xpcs_fit.py --
-# the same implementation Figure 3 and Figure S9 use.
+# the same implementation Figure 3 and Figure S8 use.
 fit_q_indices = [0, 1, 2, 3, 4]      # all five bins enter the global fit ...
 grid_q_indices = [1, 2, 3, 4]        # ... these four are the ones plotted here
 
@@ -53,7 +53,7 @@ from nexus_read import parse_name, read_start_time, read_g2
 
 # --- DISCOVER FILES ---
 # every range average in data/, including the thermal-cycle groups that belong to
-# Figure S5; the loop below keeps only XPCS_HEADER
+# Figure S4; the loop below keeps only XPCS_HEADER
 file_paths = sorted(glob.glob(os.path.join(data_dir, 'Average_*.hdf')))
 b0147, start_times = [], {}
 for fp in file_paths:
@@ -132,5 +132,5 @@ for ax in axes[:, 0]:
 
 # sharex/sharey strip the inner tick labels, so the panels can sit close
 fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=0.6, rect=(0, LEGEND_H, 1, 1))
-save_fig(fig, 'FigureS10_g2_Grid.pdf')
+save_fig(fig, 'FigureS9_g2_Grid.pdf')
 plt.show()

@@ -1,17 +1,17 @@
 """Combined SAXS + XPCS analysis, reading the averaged HDF files in data/.
 
 This one script writes three of the paper's figures: Figure 3 of the main text,
-Figure S9 and Figure S7.
+Figure S8 and Figure S6.
 
 Figure 3, three panels:
   1. SAXS I(q) for B0146, the first B0147 file (frames 1-200), and the last five
      B0147 files (frames 801-1313), with the D0138 buffer subtracted.
   2. XPCS g2(tau) at one q for the first + last-five B0147 files, with fits.
   3. Fitted fast fraction f vs elapsed time, per q bin.
-Figure S9 (2x2 panels) plots the fit parameters: (a) shared exponents p1, p2 vs
+Figure S8 (2x2 panels) plots the fit parameters: (a) shared exponents p1, p2 vs
 elapsed time, (b) tau_fast vs Q, (c) tau_slow vs Q, and (d) the power-law
 scaling exponents gamma_fast, gamma_slow obtained by fitting each elapsed
-time's tau(Q) in (b)/(c) to tau = A * Q**gamma.  Figure S7 (2 panels) documents
+time's tau(Q) in (b)/(c) to tau = A * Q**gamma.  Figure S6 (2 panels) documents
 the absolute-cross-section calibration: the ion-chamber -> photon linear fit
 and the air transmission (see the ABSOLUTE SCATTERING CROSS-SECTION section
 below and abs_xsec.py).
@@ -49,7 +49,7 @@ The g2 model is a double stretched-exponential (Siegert form):
     g2 = contrast * ( f e^-(tau/tau_fast)^p1 + (1-f) e^-(tau/tau_slow)^p2 )^2 + 1
 
 with the contrast fixed at beta = 0.13042, the instrumental value measured on a
-static reference by contrast_calibration.py (Figure S8), and the baseline fixed
+static reference by contrast_calibration.py (Figure S7), and the baseline fixed
 at 1.  For each
 elapsed time all fitted q bins are fit SIMULTANEOUSLY (a global fit): the
 stretching exponents p1 (fast) and p2 (slow) are SHARED across q -- they depend
@@ -131,7 +131,7 @@ COLOR_6C = '#1f77b4'                 # B0146 (6 C reference, before isothermal)
 
 # --- FIT MODEL ---
 # The model, the measured contrast and the global fit live in xpcs_fit.py so
-# that Figure 3b, Figure S9 and Figure S10 provably share one implementation.
+# that Figure 3b, Figure S8 and Figure S9 provably share one implementation.
 from xpcs_fit import double_exp, fit_g2_global   # noqa: E402
 
 
@@ -181,7 +181,7 @@ def fit_powerlaw(Q, tau, tau_err):
 
 # --- DISCOVER FILES ---
 # every range average in data/, including the thermal-cycle groups that belong to
-# Figure S5; the headers wanted here are selected out of by_header below
+# Figure S4; the headers wanted here are selected out of by_header below
 file_paths = sorted(glob.glob(os.path.join(data_dir, 'Average_*.hdf')))
 assert file_paths, f'no HDF files found in {data_dir}'
 by_header, start_times = {}, {}
@@ -298,7 +298,7 @@ ax1.set_xlabel(r'$Q$ ($\AA^{-1}$)')
 ax1.set_ylabel(r'$I(Q)$ (mm$^{-1}$)')
 add_minor_grid(ax1)
 # Three named Q ticks instead of the single 10^-2 the automatic log locator
-# finds in this ~1-decade range; shared with Figures S5b and S8 so the three
+# finds in this ~1-decade range; shared with Figures S4b and S8 so the three
 # absolute-scale profiles can be compared tick for tick.  The limits sit well
 # outside the data so no point sits on the frame.
 ax1.set_xlim(2.6e-3, 4.4e-2)
@@ -581,7 +581,7 @@ for a in (axf, axs, axg):
     a.autoscale_view()
 
 fig2.tight_layout(pad=0.4, w_pad=1.4, h_pad=0.8)
-save_fig(fig2, 'FigureS9_Fit_Parameters.pdf')
+save_fig(fig2, 'FigureS8_Fit_Parameters.pdf')
 
 # ============================================================
 # FIGURE S3 (2 panels): ion-chamber -> photon calibration
@@ -615,6 +615,6 @@ axc.legend(loc='upper left')
 add_minor_grid(axc)
 
 fig3.tight_layout(pad=0.4, w_pad=1.4)
-save_fig(fig3, 'FigureS7_Calibration.pdf')
+save_fig(fig3, 'FigureS6_Calibration.pdf')
 
 plt.show()

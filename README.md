@@ -112,9 +112,9 @@ Section 3.1.
 | `environment.yml` | Conda environment `env-2021-LLDP`: python 3.11, numpy, scipy, matplotlib 3.9.4 (pinned for byte-stable figures), h5py, pandas. |
 | `common/acs_style.py` | Single source of ACS figure compliance: 3.33 / 7.0 in column widths, 8 pt Arial everywhere, ≥ 0.5 pt lines, TrueType embedding, `save_fig()`. Imported by every plotting script. |
 | `common/utils.py` | `outlier_removal` and `average_datasets`, used by `average_ranges.py`; plus beamline-side reduction helpers kept for provenance that cannot run from a clone. |
-| `SAXS_12id/` | 12-ID-B: `Read_12ID_SAWAXS.py` (reduction), `Plot_12ID.py` → **Fig. 2**, `Guinier_Plot.py` → **Fig. S4**, and the committed `reduced_data/*.csv`. |
-| `SAXPCS_8id/` | 8-ID-I: `average_ranges.py` (reduction) and the committed `data/`; `saxpcs.py` → **Figs. 3, S3, S9**; `contrast_calibration.py` → **Fig. S8**; `thermal_cycle.py` → **Fig. S5**; `saxs_evolution.py` → **Fig. S6**; `g2_grid_SI.py` → **Fig. S10**. `abs_xsec.py` holds the absolute-cross-section calibration and `xpcs_fit.py` the shared two-mode g2 model, so every figure uses one implementation of each. `timelist_2022-1.txt` recovers acquisition times the 2025 reprocessing overwrote; `nexus_manual.txt` documents the NeXus layout. |
-| `Rad_Dam_Check/` | Flux-dependence control → **Fig. S3**, with its four result files, the PIN-diode calibration sheet and certificate. See `analysis/Rad_Dam_Check/README.md`. |
+| `SAXS_12id/` | 12-ID-B: `Read_12ID_SAWAXS.py` (reduction), `Plot_12ID.py` → **Fig. 2**, `Guinier_Plot.py` → **Fig. S3**, and the committed `reduced_data/*.csv`. |
+| `SAXPCS_8id/` | 8-ID-I: `average_ranges.py` (reduction) and the committed `data/`; `saxpcs.py` → **Figs. 3, S3, S9**; `contrast_calibration.py` → **Fig. S7**; `thermal_cycle.py` → **Fig. S4**; `saxs_evolution.py` → **Fig. S5**; `g2_grid_SI.py` → **Fig. S9**. `abs_xsec.py` holds the absolute-cross-section calibration and `xpcs_fit.py` the shared two-mode g2 model, so every figure uses one implementation of each. `timelist_2022-1.txt` recovers acquisition times the 2025 reprocessing overwrote; `nexus_manual.txt` documents the NeXus layout. |
+| `Rad_Dam_Check/` | Flux-dependence control → **Fig. S10**, with its four result files, the PIN-diode calibration sheet and certificate. See `analysis/Rad_Dam_Check/README.md`. |
 
 ### `manuscript/`
 

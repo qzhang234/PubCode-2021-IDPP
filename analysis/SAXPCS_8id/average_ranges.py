@@ -12,11 +12,11 @@ It produces three kinds of file:
    group listed in ``FILE_RANGES``.  This is the bulk of the output and the
    original purpose of the script.
 2. The per-acquisition TEMPERATURE TRACE of the thermal-cycling sequence
-   (``TRACE_GROUPS`` -> ``TRACE_CSV``).  Figure S5a plots the temperature of
+   (``TRACE_GROUPS`` -> ``TRACE_CSV``).  Figure S4a plots the temperature of
    every one of its 2325 acquisitions, which is not an average and cannot be
    recovered from the averaged files.
 3. A STACK of the individual repeats of the contrast standard
-   (``STACK_GROUP`` -> ``STACK_NAME``).  Figure S8a shows all 50 repeats and
+   (``STACK_GROUP`` -> ``STACK_NAME``).  Figure S7a shows all 50 repeats and
    their scatter, so an average would destroy the very thing it plots; the
    stack keeps each repeat's g2 on the raw NeXus paths, with the repeat index
    as the leading axis.
@@ -97,7 +97,7 @@ FILE_RANGES = {
     'B0146': [(1, 50)],
     'D0138': [(1, 50)],
 
-    # --- Figure S5: seven thermal cycles of sample S1, 2022-03-04 -----------
+    # --- Figure S4: seven thermal cycles of sample S1, 2022-03-04 -----------
     # Each cycle is a 6 C group of 50 acquisitions followed by a 270-acquisition
     # ramp to 34 C, of which two ten-acquisition windows near the top are used
     # (they land near 31.9 and 33.8 C).  A range simply selects whatever files
@@ -125,7 +125,7 @@ FILE_RANGES = {
 # sample, into the group mean.  This second cut catches those.
 #
 # SPIKE_BAND is the q window the test is made in.  It is the same window
-# Figure S5b already reports its intensities over, so the cut introduces no new
+# Figure S4b already reports its intensities over, so the cut introduces no new
 # choice of q range, and the per-acquisition mean of I(q) over that window is
 # the test statistic.  The test is therefore on the intensity in one band, not
 # on the low-q rise as such: an acquisition that is bright across the whole
@@ -152,7 +152,7 @@ FILE_RANGES = {
 # (2.0 %).  It is nearly inert on the isothermal series behind Figures 3 and
 # S8-S10 -- 2 acquisitions of B0147, which move that group's absolute-scale
 # coefficient by 0.03 % and leave every fitted g2 parameter unchanged -- and
-# does its work on the Figure S5 thermal cycles, where transient scatterers are
+# does its work on the Figure S4 thermal cycles, where transient scatterers are
 # common: 4, 2, 1, 11, 4, 1 and 1 acquisitions in the seven 6 C groups and 2
 # and 7 in the two buffer groups, against none at all in any of the fourteen
 # ten-acquisition 34 C windows.  See the "spike removal" note in
@@ -211,7 +211,7 @@ def spike_removal(saxs_1d, q, mask, band=SPIKE_BAND, z=SPIKE_Z):
 MANUAL_EXCLUDE = {}
 
 # Groups whose per-acquisition temperature and time are written to TRACE_CSV,
-# in the order they were measured.  Figure S5a needs every acquisition, not the
+# in the order they were measured.  Figure S4a needs every acquisition, not the
 # group averages, so this is an extraction rather than a reduction.  The
 # temperature is that of the stage zone holding the SAMPLE (qnw1) for every
 # group, buffer acquisitions included: panel (a) is the thermal history of the
@@ -223,7 +223,7 @@ TRACE_GROUPS = ['B0075', 'B0076', 'D0077', 'B0078', 'B0079', 'D0080',
 TRACE_CSV = 'thermal_cycle_temperature.csv'
 TEMP_PATH = '/entry/sample/qnw1_temperature'
 
-# The contrast standard: 50 repeat acquisitions of nano-porous glass.  Figure S8
+# The contrast standard: 50 repeat acquisitions of nano-porous glass.  Figure S7
 # plots all 50, so they are stacked rather than averaged.
 STACK_GROUP = 'F0145'
 STACK_NAME = 'Stack_F0145_10nm_Glass_006C_att00_Rq0_00001_00050_results.hdf'
@@ -481,7 +481,7 @@ def write_temperature_trace(groups, timelist, out_path):
 def write_stack(group, out_path):
     """Every repeat of a group in one file, repeat index as the leading axis.
 
-    Only the fields Figure S8 uses are carried, on the same NeXus paths the raw
+    Only the fields Figure S7 uses are carried, on the same NeXus paths the raw
     files use, so the reading code is the same either way.
     """
     files = group_files(group)

@@ -35,15 +35,15 @@ export MPLBACKEND := Agg
 
 # --- data-derived figures: script -> outputs --------------------------------
 F_12ID    := $(ANA)/SAXS_12id/Figure2_SAXS_WAXS.pdf
-F_GUINIER := $(ANA)/SAXS_12id/FigureS4_Guinier.pdf
+F_GUINIER := $(ANA)/SAXS_12id/FigureS3_Guinier.pdf
 F_XPCS    := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
-             $(ANA)/SAXPCS_8id/FigureS9_Fit_Parameters.pdf \
-             $(ANA)/SAXPCS_8id/FigureS7_Calibration.pdf
-F_EVOL    := $(ANA)/SAXPCS_8id/FigureS6_SAXS_Evolution.pdf
-F_GRID    := $(ANA)/SAXPCS_8id/FigureS10_g2_Grid.pdf
-F_CYCLE   := $(ANA)/SAXPCS_8id/FigureS5_Thermal_Cycle.pdf
-F_BETA    := $(ANA)/SAXPCS_8id/FigureS8_Contrast.pdf
-F_RAD     := $(ANA)/Rad_Dam_Check/FigureS3_Flux_Control.pdf
+             $(ANA)/SAXPCS_8id/FigureS8_Fit_Parameters.pdf \
+             $(ANA)/SAXPCS_8id/FigureS6_Calibration.pdf
+F_EVOL    := $(ANA)/SAXPCS_8id/FigureS5_SAXS_Evolution.pdf
+F_GRID    := $(ANA)/SAXPCS_8id/FigureS9_g2_Grid.pdf
+F_CYCLE   := $(ANA)/SAXPCS_8id/FigureS4_Thermal_Cycle.pdf
+F_BETA    := $(ANA)/SAXPCS_8id/FigureS7_Contrast.pdf
+F_RAD     := $(ANA)/Rad_Dam_Check/FigureS10_Flux_Control.pdf
 
 FIGURES := $(F_12ID) $(F_GUINIER) $(F_XPCS) $(F_EVOL) $(F_GRID) $(F_RAD) \
             $(F_CYCLE) $(F_BETA)

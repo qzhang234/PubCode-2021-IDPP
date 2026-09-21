@@ -1,4 +1,4 @@
-"""Figure S4: Guinier analysis of the 10 C Reference aliquot from 12-ID-B.
+"""Figure S3: Guinier analysis of the 10 C Reference aliquot from 12-ID-B.
 
 Weighted straight-line fit of ln I(q) against q^2 over 0.020 <= q <= 0.055
 A^-1, giving the apparent radius of gyration of the unassembled ELP.  The data
@@ -113,5 +113,5 @@ ax.ticklabel_format(style='sci', axis='x', scilimits=(0,0), useMathText=True)
 ax.legend(loc='center right')
 
 fig.tight_layout(pad=0.4)
-save_fig(fig, 'FigureS4_Guinier.pdf')
+save_fig(fig, 'FigureS3_Guinier.pdf')
 plt.show()

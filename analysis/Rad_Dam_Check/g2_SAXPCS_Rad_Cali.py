@@ -157,5 +157,5 @@ add_minor_grid(axs[1])
 axs[1].legend(title='Flux on sample')
 
 fig.tight_layout(pad=0.4, w_pad=1.4)
-save_fig(fig, os.path.join(here, 'FigureS3_Flux_Control.pdf'))
+save_fig(fig, os.path.join(here, 'FigureS10_Flux_Control.pdf'))
 plt.show()

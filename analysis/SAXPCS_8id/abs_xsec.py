@@ -1,6 +1,6 @@
 """Absolute scattering cross-section calibration (shared helper).
 
-saxpcs.py (Figure 3 and Figure S7) and saxs_evolution.py (Figure S6) both
+saxpcs.py (Figure 3 and Figure S6) and saxs_evolution.py (Figure S5) both
 import from here, so they use IDENTICAL constants, the same IC->photon
 calibration and the same per-file coefficient function -- there is only one
 place to change if the calibration is revised.

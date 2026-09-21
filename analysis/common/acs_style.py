@@ -111,7 +111,7 @@ def q_log_ticks(ax, axis='x'):
     labels one tick, 10^-2.  A reader then has no way to read a value off the
     axis.  The three named ticks below are integer multiples of a decade, so
     they satisfy the add_minor_grid() rule about half-decade positions, and the
-    same three are used on every Q axis in the paper (Figures 3a, S3a, S5b
+    same three are used on every Q axis in the paper (Figures 3a, S10a, S4b
     and S8) so
     the profiles can be compared tick for tick.
     """
@@ -133,7 +133,7 @@ def label_panels(axes, dx=-30, dy=5):
 
     dy clears the TOPMOST Y TICK LABEL, which is centred on the top spine and
     therefore reaches about half a cap height (2.9 pt at 8 pt Arial) above it.
-    Panels whose left margin is narrow -- Figure S8, where the y tick labels are
+    Panels whose left margin is narrow -- Figure S7, where the y tick labels are
     short and tight_layout leaves only ~17 pt of margin -- put the label and
     that tick label at the same x, so the two collided at the original dy = 2.
     Raising it to 5 leaves 2.1 pt of clear space in the worst case and changes

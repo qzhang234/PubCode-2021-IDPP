@@ -1,4 +1,4 @@
-"""Figure S8: measurement of the instrumental speckle contrast beta.
+"""Figure S7: measurement of the instrumental speckle contrast beta.
 
 beta is a property of the beamline -- the transverse coherence of the incident
 beam and the speckle-to-pixel size ratio -- not of the sample, so it is measured
@@ -163,5 +163,5 @@ axq.set_ylim(0.10, 0.15)
 add_minor_grid(axq)
 
 fig.tight_layout(pad=0.4, w_pad=1.4)
-save_fig(fig, 'FigureS8_Contrast.pdf')
+save_fig(fig, 'FigureS7_Contrast.pdf')
 plt.show()

@@ -1,4 +1,4 @@
-"""Figure S6: full SAXS 1d evolution for all B0147 files (D0138 subtracted).
+"""Figure S5: full SAXS 1d evolution for all B0147 files (D0138 subtracted).
 
 Every B0147 averaged file is plotted, coloured by elapsed time (time origin =
 first B0147 file, frames 1-200).  B0146 (6 C reference, before the 30 C
@@ -53,7 +53,7 @@ from nexus_read import parse_name, read_start_time, read_saxs_iq
 
 # --- DISCOVER FILES ---
 # every range average in data/, including the thermal-cycle groups that belong to
-# Figure S5; only XPCS_HEADER and the 6 C reference are kept below
+# Figure S4; only XPCS_HEADER and the 6 C reference are kept below
 file_paths = sorted(glob.glob(os.path.join(data_dir, 'Average_*.hdf')))
 by_header, start_times = {}, {}
 for fp in file_paths:
@@ -124,5 +124,5 @@ cb.ax.tick_params(width=LW_THIN)
 cb.ax.hlines(sorted(elapsed.values()), 0, 1, colors='w', lw=LW_THIN)
 
 fig.tight_layout(pad=0.4)
-save_fig(fig, 'FigureS6_SAXS_Evolution.pdf')
+save_fig(fig, 'FigureS5_SAXS_Evolution.pdf')
 plt.show()
