@@ -84,7 +84,9 @@ $^{4}$Biosciences Division, Argonne National Laboratory, Lemont, Illinois 60439,
 % set off from the last section entry and styled like one, so it reads as a
 % peer of the numbered sections rather than a trailing remark
 \vspace{1.6em}
-\noindent\textbf{Video S1 and Figures \ref{fig:S1}--\ref{fig:S9}}
+% endpoints of the whole figure range, not references to particular figures:
+% a renumbering pass rewrote the second one, so it is pinned to the last label
+\noindent\textbf{Video S1 and Figures \ref{fig:S1}--\ref{fig:S10}}
 
 \section{Recombinant Synthesis and Purification of \texorpdfstring{\VPAVG}{(VPAVG)30}}
 \label{sec:synthesis}
@@ -235,15 +237,14 @@ One difference between the two loadings survives all of this and is a property o
 \section{Code, Data and AI-Assisted Development}
 \label{sec:code}
 \subsection{Code and reduced-data availability}
+\label{sec:availability}
 The reduced datasets and all analysis and figure-generation code used for this manuscript are publicly available at \url{https://github.com/qzhang234/PubCode-2021-IDPP}. The repository includes the reduced 12-ID-B SAXS/WAXS data, the averaged 8-ID-I XPCS HDF files for every group plotted, the per-acquisition temperature record of the thermal-cycling sequence, the individual correlation functions of the speckle-contrast standard, radiation-control data, absolute-intensity calibration inputs, and the scripts used to generate the main-text and Supporting Information figures. Every data-derived figure can be regenerated from the repository alone. Two further scripts document how the committed reduced files were produced from the raw beamline results. \texttt{SAXS\_12id/Read\_12ID\_SAWAXS.py} handles 12-ID-B, merging the SAXS and WAXS profiles into the committed CSV files. \texttt{SAXPCS\_8id/average\_ranges.py} handles 8-ID-I, applying both outlier-rejection passes to every group on the same terms and averaging each into the committed HDF files. Both read the beamline storage directly. The repository README maps each script and output file to the corresponding manuscript figure. The repository carries the reduced data rather than the raw detector frames, for two reasons. The first is volume. Every \SI{2}{\second} acquisition is 100,000 detector frames, and the isothermal and thermal-cycling series together run to several thousand acquisitions, which puts the raw dataset orders of magnitude beyond the roughly 150~MB of reduced data committed here. The second is where the archival copy lives: Advanced Photon Source project storage, which is reachable only from machines inside the facility network. Raw data are available from the corresponding authors.
 
 \subsection{AI-assisted development}
 \label{sec:ai}
 The authors used Claude Sonnet 5 and Opus 5 to assist with the manuscript preparation and code development. The Claude models were accessed through Argo, Argonne National Laboratory's internal generative AI interface, which provides Laboratory staff with access to large language models from multiple vendors, including Anthropic, OpenAI, and Google, for use in Laboratory research and operations. 
 
-The Python scripts read the experimental and reduced SAXS/WAXS and XPCS datasets; perform background subtraction, SAXS/WAXS stitching, absolute-intensity calibration, Guinier and peak fitting, global two-mode XPCS fitting, uncertainty propagation, and $Q$-dependent scaling analysis; and generate the data-derived plots used in the manuscript and Supporting Information. All of that code, and the reduced data it operates on, are publicly available at \url{https://github.com/qzhang234/PubCode-2021-IDPP} (Section~\ref{sec:code}), so every reported number and data-derived figure can be regenerated and checked independently. 
-
-Qingteng Zhang reviewed the code, reran the analyses, and confirmed the reported results; all analysis choices, scientific interpretations, and manuscript content were determined by the authors, who take full responsibility for the publication.
+Qingteng Zhang reviewed the code, reran the analyses, and confirmed the reported results. The code is public (Section~\ref{sec:availability}), so every reported number and data-derived figure can be checked independently. All analysis choices, scientific interpretations, and manuscript content were determined by the authors, who take full responsibility for the publication.
 
 \clearpage
 \section*{Supporting Video}
