@@ -1,11 +1,13 @@
 # Claude Code session state and scratch notes -- not part of the submission.
 .claude/
-CLAUDE.md
 claude_log/
 
-# Internal review notes -- kept locally, not part of the publication.
-REVISION_NOTES.md
-CITATIONS.md
-note.md
-PAPERS_TO_FETCH.md
+# Every Markdown file at the repository ROOT is an internal note except the
+# README, which is the documentation the Data Availability statement points to.
+# A pattern rather than a list, so a new scratch file cannot be committed by
+# accident.  Subdirectory READMEs and the vendored achemso LICENSE are tracked.
+/*.md
+!/README.md
+
+# Publisher PDFs fetched for the citation audit; not ours to redistribute.
 References/
