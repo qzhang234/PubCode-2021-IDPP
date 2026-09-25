@@ -6,7 +6,7 @@ thermal_cycle.py, contrast_calibration.py -- reads only what this script writes
 into ``data/``, so the repository carries enough reduced data for the whole
 analysis to be rerun without access to the beamline storage.
 
-It produces three kinds of file:
+It produces two kinds of file:
 
 1. AVERAGES over explicit frame-number ranges, one file per range, for every
    group listed in ``FILE_RANGES``.  This is the bulk of the output and the
@@ -15,11 +15,6 @@ It produces three kinds of file:
    (``TRACE_GROUPS`` -> ``TRACE_CSV``).  Figure S4a plots the temperature of
    every one of its 2325 acquisitions, which is not an average and cannot be
    recovered from the averaged files.
-3. A STACK of the individual repeats of the contrast standard
-   (``STACK_GROUP`` -> ``STACK_NAME``).  Figure S7a shows all 50 repeats and
-   their scatter, so an average would destroy the very thing it plots; the
-   stack keeps each repeat's g2 on the raw NeXus paths, with the repeat index
-   as the leading axis.
 
 For each range this script:
   * globs the group's result files and selects those whose frame number is in
@@ -49,7 +44,7 @@ is easy to tell apart from the raw files, e.g.::
 
 In the averaged file:
   * ``/entry/start_time`` is set to the acquisition time of the first file in
-    the range (looked up in the beamline time list),
+    the range, read from that file's own ``/entry/start_time``,
   * ``/xpcs/average/file_list`` is added, listing every file included in the
     average (i.e. the files that survived outlier removal).
 
@@ -74,10 +69,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from common.utils import outlier_removal, average_datasets
 
 # --- PARAMETERS ---
-# BEAMLINE-ONLY: the raw reprocessed NeXus results live here and nowhere else.
-# This path is the reason average_ranges.py cannot run from a clone of the
-# repository; every other 8-ID-I script reads only the data/ folder it writes.
-prefix = '/home/8-id-i/2022-1/babnigg202203_nexus/reprocess_results'
+# BEAMLINE-ONLY: the raw reprocessed NeXus results.  /gdata is mounted on the
+# 10.x hosts (amber) and not on the 164.x analysis machines, so this script has
+# to run there; every other 8-ID-I script reads only the data/ folder it writes.
+#
+# The ion chambers, the ring current and the acquisition timestamps in this
+# tree were restored from the 2022 Data Exchange archive by
+# restore_dx_metadata.py, which see: the 2025 NeXus rewrite had replaced them
+# with constants.
+prefix = '/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/reprocess_results'
 
 # Groups to average: file-name header -> list of (start, end) frame ranges
 # (inclusive), one averaged file per range.  Usually one range per group.
@@ -113,7 +113,19 @@ FILE_RANGES = {
     # the buffer for those cycles, held cold and measured twice
     'D0077': [(1, 50)],
     'D0080': [(1, 50)],
+
+    # --- Figure S7: the nano-porous glass speckle-contrast standard ---------
+    'F0145': [(1, 50)],
 }
+
+# Groups whose results carry a boost_corr output suffix, set with its -u flag.
+# F0145 was re-correlated against a qmap with three hot pixels masked out, and
+# the tag is in the file name:
+#     F0145_10nm_Glass_006C_att00_Rq0_00001_BadpixRm_results.hdf
+# Both generations sit in the same directory, so the suffix has to be part of
+# the selection: a bare F0145*_results.hdf glob matches all 100 files and would
+# silently average the two reductions together.
+GROUP_SUFFIX = {'F0145': 'BadpixRm'}
 
 # --- SECOND-STAGE CUT: acquisitions far above the group at low q ---------
 # outlier_removal() cuts on the SHAPE of log10 I(q) across the whole q range.
@@ -223,23 +235,11 @@ TRACE_GROUPS = ['B0075', 'B0076', 'D0077', 'B0078', 'B0079', 'D0080',
 TRACE_CSV = 'thermal_cycle_temperature.csv'
 TEMP_PATH = '/entry/sample/qnw1_temperature'
 
-# The contrast standard: 50 repeat acquisitions of nano-porous glass.  Figure S7
-# plots all 50, so they are stacked rather than averaged.
-STACK_GROUP = 'F0145'
-STACK_NAME = 'Stack_F0145_10nm_Glass_006C_att00_Rq0_00001_00050_results.hdf'
-DELAY_PATH = '/xpcs/multitau/delay_list'
-FRAME_TIME_PATH = '/entry/instrument/detector_1/frame_time'
-DYN_Q_PATH = '/xpcs/qmap/dynamic_v_list_dim0'
-
 
 # Averaged files are written into the local 'data' folder next to this script
 # (created if it does not already exist), so downstream analysis reads locally
-# instead of from the remote /home/8-id-i beamline storage.
+# instead of from the beamline storage on /gdata.
 out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
-
-# Time list used to recover the acquisition time of each raw dataset.
-timelist_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             'timelist_2022-1.txt')
 
 # Percentile cutoff for the cross-correlation outlier removal.
 percentile = 5
@@ -256,7 +256,11 @@ FILE_LIST   = '/xpcs/average/file_list'
 INCIDENT_PATH    = '/entry/instrument/incident_beam/incident_beam_intensity'
 TRANSMITTED_PATH = '/entry/instrument/incident_beam/transmitted_beam_intensity'
 
-_frame_re = re.compile(r'_(\d+)_results')
+_frame_re = re.compile(r'_(\d+)(?:_[A-Za-z0-9]+)?_results\.hdf$')
+_suffix_re = re.compile(r'_\d+(?:_([A-Za-z0-9]+))?_results\.hdf$')
+# A start_time dated 2023 or later is a reprocessing date, not an acquisition
+# time, so it is rejected rather than used.
+STALE_TIME_RE = re.compile(r'^20(2[3-9]|[3-9]\d)-')
 
 
 def extract_frame(fname):
@@ -265,38 +269,42 @@ def extract_frame(fname):
     return int(m.group(1)) if m else -1
 
 
-def load_timelist(path):
-    """Parse an ``ls -l`` style time list into ``{folder_name: 'YYYY-MM-DD HH:MM:SS'}``.
+def get_start_time(fname):
+    """Acquisition time of a result file as 'YYYY-MM-DD HH:MM:SS', or None.
 
-    The dataset folder name matches a result file name with ``_results.hdf``
-    stripped off.
+    This is the timestamp the instrument recorded in 2022.  The 2025 NeXus
+    rewrite overwrote /entry/start_time with its own run date;
+    restore_dx_metadata.py put the recorded value back from the Data Exchange
+    archive, so the field can be trusted again and the acquisition time no
+    longer has to be recovered from a saved directory listing.
     """
-    times = {}
-    with open(path) as fh:
-        for line in fh:
-            tokens = line.split()
-            # dirs/files: perms links owner group size date time name
-            if len(tokens) < 8:
-                continue
-            name = tokens[-1]
-            date = tokens[-3]
-            clock = tokens[-2]
-            times[name] = f'{date} {clock}'
-    return times
+    with h5py.File(fname, 'r') as hf:
+        raw = np.asarray(hf[START_TIME][()]).ravel()[0]
+    stamp = (raw.decode('utf-8') if isinstance(raw, bytes) else str(raw)).strip()
+    return None if STALE_TIME_RE.match(stamp) else stamp
 
 
-def get_start_time(fname, timelist):
-    """Look up the acquisition time for a result file, or None if absent."""
-    key = os.path.basename(fname).replace('_results.hdf', '')
-    return timelist.get(key)
+def file_suffix(fname):
+    """The boost_corr output tag in a result file name, or '' if it has none."""
+    m = _suffix_re.search(os.path.basename(fname))
+    return (m.group(1) or '') if m else ''
 
 
 def group_files(group):
-    """Raw result files of a group, in frame order, ignoring earlier averages."""
+    """Raw result files of a group, in frame order, one generation only.
+
+    Reductions of the same group can differ by a boost_corr output tag, and
+    they live side by side in ``prefix``.  Selecting on GROUP_SUFFIX keeps the
+    two apart; matching on ``_suffix_re`` also drops earlier averages, whose
+    names carry a frame RANGE where a raw file carries a single frame number.
+    """
+    want = GROUP_SUFFIX.get(group, '')
     fl = sorted(glob.glob(os.path.join(prefix, f'{group}*_results.hdf')))
     fl = [f for f in fl if 'Average' not in os.path.basename(f)
-          and 'Stack' not in os.path.basename(f)]
-    assert fl, f'no dataset found in {prefix} for group {group}'
+          and _frame_re.search(os.path.basename(f))
+          and file_suffix(f) == want]
+    assert fl, (f'no dataset found in {prefix} for group {group}'
+                + (f' with suffix {want!r}' if want else ''))
     return fl
 
 
@@ -379,7 +387,7 @@ def save_average(template, out_path, avg_dict, start_time, included_files,
         )
 
 
-def process_group(group, file_ranges, timelist):
+def process_group(group, file_ranges):
     """Average every frame range for a single group and write the output files."""
     flist_all = group_files(group)
     frame_numbers = np.array([extract_frame(f) for f in flist_all])
@@ -428,15 +436,16 @@ def process_group(group, file_ranges, timelist):
         transmitted_avg = float(np.nanmean(transmitted[mask]))
 
         # start time comes from the first (lowest frame number) file in the range
-        start_time = get_start_time(section_files[0], timelist)
+        start_time = get_start_time(section_files[0])
         if start_time is None:
-            print(f'  WARNING: no time list entry for {os.path.basename(section_files[0])}')
+            print(f'  WARNING: no acquisition time in '
+                  f'{os.path.basename(section_files[0])}')
 
         template = section_files[0]
         # replace the single frame number with the range, then prepend 'Average_'
         core = re.sub(
-            r'_(\d+)_results\.hdf$',
-            f'_{start:05d}_{end:05d}_results.hdf',
+            r'_(\d+)((?:_[A-Za-z0-9]+)?_results\.hdf)$',
+            lambda m: f'_{start:05d}_{end:05d}{m.group(2)}',
             os.path.basename(template),
         )
         out_name = f'Average_{core}'
@@ -448,20 +457,18 @@ def process_group(group, file_ranges, timelist):
               f'incident={incident_avg:.6g}, transmitted={transmitted_avg:.6g})')
 
 
-def write_temperature_trace(groups, timelist, out_path):
+def write_temperature_trace(groups, out_path):
     """One row per acquisition: dataset, frame, elapsed seconds, temperature.
 
-    The acquisition time comes from the time list rather than the file, because
-    a 2025 reprocessing overwrote /entry/start_time with the reprocessing date.
     Elapsed time is measured from the first acquisition of the sequence.
     """
     rows = []
     for group in groups:
         for f in group_files(group):
             key = os.path.basename(f).replace('_results.hdf', '')
-            stamp = timelist.get(key)
+            stamp = get_start_time(f)
             if stamp is None:
-                print(f'  WARNING: no time list entry for {key}')
+                print(f'  WARNING: no acquisition time in {key}')
                 continue
             with h5py.File(f, 'r') as hf:
                 T = float(np.asarray(hf[TEMP_PATH][()]).ravel()[0])
@@ -478,57 +485,27 @@ def write_temperature_trace(groups, timelist, out_path):
           f'-> {os.path.basename(out_path)}')
 
 
-def write_stack(group, out_path):
-    """Every repeat of a group in one file, repeat index as the leading axis.
-
-    Only the fields Figure S7 uses are carried, on the same NeXus paths the raw
-    files use, so the reading code is the same either way.
-    """
-    files = group_files(group)
-    G, E = [], []
-    for f in files:
-        with h5py.File(f, 'r') as hf:
-            G.append(hf[G2_PATH][()])
-            E.append(hf[G2_ERR_PATH][()])
-    with h5py.File(files[0], 'r') as hf, h5py.File(out_path, 'w') as out:
-        for path in (DELAY_PATH, FRAME_TIME_PATH, DYN_Q_PATH):
-            out.create_dataset(path, data=hf[path][()])
-        out.create_dataset(G2_PATH, data=np.array(G))
-        out.create_dataset(G2_ERR_PATH, data=np.array(E))
-        out.create_dataset(FILE_LIST,
-                           data=np.array([os.path.basename(f) for f in files],
-                                         dtype=object),
-                           dtype=h5py.string_dtype(encoding='utf-8'))
-    print(f'  {len(files)} repeats, g2 {np.array(G).shape} '
-          f'-> {os.path.basename(out_path)}')
-
-
 def main(only=None):
     """Re-reduce every group, or only the ones named on the command line.
 
     ``python average_ranges.py`` rebuilds all of data/.  ``python
     average_ranges.py B0083`` rebuilds just that group's averages and leaves
-    every other file, the temperature trace and the contrast stack untouched --
-    useful when only one group's frame selection has changed.
+    every other file and the temperature trace untouched -- useful when only
+    one group's frame selection has changed.
     """
     os.makedirs(out_dir, exist_ok=True)
-    timelist = load_timelist(timelist_path)
 
     print(f'output dir: {out_dir}')
     for group, file_ranges in FILE_RANGES.items():
         if only and group not in only:
             continue
-        process_group(group, file_ranges, timelist)
+        process_group(group, file_ranges)
     if only:
-        print('\nsubset run: temperature trace and contrast stack left as they were')
+        print('\nsubset run: temperature trace left as it was')
         return
 
     print(f'\n=== temperature trace of the cycling sequence ===')
-    write_temperature_trace(TRACE_GROUPS, timelist,
-                            os.path.join(out_dir, TRACE_CSV))
-
-    print(f'\n=== {STACK_GROUP}: individual repeats of the contrast standard ===')
-    write_stack(STACK_GROUP, os.path.join(out_dir, STACK_NAME))
+    write_temperature_trace(TRACE_GROUPS, os.path.join(out_dir, TRACE_CSV))
 
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ Two scripts, and only two, read raw beamline storage:
 | Script | Reads | Writes |
 |---|---|---|
 | `analysis/SAXS_12id/Read_12ID_SAWAXS.py` | 12-ID-B `.avg` profiles | `analysis/SAXS_12id/reduced_data/Merged_*.csv` |
-| `analysis/SAXPCS_8id/average_ranges.py` | 8-ID-I reprocessed NeXus results | `analysis/SAXPCS_8id/data/` |
+| `analysis/SAXPCS_8id/average_ranges.py` | 8-ID-I reprocessed NeXus results | `analysis/SAXPCS_8id/data/`: the group averages and `thermal_cycle_temperature.csv` |
 
 Both of their outputs are committed, so **`make figures` and `make papers` run
 from a clone of this repository alone** — no beamline account, no network, no
@@ -33,14 +33,15 @@ reprocessed, and they will only run at the beamline.
 
 ### Code that reads outside this repository
 
-There are exactly three places in the Python where a path can point outside the
+There are exactly four places in the Python where a path can point outside the
 repository, and **none of them is on the path from the committed data to a
 figure** — `make figures` never executes any of them.
 
 | Where | Out-of-repo location | How the path is set |
 |---|---|---|
 | `analysis/SAXS_12id/Read_12ID_SAWAXS.py`, `fn_path` (line 54) | `/home/8-id-i/2021-1/12-id-b/ZuoApr13/Processed/` — the 12-ID-B reduced `.avg` profiles from the 2021-1 run | hard-coded |
-| `analysis/SAXPCS_8id/average_ranges.py`, `prefix` (line 80) | `/home/8-id-i/2022-1/babnigg202203_nexus/reprocess_results` — the 8-ID-I per-acquisition cluster results from the 2022-1 run | hard-coded |
+| `analysis/SAXPCS_8id/average_ranges.py`, `prefix` (line 80) | `/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/reprocess_results` — the 8-ID-I per-acquisition cluster results from the 2022-1 run | hard-coded |
+| `analysis/SAXPCS_8id/restore_dx_metadata.py`, `ARCHIVE` and `NEXUS` | `/gdata/s8id-dmdtn/2022-1/babnigg202203` and `…_nexus` — the one-off repair described below | hard-coded |
 | `analysis/common/utils.py`, beamline-side helpers | wherever the caller points them | **no default** — `prefix` must be passed in |
 
 The `utils.py` helpers in question are `read_keys_from_files`,
@@ -52,21 +53,29 @@ in `environment.yml`. The only two functions in that module that a figure
 depends on are `outlier_removal` and `average_datasets`, and both take numpy
 arrays — neither ever opens a file.
 
-Those three are the only absolute path literals in the whole tree. Every other
+Those are the only absolute path literals in the whole tree. Every other
 script anchors its input and output on
 `os.path.dirname(os.path.abspath(__file__))`, so it reads and writes inside its
 own directory and runs correctly from any working directory.
 
 ### Where the 8-ID-I data actually live
 
-The 2022-1 beamtime exists in three places on APS storage. Only the third is
-what `average_ranges.py` currently reads.
+The 2022-1 beamtime lives in two directories, both on `/gdata`, which APS
+monitors and backs up.
 
 | Path | What it holds | Size |
 |---|---|---|
-| `/gdata/s8id-dmdtn/2022-1/babnigg202203` | Raw detector frames. The archival copy. | 3.0 TB |
-| `/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/` | NeXus metadata rewritten for the current pipeline. `reprocess_results/` holds the per-acquisition correlation results. The `.bin` files alongside are symlinks into `babnigg202203`, so this directory holds no second copy of the frames. | 51 GB |
-| `/home/8-id-i/2022-1/babnigg202203_nexus/reprocess_results` | A copy of the `reprocess_results` above, on a 164.x machine. `average_ranges.py`, `prefix` on line 80, points here. | 51 GB |
+| `/gdata/s8id-dmdtn/2022-1/babnigg202203` | Raw detector frames and the 2022 Data Exchange metadata. The archival copy, never written to. | 3.0 TB |
+| `/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/` | NeXus metadata rewritten for the current pipeline. `reprocess_results/` holds the per-acquisition correlation results that `average_ranges.py` reads. The `.bin` files alongside are symlinks into `babnigg202203`, so this directory holds no second copy of the frames. | 51 GB |
+
+`/gdata` is mounted on the 10.x hosts and not on the 164.x analysis machines, so
+`average_ranges.py` has to be run from a host that sees both, such as `amber`.
+Every other script reads only `analysis/SAXPCS_8id/data/` and runs anywhere.
+
+A third copy, `/home/8-id-i/2022-1/babnigg202203_nexus` (52 GB), is what
+`average_ranges.py` read until September 2026. `/home/8-id-i` is not backed up
+by APS and the hardware is near end of life, which is why the reduction was
+moved onto `/gdata`. Nothing reads that copy now and it can be deleted.
 
 **Why the `_nexus` directory exists.** 8-ID-I moved to NeXus around 2024, and
 `boost_corr_bin` (M. Chu) was changed permanently to read NeXus metadata. That
@@ -77,16 +86,37 @@ Rewriting the metadata into `babnigg202203_nexus` while leaving the frames in
 `babnigg202203` lets the 2022 beamtime be reanalysed with the current
 `boost_corr_bin`.
 
-**Why the `/home/8-id-i` copy exists.** `/gdata` sits on the private 10.x
-network; the analysis machine is on the routable 164.x network, and the VS Code
-SSH tunnel to the 10.x hosts is unreliable. Keeping a copy on the 164.x side
-lets the whole reduction run in one place.
+**What the rewrite dropped, and how it was restored.** The 2025 rewrite carried
+the detector data across intact but wrote constants in place of four recorded
+quantities: the upstream ion chamber (`incident_beam_intensity`, left at
+133.49012809232), the downstream ion chamber (`transmitted_beam_intensity`,
+left at 0.0001), the ring current (left at 0.0) and the acquisition timestamps
+(`start_time` and `end_time`, left at the date the rewrite ran). The first two
+matter: `abs_xsec.py` turns them into the incident flux and the sample
+transmission, and with the constants in place the implied transmission is
+8.6 × 10⁻⁷ instead of 0.35 and the implied flux is negative.
 
-**Planned.** Point `average_ranges.py` at
-`/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/reprocess_results` so the archival
-copy is the single source and the `/home/8-id-i` duplicate can go. This changes
-nothing downstream: the committed files in `analysis/SAXPCS_8id/data/` are the
-same either way.
+All four survive in the 2022 archive, which the rewrite never touched.
+`analysis/SAXPCS_8id/restore_dx_metadata.py` copies them back into the `_nexus`
+tree, at both levels: the per-acquisition `*_metadata.hdf`, so a future
+reprocessing inherits the measured values, and the `reprocess_results/` files
+that `average_ranges.py` reads. It writes a field only when that field still
+holds the exact constant the rewrite left, so it is idempotent and cannot
+overwrite a value corrected by hand. Every restored value is recorded in
+`analysis/SAXPCS_8id/dx_restore_manifest.csv`.
+
+Because the acquisition timestamps are now correct in the files themselves,
+`average_ranges.py` reads `/entry/start_time` directly and no longer needs
+`timelist_2022-1.txt`, the saved directory listing that used to recover them.
+That file is kept as the independent cross-check it now is: its directory
+mtimes track the restored timestamps with a constant offset of 86.6 ± 0.5 s
+across the whole run.
+
+The calibration constants in `abs_xsec.py` are corroborated by the same archive
+files, which record `UpIC_dark_per_second` 83.6, `DnIC_dark_per_second` 204.4
+and `Tr_air` 0.868 against the repository's 83.6, 204.4 and 0.8679. Those three
+are derived numbers rather than measurements, so they are not copied into the
+NeXus tree; `abs_xsec.py` keeps deriving them from the calibration series.
 
 The 12-ID-B equivalent is the single `fn_path` in the table above; that run has
 no NeXus rewrite and no second copy.
@@ -147,7 +177,7 @@ Section 3.1.
 | `common/acs_style.py` | Single source of ACS figure compliance: 3.33 / 7.0 in column widths, 8 pt Arial everywhere, ≥ 0.5 pt lines, TrueType embedding, `save_fig()`. Imported by every plotting script. |
 | `common/utils.py` | `outlier_removal` and `average_datasets`, used by `average_ranges.py`; plus beamline-side reduction helpers kept for provenance that cannot run from a clone. |
 | `SAXS_12id/` | 12-ID-B: `Read_12ID_SAWAXS.py` (reduction), `Plot_12ID.py` → **Fig. 2**, `Guinier_Plot.py` → **Fig. S3**, and the committed `reduced_data/*.csv`. |
-| `SAXPCS_8id/` | 8-ID-I: `average_ranges.py` (reduction) and the committed `data/`; `saxpcs.py` → **Figs. 3, S3, S9**; `contrast_calibration.py` → **Fig. S7**; `thermal_cycle.py` → **Fig. S4**; `saxs_evolution.py` → **Fig. S5**; `g2_grid_SI.py` → **Fig. S9**. `abs_xsec.py` holds the absolute-cross-section calibration and `xpcs_fit.py` the shared two-mode g2 model, so every figure uses one implementation of each. `timelist_2022-1.txt` recovers acquisition times the 2025 reprocessing overwrote; `nexus_manual.txt` documents the NeXus layout. |
+| `SAXPCS_8id/` | 8-ID-I: `average_ranges.py` (reduction) and the committed `data/`; `saxpcs.py` → **Figs. 3, S3, S9**; `contrast_calibration.py` → **Fig. S7**; `thermal_cycle.py` → **Fig. S4**; `saxs_evolution.py` → **Fig. S5**; `g2_grid_SI.py` → **Fig. S9**. `abs_xsec.py` holds the absolute-cross-section calibration and `xpcs_fit.py` the shared two-mode g2 model, so every figure uses one implementation of each. `restore_dx_metadata.py` is the one-off repair of the 2025 NeXus rewrite and `dx_restore_manifest.csv` its record; `timelist_2022-1.txt` is the saved directory listing that recovered acquisition times before that repair, kept as a cross-check; `nexus_manual.txt` documents the NeXus layout. |
 | `Rad_Dam_Check/` | Flux-dependence control → **Fig. S10**, with its four result files, the PIN-diode calibration sheet and certificate. See `analysis/Rad_Dam_Check/README.md`. |
 
 ### `manuscript/`

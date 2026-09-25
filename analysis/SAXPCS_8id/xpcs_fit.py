@@ -14,25 +14,27 @@ the detector pixel size, not of the sample.  It is therefore measured once, on a
 static reference, and held fixed for every sample fit.
 
 The value below was measured on the 10 nm nano-porous glass standard (Doraglas
-S10-10-1200-50, 10 mm x 1.2 mm, 10 nm pores), dataset F0145, at 6 C: 50 repeat
-acquisitions, q bin 16 (q = 0.02067 A^-1, the strongest bin whose averaged
-correlation function is flat).  Averaging the 50 repeats and fitting with a straight
-line in log(delay) gives a flat correlation function -- slope -3.1(1.8)e-5, i.e.
-1.7 sigma from zero, reduced chi^2 = 1.02 -- as a static sample must, with
+S10-10-1200-50, 10 mm x 1.2 mm, 10 nm pores), dataset F0145, at 6 C.  The value
+comes from the group average average_ranges.py writes into data/ -- 41 of the 50
+acquisitions, the survivors of the same two outlier cuts every other group in
+the paper gets -- and it is measured in the SAME five q bins the sample is
+fitted in, which is where it is used.  A constant is fitted to the averaged g2
+of each, as a static sample requires; the five are flat (reduced chi^2 0.71 to
+1.03) and return 0.12948, 0.13124, 0.13291, 0.13145 and 0.13186, whose mean is
 
-    g2 = 1 + beta,   beta = 0.13042 +/- 0.00001.
+    g2 = 1 + beta,   beta = 0.13139 +/- 0.00056,
 
-All 50 repeats were retained: at this q bin every one is statistically flat
-(worst reduced chi^2 against a constant = 1.30).  The visibly non-flat repeats
-are at the neighbouring bin 15 (q = 0.01954 A^-1), where the median reduced
-chi^2 against a constant is 12.3; that bin is not used.
+the error being the standard error of that mean.  The strongest-counted flat bin
+anywhere, bin 16 at q = 0.02067 A^-1, gives 0.13031, within one standard error,
+so nothing hinges on the choice: moving between the two shifts every fitted fast
+fraction by less than 0.02.
 """
 
 import numpy as np
 from scipy.optimize import least_squares
 
 # --- measured instrumental contrast (see the module docstring) ---
-CONTRAST = 0.13042
+CONTRAST = 0.13139
 BASELINE = 1.0
 
 # per-q parameter bounds / start (tau_fast, f, tau_slow) and shared (p1, p2)

@@ -48,7 +48,7 @@ The g2 model is a double stretched-exponential (Siegert form):
 
     g2 = contrast * ( f e^-(tau/tau_fast)^p1 + (1-f) e^-(tau/tau_slow)^p2 )^2 + 1
 
-with the contrast fixed at beta = 0.13042, the instrumental value measured on a
+with the contrast fixed at beta = 0.13139, the instrumental value measured on a
 static reference by contrast_calibration.py (Figure S7), and the baseline fixed
 at 1.  For each
 elapsed time all fitted q bins are fit SIMULTANEOUSLY (a global fit): the
@@ -404,7 +404,7 @@ ax3.set_xlim(_t_lo - _t_pad, _t_hi + _t_pad)
 # legend: marker shape -> q bin (open black markers).  The Q values are carried
 # by a legend TITLE with the 10^-3 factor pulled out, so each entry is a short
 # mantissa instead of '$Q = 0.00376 \AA^{-1}$'.  Three columns keep the box
-# shallow, so it clears the descending 5039 s points on little headroom.
+# shallow, so it clears the descending 5040 s points on little headroom.
 q_handles = [Line2D([], [], marker=mk, ls='none', mfc='none', mec='k', mew=MEW,
                     markersize=MS_SPARSE, label=f'{1e3 * q_val_of[qi]:.2f}')
              for qi, mk in zip(fit_q_indices, Q_MARKERS) if qi in q_val_of]
@@ -492,13 +492,19 @@ for fp in xpcs_files:
     ts_err = np.array([r['per_q'][qi]['tau_slow_err'] for qi in qs])
     f_val  = np.array([r['per_q'][qi]['f'] for qi in qs])
     f_err  = np.array([r['per_q'][qi]['f_err'] for qi in qs])
-    # tau_fast only means something where a fast mode is actually detected.  At
-    # the last elapsed time the lowest q bin fits f = 0.000 +/- 0.003, i.e. no
-    # fast mode at all, and tau_fast there rails to a meaningless ~5 s.  Keeping
-    # that point would drag the tau_fast(Q) power law to gamma = -15.  Bins whose
-    # fast amplitude is under 3 sigma are therefore dropped from panel (b) and
-    # from the gamma_fast fit; the slow mode carries every bin.
-    det = f_val > 3 * f_err
+    # tau_fast only means something where a fast mode is actually detected AND
+    # its time constant is resolved.  At the last elapsed time the lowest q bin
+    # fits f = 0.012 +/- 0.004: a 3.1 sigma amplitude, which passes an
+    # amplitude-only test, but with tau_fast = 1.1 +/- 1.3 s -- three decades
+    # above every other bin, and consistent with anything.  Keeping it drags the
+    # tau_fast(Q) power law to gamma = -4.3, and at a contrast 1 % lower, where
+    # the same bin fits f = 0.000 and tau_fast rails to 7.6 s, to gamma = -15.
+    # A bin therefore enters panel (b) and the gamma_fast fit only when BOTH
+    # parameters are measured: the amplitude at least 3 sigma from zero and the
+    # relaxation time to better than 100 %.  Every other bin in the series comes
+    # in at 34-63 %, so the test separates cleanly.  The slow mode carries every
+    # bin.
+    det = (f_val > 3 * f_err) & (tf_err < tf)
     color  = ecolor(fp)
     lbl    = f'{elapsed(fp):.0f} s'
     axf.errorbar(Q[det], tf[det], yerr=tf_err[det], marker='o', ls='none', color=color,
@@ -509,7 +515,7 @@ for fp in xpcs_files:
                  elinewidth=LW_THIN, capthick=LW_THIN, label=lbl, zorder=2)
     if det.sum() < len(Q):
         print(f'    (t_w={elapsed(fp):.0f} s: {int((~det).sum())} q bin(s) dropped '
-              f'from the fast-mode panel, f < 3 sigma)')
+              f'from the fast-mode panel: f or tau_fast not measured)')
 
     if len(Q) >= 3:
         gf, gf_err, gf_A = fit_powerlaw(Q[det], tf[det], tf_err[det]) if det.sum() >= 3 \

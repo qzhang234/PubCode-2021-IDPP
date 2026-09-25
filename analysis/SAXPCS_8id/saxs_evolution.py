@@ -120,7 +120,7 @@ cb.set_label('Elapsed time (s)')
 cb.outline.set_linewidth(LW_THIN)
 cb.ax.tick_params(width=LW_THIN)
 # a tick on the bar at every acquisition, so the reader can see that the times
-# are unevenly spaced and where the Figure 3 subset (5039-7863 s) sits
+# are unevenly spaced and where the Figure 3 subset (5040-7863 s) sits
 cb.ax.hlines(sorted(elapsed.values()), 0, 1, colors='w', lw=LW_THIN)
 
 fig.tight_layout(pad=0.4)
