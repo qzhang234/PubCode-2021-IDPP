@@ -452,18 +452,22 @@ for r in exp_rows:                                   # p1 = circle, p2 = square
     axp.errorbar(r['elapsed'], r['p2'], yerr=r['p2_err'], marker='s', color=ecolor(r['fp']),
                  markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
                  elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
-axp.axhline(1.0, color='0.6', ls=':', lw=LW_THIN)          # simple-exponential reference
 p_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MEW,
                     markersize=MS_SPARSE, label=r'$p_{\mathrm{fast}}$'),
              Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MEW,
                     markersize=MS_SPARSE, label=r'$p_{\mathrm{slow}}$')]
-axp.legend(handles=p_handles, loc='upper left')
+# One row, two columns, top right.  The y axis is capped at p = 1 below, and
+# nothing in this panel rises above 0.74, so the strip under the cap is free.
+axp.legend(handles=p_handles, loc='upper right', ncol=2)
 # headroom above BOTH the data and the p = 1 reference line, so the upper-left
 # legend box has clear space and does not sit on the dotted line
 _p_lo = min(min(r['p1'] - r['p1_err'], r['p2'] - r['p2_err']) for r in exp_rows)
 _p_hi = max(max(r['p1'] + r['p1_err'], r['p2'] + r['p2_err']) for r in exp_rows)
 _p_span = max(_p_hi, 1.0) - _p_lo
-axp.set_ylim(_p_lo - 0.10 * _p_span, max(_p_hi, 1.0) + 0.18 * _p_span)
+# Capped at exactly 1.0: every exponent here is below the simple-exponential
+# limit, so the top of the axis states that limit and no reference line is
+# needed.  Headroom above it would only shrink the data.
+axp.set_ylim(_p_lo - 0.10 * _p_span, 1.0)
 axp.set_ylabel('Stretching exponent')
 axp.tick_params(labelbottom=False)
 add_minor_grid(axp)
@@ -560,10 +564,11 @@ g_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MEW,
                     markersize=MS_SPARSE, label=r'$\gamma_{\mathrm{fast}}$'),
              Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MEW,
                     markersize=MS_SPARSE, label=r'$\gamma_{\mathrm{slow}}$')]
-# Bottom centre, in two columns: the lower LEFT corner holds the 5040 s
-# gamma_slow point (-3.78 +/- 0.37), the lowest in the panel, and a box there
-# hides it completely.  Nothing is plotted below -2.7 between 5300 and 7500 s.
-axg.legend(handles=g_handles, loc='lower center', ncol=2)
+# Bottom right, in two columns.  NOT the lower left, which holds the 5040 s
+# gamma_slow point (-3.78 +/- 0.37), the lowest in the panel; a box there hides
+# it completely.  On the right the lowest thing is the 7863 s gamma_fast error
+# bar, which stops at -3.33.
+axg.legend(handles=g_handles, loc='lower right', ncol=2)
 axg.set_xlabel('Elapsed Time (s)')
 axg.set_ylabel(r'Scaling exponent ($\gamma$)')
 add_minor_grid(axg)
