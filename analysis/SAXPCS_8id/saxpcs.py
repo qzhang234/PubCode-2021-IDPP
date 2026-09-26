@@ -560,7 +560,10 @@ g_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MEW,
                     markersize=MS_SPARSE, label=r'$\gamma_{\mathrm{fast}}$'),
              Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MEW,
                     markersize=MS_SPARSE, label=r'$\gamma_{\mathrm{slow}}$')]
-axg.legend(handles=g_handles, loc='lower left')
+# Bottom centre, in two columns: the lower LEFT corner holds the 5040 s
+# gamma_slow point (-3.78 +/- 0.37), the lowest in the panel, and a box there
+# hides it completely.  Nothing is plotted below -2.7 between 5300 and 7500 s.
+axg.legend(handles=g_handles, loc='lower center', ncol=2)
 axg.set_xlabel('Elapsed Time (s)')
 axg.set_ylabel(r'Scaling exponent ($\gamma$)')
 add_minor_grid(axg)

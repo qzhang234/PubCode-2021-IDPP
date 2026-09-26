@@ -147,8 +147,13 @@ add_minor_grid(axs[0])
 # sit in rather than letting it cover the high-Q end of the curves
 _i_hi = max(d['saxs_1d'].max() for d in data.values())
 _i_lo = min(d['saxs_1d'][d['saxs_1d'] > 0].min() for d in data.values())
-axs[0].set_ylim(_i_lo * 0.6, _i_hi * 12)
-axs[0].legend(title='Flux on sample', loc='upper right')
+# The top of this axis used to sit 12x above the data purely to clear a legend
+# in the upper right.  The curves run diagonally, so the lower-left corner is
+# empty whatever the limits are; putting the key there lets the axis close up
+# on the data and stretches the vertical scale by about a quarter, which is
+# what makes the separation between the four fluxes readable.  No data moved.
+axs[0].set_ylim(_i_lo * 0.7, _i_hi * 1.6)
+axs[0].legend(title='Flux on sample', loc='lower left')
 
 axs[1].set_xlabel(r'Delay Time, $\Delta t$ (s)')
 axs[1].set_ylabel(r'$g_2$')
