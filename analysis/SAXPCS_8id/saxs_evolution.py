@@ -88,7 +88,11 @@ for fp in by_header.get('B0146', []):
     with h5py.File(fp, 'r') as hf:
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
         coef_sam = abs_xsec_coef(hf)                       # this file's own coefficient
-    I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
+    # Put the profile on the absolute scale, then take the buffer off.  The
+    # buffer already carries its own coefficient, so both terms are absolute.
+    I = coef_sam * I
+    if bg_I is not None:
+        I = I - coef_buf * bg_I
     pos = I > 0
     # same colour and marker as the 6 C reference in Figure 3a, so the two
     # figures key that dataset identically
@@ -99,7 +103,11 @@ for fp in b0147:
     with h5py.File(fp, 'r') as hf:
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
         coef_sam = abs_xsec_coef(hf)                       # this file's own coefficient
-    I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
+    # Put the profile on the absolute scale, then take the buffer off.  The
+    # buffer already carries its own coefficient, so both terms are absolute.
+    I = coef_sam * I
+    if bg_I is not None:
+        I = I - coef_buf * bg_I
     pos = I > 0
     ax.plot(q[pos], I[pos], color=CMAP(norm(elapsed[fp])), marker='o', ls='none',
             ms=MS, mfc='none', mew=MEW)

@@ -59,6 +59,18 @@ def double_exp(tau, tau_fast, f, tau_slow, p1, p2):
     return CONTRAST * (decay_fast + decay_slow)**2 + BASELINE
 
 
+def bin_params(p, i):
+    """The three parameters belonging to q bin number i.
+
+    The fit works on one long list of numbers, p.  The first two entries are
+    the shared exponents p1 and p2.  After those come three numbers for each q
+    bin, always in the order tau_fast, f, tau_slow.  So bin 0 starts at
+    position 2, bin 1 at position 5, and bin i at position 2 + 3 * i.
+    """
+    start = 2 + 3 * i
+    return p[start], p[start + 1], p[start + 2]
+
+
 def fit_g2_global(tau, g2, g2_err, q_indices):
     """Global fit of several q bins for one elapsed time, sharing p1 and p2.
 
@@ -75,9 +87,12 @@ def fit_g2_global(tau, g2, g2_err, q_indices):
     """
     data = []
     for qi in q_indices:
-        v = (tau > 0) & ~np.isnan(g2[:, qi]) & ~np.isnan(g2_err[:, qi]) & (g2_err[:, qi] > 0)
-        if v.sum() >= 5:
-            data.append((qi, tau[v], g2[v, qi], g2_err[v, qi]))
+        # A delay point is usable when the delay is positive, g2 is a real
+        # number, and its uncertainty is a real number above zero, since the
+        # fit divides by that uncertainty.
+        usable = (tau > 0) & np.isfinite(g2[:, qi]) & (g2_err[:, qi] > 0)
+        if usable.sum() >= 5:
+            data.append((qi, tau[usable], g2[usable, qi], g2_err[usable, qi]))
     nq = len(data)
     if nq == 0:
         return None
@@ -86,12 +101,12 @@ def fit_g2_global(tau, g2, g2_err, q_indices):
         p1, p2 = p[0], p[1]
         parts = []
         for i, (qi, tv, gv, ev) in enumerate(data):
-            # p = [p1, p2, then three numbers per q bin], so bin i owns
-            # p[2 + 3i], p[3 + 3i], p[4 + 3i].
-            tf, f, ts = p[2 + 3 * i: 5 + 3 * i]
+            tf, f, ts = bin_params(p, i)
             parts.append((double_exp(tv, tf, f, ts, p1, p2) - gv) / ev)
         return np.concatenate(parts)
 
+    # "PQ_P0 * nq" repeats that list of three numbers once per q bin, which
+    # builds the starting guess for the whole parameter vector in one line.
     x0 = list(P_EXP_P0) + PQ_P0 * nq
     lo = list(P_EXP_LO) + PQ_LO * nq
     hi = list(P_EXP_HI) + PQ_HI * nq
@@ -99,13 +114,15 @@ def fit_g2_global(tau, g2, g2_err, q_indices):
 
     ndof = max(len(res.fun) - len(res.x), 1)
     red_chi2 = float(np.sum(res.fun**2) / ndof)
-    # covariance from the Gauss-Newton Hessian of error-weighted residuals
-    # Pseudo-inverse, not inverse: at the latest elapsed time f rails against its
-    # lower bound at the lowest q, which makes tau_fast unidentifiable there and
-    # J^T J exactly singular.  inv() then returns nan for EVERY parameter,
-    # including the well-constrained ones (p1, p2 and the other q bins).  pinv
-    # discards only the degenerate direction, so the identifiable parameters keep
-    # honest uncertainties and only the unidentifiable one is reported as ~0.
+    # Parameter uncertainties from the Gauss-Newton approximation to the
+    # Hessian of the error-weighted residuals.
+    #
+    # Pseudo-inverse rather than plain inverse, as a safeguard.  If an amplitude
+    # f ever settles exactly on its bound of 0, its tau_fast stops affecting the
+    # model, J^T J becomes singular, and inv() returns nan for EVERY parameter,
+    # including the well-determined ones.  pinv drops only the useless direction
+    # and leaves the rest with honest uncertainties.  No parameter reaches a
+    # bound at the contrast used here, so the two agree in practice.
     jtj = res.jac.T @ res.jac
     cov = np.linalg.pinv(jtj, rcond=1e-12)
     perr = np.sqrt(np.abs(np.diag(cov)))
@@ -114,8 +131,9 @@ def fit_g2_global(tau, g2, g2_err, q_indices):
            'p2': res.x[1], 'p2_err': perr[1],
            'red_chi2': red_chi2, 'per_q': {}}
     for i, (qi, tv, gv, ev) in enumerate(data):
-        tf, f, ts = res.x[2 + 3 * i: 5 + 3 * i]
-        out['per_q'][qi] = {'tau_fast': tf, 'tau_fast_err': perr[2 + 3 * i],
-                            'f': f, 'f_err': perr[3 + 3 * i],
-                            'tau_slow': ts, 'tau_slow_err': perr[4 + 3 * i]}
+        tf, f, ts = bin_params(res.x, i)
+        tf_err, f_err, ts_err = bin_params(perr, i)
+        out['per_q'][qi] = {'tau_fast': tf, 'tau_fast_err': tf_err,
+                            'f': f, 'f_err': f_err,
+                            'tau_slow': ts, 'tau_slow_err': ts_err}
     return out

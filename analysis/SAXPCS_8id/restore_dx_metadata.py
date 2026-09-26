@@ -244,7 +244,8 @@ def main():
     stems = acquisitions()
     if args.limit:
         stems = stems[:args.limit]
-    print(f'{"APPLY" if args.apply else "DRY RUN"}: {len(stems)} acquisitions'
+    what = 'APPLY' if args.apply else 'DRY RUN'
+    print(f'{what}: {len(stems)} acquisitions'
           f' on {args.jobs} workers')
     print(f'  archive (read-only) : {ARCHIVE}')
     print(f'  nexus   (written)   : {NEXUS}')

@@ -85,7 +85,9 @@ def load(path):
         # on the file, so flatten to 1-D and take the first entry.
         ft = float(np.asarray(hf['/entry/instrument/detector_1/frame_time'][()]).reshape(-1)[0])
         t = np.asarray(hf['/xpcs/multitau/delay_list'][()])
-        tau = (t[:, 0] if t.ndim > 1 else t) * ft
+        if t.ndim > 1:
+            t = t[:, 0]                  # some files store the delays as a column
+        tau = t * ft
         q = hf['/xpcs/qmap/dynamic_v_list_dim0'][()]
         G = hf['/xpcs/multitau/normalized_g2'][()]
         E = hf['/xpcs/multitau/normalized_g2_err'][()]
@@ -96,10 +98,12 @@ def load(path):
 def flat_level(tau, g, e):
     """Weighted mean level of a flat g2, its error, and the reduced chi^2 of the
     flat hypothesis."""
-    ok = (tau > 0) & (tau < 2) & np.isfinite(g) & np.isfinite(e) & (e > 0)
-    w = 1.0 / e[ok]**2
-    lvl = np.sum(w * g[ok]) / np.sum(w)
-    return lvl, 1.0 / np.sqrt(np.sum(w)), np.sum(w * (g[ok] - lvl)**2) / (ok.sum() - 1)
+    ok = (tau > 0) & (tau < 2) & np.isfinite(g) & (e > 0)
+    weight = 1.0 / e[ok]**2              # least squares weights each point by 1/sigma^2
+    level = np.sum(weight * g[ok]) / np.sum(weight)
+    level_err = 1.0 / np.sqrt(np.sum(weight))
+    chi2 = np.sum(weight * (g[ok] - level)**2) / (ok.sum() - 1)
+    return level, level_err, chi2
 
 
 tau, q, G, E, n_avg = load(GLASS)
@@ -109,6 +113,9 @@ print(f'{n_avg} acquisitions of the 10 nm glass standard averaged, {len(q)} q bi
 gbar, ebar = G[:, Q_INDEX], E[:, Q_INDEX]
 ok = (tau > 0) & (tau < 2) & np.isfinite(gbar) & (ebar > 0)
 x, y, w = np.log10(tau[ok]), gbar[ok], 1.0 / ebar[ok]**2
+# Weighted straight-line fit, y = slope * x + intercept, done with the normal
+# equations.  Each row of X is one data point, [x, 1].  Writing the weights as a
+# column, w[:, None], multiplies each ROW of X by that point's weight.
 X = np.vstack([x, np.ones_like(x)]).T
 cov = np.linalg.inv(X.T @ (w[:, None] * X))
 slope, intercept = cov @ (X.T @ (w * y))
@@ -118,13 +125,16 @@ print(f'  straight-line slope = {slope:+.2e} +/- {np.sqrt(cov[0,0]):.2e} '
       f'({abs(slope)/np.sqrt(cov[0,0]):.1f} sigma from flat), reduced chi^2 = {chi2:.2f}')
 
 # --- beta(q) over every bin ---
-bq, bb, bad = [], [], []
+bq, bb, bad = [], [], []             # usable bin numbers, their beta, rejected bins
 for qi in range(len(q)):
     lvl, _, c2 = flat_level(tau, G[:, qi], E[:, qi])
-    (bad if c2 > CHI2_FLAT_MAX else bq).append(qi)
-    if c2 <= CHI2_FLAT_MAX:
+    if c2 > CHI2_FLAT_MAX:
+        bad.append(qi)
+    else:
+        bq.append(qi)
         bb.append(lvl - 1.0)
-bq, bb = np.array(bq), np.array(bb)
+bq = np.array(bq)
+bb = np.array(bb)
 print(f'  beta(q): {len(bq)} usable bins, {len(bad)} rejected as non-flat '
       f'(bins {[i+1 for i in bad]})')
 
@@ -133,13 +143,18 @@ print(f'  beta(q): {len(bq)} usable bins, {len(bad)} rejected as non-flat '
 # bin-to-bin spread and so do not describe it: the multi-tau delay points share
 # frames and are strongly correlated, which makes the fit error optimistic.  The
 # spread of the five is the honest measure, and its standard error is quoted.
-bsample = np.array([flat_level(tau, G[:, i], E[:, i])[0] - 1.0 for i in SAMPLE_Q])
+bsample = []
+csample = []
+for i in SAMPLE_Q:
+    lvl, _, c2 = flat_level(tau, G[:, i], E[:, i])
+    bsample.append(lvl - 1.0)
+    csample.append(c2)
+bsample = np.array(bsample)
 beta = bsample.mean()
 beta_err = bsample.std(ddof=1) / np.sqrt(len(bsample))
-print('  bins used for the sample: '
-      + ', '.join(f'{v:.5f}' for v in bsample)
-      + f'  (chi2 ' + ', '.join(f'{flat_level(tau, G[:, i], E[:, i])[2]:.2f}'
-                                for i in SAMPLE_Q) + ')')
+levels = ', '.join(f'{v:.5f}' for v in bsample)
+chi2s = ', '.join(f'{v:.2f}' for v in csample)
+print(f'  bins used for the sample: {levels}  (chi2 {chi2s})')
 print(f'  ==> beta = {beta:.5f} +/- {beta_err:.5f} '
       f'(mean of the five, standard error of that mean)')
 print(f'  for comparison, bin 16 at q = {q[15]:.5f} A^-1 gives '

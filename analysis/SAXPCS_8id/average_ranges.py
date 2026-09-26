@@ -128,47 +128,38 @@ FILE_RANGES = {
 GROUP_SUFFIX = {'F0145': 'BadpixRm'}
 
 # --- SECOND-STAGE CUT: acquisitions far above the group at low q ---------
-# outlier_removal() cuts on the SHAPE of log10 I(q) across the whole q range.
-# An acquisition that is normal everywhere except the lowest q bins stays
-# nearly parallel to the group mean and survives it.  That is exactly what a
-# large object drifting through the 10 x 10 um beam during one 2 s exposure
-# looks like: a low-q spike with ordinary counting statistics above 0.01 A^-1.
-# Averaging such an acquisition into the group puts the scatterer, not the
-# sample, into the group mean.  This second cut catches those.
+# outlier_removal() cuts on the SHAPE of log10 I(q) across the whole q range, so
+# an acquisition that is normal everywhere except the lowest bins stays nearly
+# parallel to the group mean and survives it.  That is what a large object
+# drifting through the 10 x 10 um beam during one 2 s exposure looks like.  This
+# second cut catches those.
 #
-# SPIKE_BAND is the q window the test is made in.  It is the same window
-# Figure S4b already reports its intensities over, so the cut introduces no new
-# choice of q range, and the per-acquisition mean of I(q) over that window is
-# the test statistic.  The test is therefore on the intensity in one band, not
-# on the low-q rise as such: an acquisition that is bright across the whole
-# detector fails it too (B0147 frames 774 and 794, 2x the group median at low q
-# and 4x at high q, are removed for that reason).  That is the intended
-# behaviour -- neither kind of acquisition is measuring the sample -- but it is
-# worth knowing that the band is where the test looks, not what it diagnoses.
+# The statistic is the per-acquisition mean of I(q) over SPIKE_BAND, the same
+# window Figure S4b reports its intensities over, so the cut introduces no new
+# choice of q range.  Note that it tests the intensity in that band, not the
+# low-q rise as such: an acquisition that is bright across the whole detector
+# fails it too, which is intended.
 #
-# The test is a one-sided iterated modified z-score (Iglewicz & Hoaglin): an
+# The test is a one-sided iterated modified z-score (Iglewicz & Hoaglin).  An
 # acquisition is dropped when its band mean lies more than SPIKE_Z robust
-# standard deviations ABOVE the median, where the scale is 1.4826 x MAD and
-# both the median and the MAD are recomputed from the survivors until the set
-# stops changing.  Median and MAD are used rather than mean and standard
-# deviation because a handful of 8x acquisitions inflate the ordinary
-# statistics enough to hide themselves.  The test is one-sided because the
-# artefact only ever ADDS scattering; a low reading means lost flux, which the
-# monitor normalisation and the shape cut already handle.
+# standard deviations ABOVE the median, the scale being 1.4826 x MAD, with both
+# statistics recomputed from the survivors until the set stops changing.  Median
+# and MAD rather than mean and standard deviation, because a handful of 8x
+# acquisitions inflate the ordinary statistics enough to hide themselves.
+# One-sided, because the artefact only ever ADDS scattering.
 #
-# SPIKE_Z = 3 is the conventional value and is not tuned: in the worst group
-# the same acquisitions are selected for any threshold from 2.5 to 3.0, and the
-# selection is unchanged if SPIKE_BAND is moved to 0.0032-0.006 or 0.003-0.005.
+# SPIKE_Z = 3 is conventional and is not tuned: in the worst group the same
+# acquisitions are selected for any threshold between 2.5 and 3.0, and for
+# SPIKE_BAND moved to 0.0032-0.006 or 0.003-0.005.
 #
-# The cut removes 35 of the 1708 acquisitions that survive outlier_removal()
-# (2.0 %).  It is nearly inert on the isothermal series behind Figures 3 and
-# S8-S10 -- 2 acquisitions of B0147, which move that group's absolute-scale
-# coefficient by 0.03 % and leave every fitted g2 parameter unchanged -- and
-# does its work on the Figure S4 thermal cycles, where transient scatterers are
-# common: 4, 2, 1, 11, 4, 1 and 1 acquisitions in the seven 6 C groups and 2
-# and 7 in the two buffer groups, against none at all in any of the fourteen
-# ten-acquisition 34 C windows.  See the "spike removal" note in
-# thermal_cycle.py.
+# Across the paper the cut removes 35 of the 1749 acquisitions that survive
+# outlier_removal(), 2.0 %.  It is nearly inert on the isothermal series behind
+# Figures 3 and S8-S10, taking 2 acquisitions of B0147, which move that group's
+# absolute-scale coefficient by 0.03 % and leave every fitted g2 parameter
+# unchanged.  It takes none at all from the contrast standard F0145.  Its work
+# is on the Figure S4 thermal cycles, where transient scatterers are common:
+# 4, 2, 1, 11, 4, 1 and 1 from the seven 6 C groups and 2 and 7 from the two
+# buffers, against none from any of the fourteen 34 C windows.
 SPIKE_BAND = (0.004, 0.008)          # A^-1
 SPIKE_Z = 3.0
 
@@ -266,7 +257,9 @@ STALE_TIME_RE = re.compile(r'^20(2[3-9]|[3-9]\d)-')
 def extract_frame(fname):
     """Return the integer frame number embedded in a result file name."""
     m = _frame_re.search(os.path.basename(fname))
-    return int(m.group(1)) if m else -1
+    if m is None:
+        return -1
+    return int(m.group(1))
 
 
 def get_start_time(fname):
@@ -280,14 +273,26 @@ def get_start_time(fname):
     """
     with h5py.File(fname, 'r') as hf:
         raw = np.asarray(hf[START_TIME][()]).ravel()[0]
-    stamp = (raw.decode('utf-8') if isinstance(raw, bytes) else str(raw)).strip()
-    return None if STALE_TIME_RE.match(stamp) else stamp
+    # HDF text comes back as bytes from some writers and as str from others.
+    if isinstance(raw, bytes):
+        raw = raw.decode('utf-8')
+    stamp = str(raw).strip()
+    if STALE_TIME_RE.match(stamp):
+        return None
+    return stamp
 
 
 def file_suffix(fname):
     """The boost_corr output tag in a result file name, or '' if it has none."""
     m = _suffix_re.search(os.path.basename(fname))
-    return (m.group(1) or '') if m else ''
+    if m is None:
+        return ''
+    tag = m.group(1)
+    # The tag group is optional in the pattern, so it is None when the name
+    # ends in '_00001_results.hdf' with nothing between the two.
+    if tag is None:
+        return ''
+    return tag
 
 
 def group_files(group):
@@ -299,13 +304,18 @@ def group_files(group):
     names carry a frame RANGE where a raw file carries a single frame number.
     """
     want = GROUP_SUFFIX.get(group, '')
-    fl = sorted(glob.glob(os.path.join(prefix, f'{group}*_results.hdf')))
-    fl = [f for f in fl if 'Average' not in os.path.basename(f)
-          and _frame_re.search(os.path.basename(f))
-          and file_suffix(f) == want]
-    assert fl, (f'no dataset found in {prefix} for group {group}'
-                + (f' with suffix {want!r}' if want else ''))
-    return fl
+    keep = []
+    for f in sorted(glob.glob(os.path.join(prefix, f'{group}*_results.hdf'))):
+        name = os.path.basename(f)
+        if 'Average' in name:
+            continue                      # an averaged file from an earlier run
+        if _frame_re.search(name) is None:
+            continue                      # not a raw per-acquisition result
+        if file_suffix(f) != want:
+            continue                      # the other reduction generation
+        keep.append(f)
+    assert keep, f'no {want or "untagged"} dataset in {prefix} for group {group}'
+    return keep
 
 
 def read_range_data(section_files):
@@ -443,12 +453,16 @@ def process_group(group, file_ranges):
 
         template = section_files[0]
         # replace the single frame number with the range, then prepend 'Average_'
-        core = re.sub(
-            r'_(\d+)((?:_[A-Za-z0-9]+)?_results\.hdf)$',
-            lambda m: f'_{start:05d}_{end:05d}{m.group(2)}',
-            os.path.basename(template),
-        )
-        out_name = f'Average_{core}'
+        # 'B0147_..._00801_results.hdf' -> 'Average_B0147_..._00801_00950_results.hdf'.
+        # The tail is whatever follows the frame number, so an output tag such
+        # as '_BadpixRm' is carried through to the averaged file name.
+        name = os.path.basename(template)
+        tail = '_results.hdf'
+        tag = file_suffix(template)
+        if tag:
+            tail = f'_{tag}_results.hdf'
+        stem = name[:name.index(f'_{extract_frame(template):05d}{tail}')]
+        out_name = f'Average_{stem}_{start:05d}_{end:05d}{tail}'
         out_path = os.path.join(out_dir, out_name)
 
         save_average(template, out_path, avg_dict, start_time, included_files,

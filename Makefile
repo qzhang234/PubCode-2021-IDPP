@@ -57,6 +57,9 @@ CSV_DATA  := $(wildcard $(ANA)/SAXS_12id/reduced_data/*.csv)
 RAD_DATA  := $(wildcard $(ANA)/Rad_Dam_Check/cluster_results/*.hdf)
 COMMON    := $(ANA)/common/acs_style.py
 XFIT      := $(ANA)/SAXPCS_8id/xpcs_fit.py
+# nexus_read.py is imported by the four 8-ID-I figure scripts below, so a change
+# to it has to rebuild all four; without it here they would go quietly stale.
+NEXUS     := $(ANA)/SAXPCS_8id/nexus_read.py
 
 .PHONY: all figures papers main si cover check clean distclean env
 
@@ -77,17 +80,17 @@ $(F_GUINIER): $(ANA)/SAXS_12id/Guinier_Plot.py $(CSV_DATA) $(COMMON)
 	cd $(ANA)/SAXS_12id && $(PY) Guinier_Plot.py
 
 # one script, three figures
-$(F_XPCS) &: $(ANA)/SAXPCS_8id/saxpcs.py $(ANA)/SAXPCS_8id/abs_xsec.py $(XPCS_DATA) $(COMMON) $(XFIT)
+$(F_XPCS) &: $(ANA)/SAXPCS_8id/saxpcs.py $(ANA)/SAXPCS_8id/abs_xsec.py $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) saxpcs.py
 
-$(F_EVOL): $(ANA)/SAXPCS_8id/saxs_evolution.py $(ANA)/SAXPCS_8id/abs_xsec.py $(XPCS_DATA) $(COMMON)
+$(F_EVOL): $(ANA)/SAXPCS_8id/saxs_evolution.py $(ANA)/SAXPCS_8id/abs_xsec.py $(XPCS_DATA) $(COMMON) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) saxs_evolution.py
 
-$(F_GRID): $(ANA)/SAXPCS_8id/g2_grid_SI.py $(XPCS_DATA) $(COMMON) $(XFIT)
+$(F_GRID): $(ANA)/SAXPCS_8id/g2_grid_SI.py $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) g2_grid_SI.py
 
 $(F_CYCLE): $(ANA)/SAXPCS_8id/thermal_cycle.py $(ANA)/SAXPCS_8id/abs_xsec.py \
-            $(XPCS_DATA) $(COMMON) $(XFIT)
+            $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) thermal_cycle.py
 
 $(F_BETA): $(ANA)/SAXPCS_8id/contrast_calibration.py $(XPCS_DATA) $(COMMON)

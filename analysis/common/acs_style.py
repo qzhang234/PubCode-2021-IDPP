@@ -83,19 +83,14 @@ def apply_style():
 
 
 def add_minor_grid(ax):
-    """Grid on major and minor ticks, at the 0.5 pt minimum but pale enough to
+    """Grid on major and minor ticks, at the 0.5 pt minimum and pale enough to
     stay behind the data.
 
-    Minor grid lines must never land on the exact midpoint between two labelled
-    major ticks: a line at 0.015 sitting halfway between 0.01 and 0.02 reads as
-    a value the axis never names, and the grid becomes harder to use rather than
-    easier.  On LINEAR axes matplotlib's AutoMinorLocator subdivides by 5 whenever
-    the major step has mantissa 1, 2.5, 5 or 10, which covers every linear axis
-    here, so it is left alone; a major step of 2 would subdivide by 4 and would
-    need the same care.  LOG axes are the ones
-    that need care, because a hand-written FixedLocator can easily be given
-    half-decade positions (1.5, 2.5, 3.5 x 10^n); the call sites here list only
-    integer multiples of the decade.
+    A minor grid line must never land halfway between two labelled major ticks:
+    a line at 0.015 between 0.01 and 0.02 reads as a value the axis never names.
+    The linear axes here are safe, because matplotlib subdivides them by 5.  Log
+    axes need care, so every hand-written locator in this repository lists only
+    integer multiples of a decade, never 1.5 or 2.5 times one.
     """
     ax.minorticks_on()
     ax.set_axisbelow(True)
@@ -115,7 +110,10 @@ def q_log_ticks(ax, axis='x'):
     and S8) so
     the profiles can be compared tick for tick.
     """
-    a = ax.xaxis if axis == 'x' else ax.yaxis
+    if axis == 'x':
+        a = ax.xaxis
+    else:
+        a = ax.yaxis
     a.set_major_locator(FixedLocator([4e-3, 1e-2, 3e-2]))
     a.set_major_formatter(FixedFormatter(['0.004', '0.01', '0.03']))
     a.set_minor_locator(FixedLocator([3e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3,
@@ -166,7 +164,15 @@ def save_fig(fig, filename):
         filename = os.path.join(os.path.dirname(os.path.abspath(caller)), filename)
     w, h = fig.get_size_inches()
     fig.savefig(filename, format='pdf')
-    ok_w = 'single' if abs(w - SINGLE_COL) < 0.01 else \
-           'double' if abs(w - DOUBLE_COL) < 0.01 else 'OFF-SPEC'
-    print(f'wrote {os.path.basename(filename)}  {w:.3f} x {h:.3f} in ({72 * w:.0f} x {72 * h:.0f} pt)'
-          f'  width={ok_w}  depth={"ok" if h <= MAX_DEPTH else "OVER 9.167 in"}')
+    if abs(w - SINGLE_COL) < 0.01:
+        ok_w = 'single'
+    elif abs(w - DOUBLE_COL) < 0.01:
+        ok_w = 'double'
+    else:
+        ok_w = 'OFF-SPEC'
+    if h <= MAX_DEPTH:
+        ok_h = 'ok'
+    else:
+        ok_h = 'OVER 9.167 in'
+    print(f'wrote {os.path.basename(filename)}  {w:.3f} x {h:.3f} in '
+          f'({72 * w:.0f} x {72 * h:.0f} pt)  width={ok_w}  depth={ok_h}')

@@ -299,7 +299,9 @@ def _read_xpcs_hdf(fname):
     with h5py.File(fname, 'r') as hf:
         t0 = float(np.asarray(hf['/entry/instrument/detector_1/frame_time'][()]).flat[0])
         delay_list = hf['/xpcs/multitau/delay_list'][()]
-        tau = (delay_list[:, 0] if delay_list.ndim > 1 else delay_list) * t0
+        if delay_list.ndim > 1:
+            delay_list = delay_list[:, 0]   # some files store the delays as a column
+        tau = delay_list * t0
         g2 = hf['/xpcs/multitau/normalized_g2'][()]
         g2_err = hf['/xpcs/multitau/normalized_g2_err'][()]
         q_vals = hf['/xpcs/qmap/dynamic_v_list_dim0'][()]
@@ -419,7 +421,9 @@ def process_group_by_range(group,
 
     def _extract_frame(fname):
         m = _frame_re.search(os.path.basename(fname))
-        return int(m.group(1)) if m else -1
+        if m is None:
+            return -1
+        return int(m.group(1))
 
     frame_numbers = np.array([_extract_frame(f) for f in flist_all])
 

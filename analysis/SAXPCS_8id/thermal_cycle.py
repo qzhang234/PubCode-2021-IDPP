@@ -1,143 +1,81 @@
 """Figure S4: thermal-cycling repeatability of (VPAVG)30 at 8-ID-I.
 
-This is the direct reversibility control for the SA-XPCS experiment: ONE aliquot
-taken through seven consecutive 6 -> 34 -> 6 C cycles.  Unlike the 12-ID-B
-comparison of Figure 2, which sets two separate aliquots against each other,
-every curve here comes from the same material, so a difference between cycles
-could only be irreversibility.  That is the whole point of the figure and it is
-what makes it the more direct test.
+The direct reversibility control for the SA-XPCS experiment: ONE aliquot taken
+through seven consecutive 6 -> 34 -> 6 C cycles.  Figure 2 sets two separate
+12-ID-B aliquots against each other; here every curve is the same material, so
+a difference between cycles could only be irreversibility.
 
 It is NOT the same loading as Figure 3.  This is sample S1, measured 2022-03-04;
 Figure 3 is sample S3_7, measured 2022-03-06.  Both are aliquots of the same
-stock measured in cell position B of the same nine-position Quantum Northwest
+stock, measured in cell position B of the same nine-position Quantum Northwest
 holder during the same beamtime, but position B was reloaded in between.  Do not
 write "the same aliquot as Figure 3" anywhere.
 
-One consequence is visible in panel (b): the 6 C profile here falls off more
-steeply at the lowest q (log-log slope -1.0 below 0.01 A^-1) than the 6 C
-reference of Figure 3a (-0.5).  Both are reduced the same way -- same absolute
-scaling, same two automatic outlier cuts (described below), same unscaled
-buffer subtraction -- and between
-0.005 and 0.032 A^-1 the two subtracted profiles agree in shape to within
-22 %.  The
-difference is in the acquisitions themselves.  Within a single 6 C group here,
-the per-acquisition intensity at 0.0035 A^-1 is strongly right-skewed: B0075 has
-an RSD of 51 % with a maximum 3.4x its median, B0083 an RSD of 96 % with a
-maximum 8.0x its median (skew +2.2 and +3.1).  The SAME acquisitions at 0.03
-A^-1 are symmetric with RSD ~ 9 %, i.e. ordinary counting statistics.  That is
-what a large object crossing the 10 x 10 um beam in a minority of acquisitions
-looks like.  Figure 3's 6 C group does not have it (B0146: RSD 5.8 %, max/median
-1.17); the buffers do, D0077 more than D0138.  Part of the difference is a real
-property of this loading: it has I(0.004)/I(0.02) = 4.0 against 2.7 for Figure
-3's aliquot, and a downstream / upstream ion-chamber ratio of 0.305 against
-0.333 (transmissions 0.351 and 0.384 after the air correction), i.e. it was the
-less completely dissolved of the two.
+This loading was the less completely dissolved of the two: I(0.004)/I(0.02) =
+4.0 against 2.7, and transmission 0.305 against 0.333.  Its 6 C state also
+carries transient large scatterers.  Within one 6 C group the per-acquisition
+intensity at 0.0035 A^-1 is strongly right-skewed (B0083: 96 % RSD, maximum 8x
+the median) while the SAME acquisitions at 0.03 A^-1 are symmetric at ordinary
+counting statistics.  That is what a large object crossing the 10 x 10 um beam
+during a minority of acquisitions looks like.
 
-SPIKE REMOVAL.  outlier_removal() does NOT catch those low-q spikes.  Its cut
-is a cosine similarity on log10 I(q) over the whole q range, so it rejects
-curves of the wrong SHAPE; a curve that is 8x high in three low-q bins and
-normal everywhere else stays nearly parallel to the group mean and survives.
-spike_removal() in average_ranges.py is the second cut that does catch them: a
-one-sided iterated modified z-score (median + 1.4826 x MAD, threshold 3) on the
-per-acquisition mean of I(q) over 0.004-0.008 A^-1, which is the same band this
-figure reports its intensities over.  It is applied to every group in the
-paper on the same terms, with no per-group list.
+SPIKE REMOVAL.  outlier_removal() does not catch those: it cuts on the SHAPE of
+log10 I(q) over the whole q range, and a curve that is 8x high in three low-q
+bins alone stays nearly parallel to the group mean.  spike_removal() in
+average_ranges.py is the second cut that does, and it is applied to every group
+in the paper on the same terms.  In the seven 6 C groups it removes 4, 2, 1, 11,
+4, 1 and 1 acquisitions and 2 and 7 from the two buffers, and none at all from
+the fourteen 34 C windows.  The cycle-to-cycle RSD of the 6 C state falls from
+12.6 % to 8.6 %, leaving a monotone rise over the last two cycles rather than
+one contaminated group.  The threshold is not tuned: the same acquisitions are
+selected for any value between 2.5 and 3, and for two other choices of band.
 
-  BE CLEAR ABOUT WHAT IT DOES.  In the seven 6 C groups it removes 4, 2, 1, 11,
-  4, 1 and 1 acquisitions, and 2 and 7 from the two buffers; it removes none at
-  all from any of the fourteen ten-acquisition 34 C windows, consistent with
-  the skew being a low-temperature, low-q effect.  Cycle 4 was 31 % ABOVE the
-  mean of the other six over 0.004-0.008 A^-1 and is now 7 % below it, no
-  longer an outlier in either direction, and the cycle-to-cycle RSD of the 6 C
-  state falls from 12.6 % to 8.6 %.  What is left is a monotone rise across the
-  last two cycles (0.881, 0.857, 0.936, 0.874, 0.903, 0.990, 1.08), not one
-  contaminated group.
-
-  The threshold is not tuned to this figure.  The eleven acquisitions it takes
-  from cycle 4 are the same for any threshold from 2.5 to 3.0 and for bands of
-  0.0032-0.006 or 0.003-0.005 A^-1, and ten of them are among the
-  eleven that were once identified by eye (it also takes frame 9, and frame 47
-  of that list survives; those two differ by less than the scatter of the
-  group, which is why the by-eye list was replaced).  Across the whole paper the cut removes 35 of
-  the 1708 acquisitions that survive outlier_removal(), 2.0 %.  It is nearly
-  inert on the isothermal series behind Figures 3 and S8-S10 -- two
-  acquisitions of B0147, shifting one absolute-scale coefficient by 0.03 % and
-  leaving every fitted g2 parameter unchanged -- so it is a Figure S4 effect in
-  practice while remaining a uniform rule in definition.
-
-WHY CYCLE 4 STOOD OUT was two different things in the two states, and neither
-was irreversibility:
-
-  6 C (circles).  A handful of acquisitions, not the group.  B0083's MEDIAN
-  I(0.0035) was 2.80, squarely inside the 2.55-2.96 spread of the other six; its
-  MEAN was 4.36 because four of its 43 shape-cut survivors read 22.2, 17.3,
-  14.6 and 10.8, i.e. 4-8x the median.  They sat at frames 25, 5, 20 and 45 --
-  scattered, not contiguous -- so this was not a drift or a temperature
-  excursion but transient objects crossing the beam.  Those four are among the
-  eleven that spike_removal() excludes.
-
-  31.9 C (squares).  Not outliers at all: cycle 4's window simply landed hotter.
-  The seven ramps cross acquisitions 241-250 at 31.62, 31.87, 31.91, 32.48,
-  31.73, 32.28 and 31.68 C, and on the steep part of the transition ln I tracks
-  that spread almost perfectly (r = 0.974, d lnI/dT = 0.95 /C).  Removing the
-  trend takes the cycle-to-cycle RSD from 32.6 % to 7.1 %.  The 33.8 C window is
-  past the steep part and needs no such correction (4.8 % -> 1.4 %).  The
-  regression is printed at the end of the run.
+WHY CYCLE 4 STOOD OUT, in two different ways, neither of them irreversibility.
+At 6 C it was four acquisitions, not the group: its MEDIAN sat squarely inside
+the spread of the other six, while four of its 43 survivors read 4-8x that
+median, at scattered frame numbers.  At 31.9 C it was not an outlier at all;
+that cycle's window simply landed hotter.  The seven ramps cross acquisitions
+241-250 between 31.62 and 32.48 C, and on the steep part of the transition ln I
+tracks that spread almost perfectly (r = 0.974, d lnI/dT = 0.95 /C).
 
 Layout (double column):
-  top    - the measured sample temperature through the whole 5 h 47 min sequence
+  top    - measured sample temperature through the whole 5 h 47 min sequence
   bottom - left:  SAXS I(Q) at the three states sampled in every cycle
            right: g2 at the lowest Q for the two high-temperature states
 
-Temperatures come from /entry/sample/qnw1_temperature.  The QNW stage has three
-independently controlled zones holding nine cells; the sample letter selects the
-zone (A-C -> qnw1, D-F -> qnw2, G-I -> qnw3), so the B-series sample sits in
-qnw1 and the D-series buffer in qnw2.  qnw2 reads 6.00 C throughout, i.e. the
-buffer was held cold for the entire sequence.
-
-This script reads nothing from the beamline storage.  Its inputs are the files
-average_ranges.py writes into data/: one averaged file per group, carrying the
-group's I(q), g2, mean ion-chamber readings and the list of acquisitions that
-went into it, and thermal_cycle_temperature.csv, the per-acquisition thermal
-history of the whole sequence.
-
-Acquisition timestamps are NOT usable from the result files: a 2025 reprocessing
-overwrote /entry/start_time with the reprocessing date.  The elapsed times in
-the CSV were recovered by average_ranges.py from timelist_2022-1.txt, the
-directory listing of the raw acquisitions.
-
-Run sequence (each 2 s acquisition at a previously unexposed position):
+Run sequence, each 2 s acquisition at a previously unexposed position:
     B0075 6 C  ->  B0076 ramp to 34 C  ->  D0077 buffer, cooling
     B0078 6 C  ->  B0079 ramp to 34 C  ->  D0080 buffer, cooling
     B0081/83/85/87/89 6 C, each followed by a ramp B0082/84/86/88/90.
-The ramp is 270 acquisitions from 6.13 to 34.00 C in 27.7 min = 1.01 C/min.
-The first two cool-downs WERE recorded, by the buffer runs: D0077 follows the
-sample zone from 31.8 to 12.2 C and D0080 from 31.9 to 5.8 C.  No acquisitions
-were taken during the other five, so NO TEMPERATURE WAS RECORDED over those
-intervals.  They are reconstructed from the control
-protocol, which was fixed: cool at 10 C/min until 6 C is reached, then hold at
-6 C until the next ramp begins.  Those reconstructed intervals are drawn dashed
-and are projections, not measurements; every solid segment is measured.
+Each ramp is 270 acquisitions from 6.13 to 34.00 C in 27.7 min, 1.01 C/min.
+The first two cool-downs were recorded by the buffer runs.  No acquisitions were
+taken during the other five, so NO TEMPERATURE WAS RECORDED there; those
+intervals are reconstructed from the fixed control protocol (cool at 10 C/min to
+6 C, then hold) and drawn dashed.  Every solid segment is measured.
 
-Absolute scale and background subtraction follow Figure 3 exactly: the group
+Temperatures come from /entry/sample/qnw1_temperature.  The stage has three
+zones holding nine cells, and the sample letter selects the zone (A-C -> qnw1,
+D-F -> qnw2, G-I -> qnw3), so the B-series sample sits in qnw1 and the D-series
+buffer in qnw2.  qnw2 reads 6.00 C throughout: the buffer was held cold all
+along.
+
+Absolute scale and background subtraction follow Figure 3 exactly.  Each group
 average is put on an absolute differential cross section by abs_xsec_coef() from
-the group's own mean ion-chamber readings, and the averaged
-buffer (D0077 + D0080, 78 surviving of 89 acquisitions) is subtracted.  The two
-buffer measurements agree to within 6 % at every q below 0.01 A^-1 once filtered
--- I(0.0035) = 0.1179 and 0.1238 mm^-1, I(0.02) = 0.0131 and 0.0126 -- and show no
-systematic offset above it (only growing bin-to-bin scatter, where both buffers
-are weak), so neither is scaled against
-the other; scaling only one of them is equivalent to changing BG_SCALE and is
-covered by the scan above (D0077 x 2.0 = BG_SCALE 1.44).
+that group's own mean ion-chamber readings, and the averaged buffer (D0077 +
+D0080, 69 surviving of 89 acquisitions) is subtracted with no empirical scale
+factor.  The two buffer measurements agree to within 6 % at every q below
+0.01 A^-1, so neither is scaled against the other.
 
-EVERY average in this figure runs over the surviving acquisitions and only
-those -- the SAXS of each group, its g2, and the mean time and temperature at
-which the group is marked in panel (a) -- because all four are read from, or
-keyed to, the /xpcs/average/file_list that average_ranges.py wrote alongside the
-averaged curves.  The temperature TRACE of panel (a) is the exception, and
-deliberately so: it is the thermal history of the experiment, not an average,
-and an acquisition whose scattering was rejected still records the temperature
-the sample was at.
+EVERY average here runs over the surviving acquisitions and only those, because
+all of them are keyed to the /xpcs/average/file_list that average_ranges.py
+wrote beside the averaged curves.  The temperature TRACE of panel (a) is the
+deliberate exception: it is the thermal history of the experiment, not an
+average, and an acquisition whose scattering was rejected still records the
+temperature the sample was at.
+
+This script reads nothing from the beamline storage.  Its inputs are the files
+average_ranges.py writes into data/: one averaged file per group, and
+thermal_cycle_temperature.csv, the per-acquisition thermal history.
 """
 
 import glob
@@ -292,11 +230,17 @@ def group(header, lo, hi):
         # frame_time is a tiny array, shape (1,) or (1, 1); flatten and take [0]
         ft = float(np.asarray(hf[FRAME_TIME_PATH][()]).reshape(-1)[0])
         t = np.asarray(hf[DELAY_PATH][()])
-        tau = (t[:, 0] if t.ndim > 1 else t) * ft
+        if t.ndim > 1:
+            t = t[:, 0]                  # some files store the delays as a column
+        tau = t * ft
         qv = float(hf[DYN_Q_PATH][()][0])
         g2 = hf[G2_PATH][()][:, 0]
         g2e = hf[G2_ERR_PATH][()][:, 0]
-        kept = [s.decode() if isinstance(s, bytes) else s for s in hf[FILE_LIST][()]]
+        kept = []
+        for s in hf[FILE_LIST][()]:
+            if isinstance(s, bytes):
+                s = s.decode()
+            kept.append(s)
     kept = [k.replace('_results.hdf', '') for k in kept]
     # STATE[dataset_name] is (hours_since_start, temperature_C) for one
     # acquisition; average both over the acquisitions this group kept.
@@ -339,7 +283,11 @@ bq, bI, bn = None, None, 0
 for b in BUFFERS:
     g = group(b, *COLD_RANGE)
     bq = g.q
-    bI = g.I * g.n if bI is None else bI + g.I * g.n
+    # running total of intensity x number of acquisitions, divided by bn below
+    if bI is None:
+        bI = g.I * g.n
+    else:
+        bI = bI + g.I * g.n
     bn += g.n
 bI /= bn
 print(f'  buffer: {bn} acquisitions from {"+".join(BUFFERS)}')
@@ -384,9 +332,15 @@ for (h0, s0), (h1, s1) in zip(ordered, ordered[1:]):
     if t_next <= t_end:
         continue
     t_cool = t_end + max(T_end - T_HOLD, 0.0) / COOL_RATE / 60.0   # h
-    xs = [t_end, min(t_cool, t_next)] + ([t_next] if t_cool < t_next else [])
-    ys = [T_end, T_HOLD if t_cool <= t_next else
-          T_end - (t_next - t_end) * 60.0 * COOL_RATE] + ([T_HOLD] if t_cool < t_next else [])
+    # The cooling leg was not measured, so it is drawn from the control
+    # protocol: cool at COOL_RATE down to T_HOLD, then sit at T_HOLD until the
+    # next ramp starts.  If the next ramp comes first, the leg stops part way.
+    if t_cool < t_next:
+        xs = [t_end, t_cool, t_next]
+        ys = [T_end, T_HOLD, T_HOLD]
+    else:
+        xs = [t_end, t_next]
+        ys = [T_end, T_end - (t_next - t_end) * 60.0 * COOL_RATE]
     axT.plot(xs, ys, '--', color=COLORS[cycle_of[h0]], lw=LW_THIN, zorder=2)
 
 
@@ -513,7 +467,15 @@ box_h = 2 * PAD + 4 * ROW_H
 W_pt, H_pt = 72 * fig.get_size_inches()
 x0 = (W_pt - box_w) / 2.0            # centred on the figure
 y0 = 0.4 * FS                        # just clear of the bottom edge
-fx, fy = lambda p: p / W_pt, lambda p: p / H_pt
+def fx(p):
+    """Points across the figure, as a 0-to-1 figure fraction."""
+    return p / W_pt
+
+
+def fy(p):
+    """Points up the figure, as a 0-to-1 figure fraction."""
+    return p / H_pt
+
 
 fig.add_artist(Rectangle((fx(x0), fy(y0)), fx(box_w), fy(box_h),
                          transform=fig.transFigure, facecolor='white',

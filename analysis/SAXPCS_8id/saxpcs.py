@@ -1,73 +1,51 @@
 """Combined SAXS + XPCS analysis, reading the averaged HDF files in data/.
 
-This one script writes three of the paper's figures: Figure 3 of the main text,
-Figure S8 and Figure S6.
+This one script writes three of the paper's figures.
 
 Figure 3, three panels:
-  1. SAXS I(q) for B0146, the first B0147 file (frames 1-200), and the last five
-     B0147 files (frames 801-1313), with the D0138 buffer subtracted.
-  2. XPCS g2(tau) at one q for the first + last-five B0147 files, with fits.
-  3. Fitted fast fraction f vs elapsed time, per q bin.
-Figure S8 (2x2 panels) plots the fit parameters: (a) shared exponents p1, p2 vs
-elapsed time, (b) tau_fast vs Q, (c) tau_slow vs Q, and (d) the power-law
-scaling exponents gamma_fast, gamma_slow obtained by fitting each elapsed
-time's tau(Q) in (b)/(c) to tau = A * Q**gamma.  Figure S6 (2 panels) documents
-the absolute-cross-section calibration: the ion-chamber -> photon linear fit
-and the air transmission (see the ABSOLUTE SCATTERING CROSS-SECTION section
-below and abs_xsec.py).
+  (a) SAXS I(q) for B0146, the first B0147 file (frames 1-200) and the last five
+      (frames 801-1313), with the D0138 buffer subtracted.
+  (b) g2(tau) at one q for those same files, with the fits.
+  (c) fitted fast fraction f against elapsed time, one series per q bin.
+Figure S8, 2x2, the fit parameters: (a) the shared exponents p1 and p2 against
+elapsed time, (b) tau_fast against Q, (c) the power-law exponents gamma_fast and
+gamma_slow from fitting tau = A * Q**gamma, and (d) tau_slow against Q.
+Figure S6, 2 panels, documents the absolute-scale calibration: the ion-chamber
+to photon fit and the air transmission.  See abs_xsec.py.
 
-The SAXS panel is still put on an absolute scale (d(Sigma)/d(Omega)) via a
-coefficient computed PER FILE from that file's own range-averaged ion-chamber
-readings, so a drift in incident flux across the time series is handled
-correctly.  The axis carries the units (mm^-1); the calibration behind them is
-in abs_xsec_coef() and in the long note in the ABSOLUTE SCATTERING CROSS-SECTION
-section.
+The SAXS panel is on an absolute scale, with the coefficient computed PER FILE
+from that file's own range-averaged ion-chamber readings, so a drift in incident
+flux across the series is handled correctly.  The axis carries the units, mm^-1.
 
-Colour encodes elapsed time and is CONSISTENT across all three panels (e.g. the
-7863 s dataset is the same gold everywhere).  In the fit panel the marker SHAPE
-encodes the q bin.  B0146 is a 6 C reference taken before the 30 C isothermal
-run; its acquisition time is not a time origin, so it appears in the SAXS panel
-only.  Because colour means the same thing everywhere, ONE elapsed-time key
-serves all three panels, and it therefore belongs to the figure rather than to
-any one panel: it is a single-row box along the bottom.  Keeping it out of the
-axes means no panel has to carry headroom for it, so all three y ranges sit
-close to their data.  The 6 C reference is NOT one of the elapsed times and
-appears in panel (a) only, so it is keyed separately in that panel's
-bottom-left corner, beside its own curve.  The marker-shape -> q key stays
-inside panel (c), flattened to three columns so it too costs little headroom.
+Colour encodes elapsed time and means the same thing in all three panels of
+Figure 3, so ONE key serves the whole figure and sits in a row along the bottom
+rather than inside any panel; that way no panel needs headroom for it.  Marker
+SHAPE encodes the q bin, and its key stays inside panel (c).  B0146 is a 6 C
+reference taken before the isothermal run, so it is not one of the elapsed times
+and is keyed separately in panel (a), beside its own curve.
 
-Figure geometry follows the ACS figure-preparation guidelines through
-common/acs_style.py: all three multi-panel figures are double-column (7.0 in = the
-504 pt ACS maximum) and every character is 8 pt Arial.  Axis limits are set a
-clear margin outside the data everywhere, so no point is drawn on top of a
-frame.
+Geometry follows common/acs_style.py: double column, 7.0 in, 8 pt Arial.
 
-Fit model and shared exponents
-------------------------------
-The g2 model is a double stretched-exponential (Siegert form):
+FIT MODEL.  A double stretched exponential in the Siegert form,
 
     g2 = contrast * ( f e^-(tau/tau_fast)^p1 + (1-f) e^-(tau/tau_slow)^p2 )^2 + 1
 
-with the contrast fixed at beta = 0.13139, the instrumental value measured on a
-static reference by contrast_calibration.py (Figure S7), and the baseline fixed
-at 1.  For each
-elapsed time all fitted q bins are fit SIMULTANEOUSLY (a global fit): the
-stretching exponents p1 (fast) and p2 (slow) are SHARED across q -- they depend
-only on elapsed time -- while tau_fast, f and tau_slow are independent per q.
-This is the physically motivated constraint that the relaxation-shape exponents
-are a property of the sample state at a given age, not of the q bin, and it
-stabilises the otherwise poorly-conditioned slow mode (tau_slow lies beyond the
-~1.5 s delay window, so its shape cannot be pinned q-by-q).
+with the contrast fixed at beta = 0.13139, measured on a static reference by
+contrast_calibration.py (Figure S7), and the baseline fixed at 1.  At each
+elapsed time all five q bins are fitted SIMULTANEOUSLY: p1 and p2 are shared
+across q, while tau_fast, f and tau_slow are free in each bin.  The shared
+exponents are the physically motivated constraint that relaxation shape is a
+property of the sample state at a given age rather than of the q bin, and they
+stabilise the slow mode, whose tau lies beyond the 1.6 s delay window and so
+cannot be pinned bin by bin.
 
-Uncertainties
--------------
-The fit minimises error-weighted residuals (g2_model - g2)/g2_err using the
-g2_err stored in the averaged files directly (absolute_sigma convention).  The
-parameter covariance is inv(J^T J) at the solution; 1-sigma errors on f, p1 and
-p2 are the square roots of its diagonal.  Because p1/p2 are shared, their
-uncertainty is correctly propagated into f (f errors are larger than a per-q
-fixed-exponent fit would report -- that difference is the exponent systematic,
-now folded in honestly).
+UNCERTAINTIES.  The fit minimises error-weighted residuals using the g2_err
+stored in the averaged files (absolute_sigma convention).  The covariance is the
+pseudo-inverse of J^T J at the solution, and the 1-sigma errors are the square
+roots of its diagonal; see the note in xpcs_fit.py for why a pseudo-inverse.
+Sharing p1 and p2 propagates their uncertainty into f, so the f errors here are
+larger than a per-q fixed-exponent fit would report.  That difference is the
+exponent systematic, folded in honestly.
 """
 
 import glob
@@ -268,7 +246,11 @@ for fp in by_header.get('B0146', []):                        # 6 C reference (di
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
         coef_sam = abs_xsec_coef(hf)                          # this file's own coefficient
     print(f'coef_sam (B0146 {parse_name(fp)[1]}-{parse_name(fp)[2]}) = {coef_sam:.3e}')
-    I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
+    # Put the profile on the absolute scale, then take the buffer off.  The
+    # buffer already carries its own coefficient, so both terms are absolute.
+    I = coef_sam * I
+    if bg_I is not None:
+        I = I - coef_buf * bg_I
     pos = I > 0
     saxs_I_lo, saxs_I_hi = min(saxs_I_lo, I[pos].min()), max(saxs_I_hi, I[pos].max())
     ax1.plot(q[pos], I[pos], color=COLOR_6C, marker='s', ls='none', ms=MS,
@@ -282,7 +264,11 @@ for fp in saxs_files:                                        # first (0 s) + las
         q, I = read_saxs_iq(hf, PHI_AVERAGE)
         coef_sam = abs_xsec_coef(hf)                          # this file's own coefficient
     print(f'coef_sam (B0147 {parse_name(fp)[1]}-{parse_name(fp)[2]}) = {coef_sam:.3e}')
-    I = coef_sam * I - coef_buf * bg_I if bg_I is not None else coef_sam * I
+    # Put the profile on the absolute scale, then take the buffer off.  The
+    # buffer already carries its own coefficient, so both terms are absolute.
+    I = coef_sam * I
+    if bg_I is not None:
+        I = I - coef_buf * bg_I
     pos = I > 0
     saxs_I_lo, saxs_I_hi = min(saxs_I_lo, I[pos].min()), max(saxs_I_hi, I[pos].max())
     color = ecolor(fp)
@@ -356,9 +342,15 @@ add_minor_grid(ax2)
 # limits leave a clear margin either side of the shortest / longest delay.
 ax2.set_xlim(9e-6, 5.0)
 ax2.xaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
-ax2.xaxis.set_major_formatter(FuncFormatter(
-    lambda x, _pos: rf'$10^{{{int(round(np.log10(x)))}}}$'
-                    if int(round(np.log10(x))) % 2 == 0 else ''))
+def every_other_decade(x, _pos):
+    """Label 1e-4, 1e-2, 1e0 and leave the odd decades blank, to avoid crowding."""
+    power = int(round(np.log10(x)))
+    if power % 2 != 0:
+        return ''
+    return rf'$10^{{{power}}}$'
+
+
+ax2.xaxis.set_major_formatter(FuncFormatter(every_other_decade))
 
 # ============================================================
 # PANEL 3: fitted fast fraction f vs elapsed time (colour=time, marker=q)

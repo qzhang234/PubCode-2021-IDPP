@@ -43,7 +43,9 @@ def parse_name(fname):
     directory listing by frame range without crashing on a stray file.
     """
     m = _NAME_RE.search(os.path.basename(fname))
-    return (m.group(1), int(m.group(2)), int(m.group(3))) if m else (None, -1, -1)
+    if m is None:
+        return None, -1, -1
+    return m.group(1), int(m.group(2)), int(m.group(3))
 
 
 def read_start_time(hf):
@@ -77,11 +79,15 @@ def read_saxs_iq(hf, phi_average=True):
     n_phi = hf[STATIC_PHI_PATH].shape[0]
     q_idx = idx_map // n_phi
     uq = np.unique(q_idx)
-    if phi_average and n_phi > 1:
-        inten = np.array([np.nanmean(intensity[q_idx == qi]) for qi in uq])
-    else:
-        inten = np.array([intensity[q_idx == qi][0] for qi in uq])
-    return q_list[uq], inten
+
+    inten = []
+    for qi in uq:
+        entries = intensity[q_idx == qi]          # every phi sector at this Q
+        if phi_average and n_phi > 1:
+            inten.append(np.nanmean(entries))
+        else:
+            inten.append(entries[0])
+    return q_list[uq], np.array(inten)
 
 
 def read_g2(hf):
@@ -93,7 +99,9 @@ def read_g2(hf):
     # frame_time is a single number, stored as a tiny array in some files and as
     # a plain scalar in others; .item() pulls the number out of either.
     t0 = hf[FRAME_TIME_PATH][()]
-    t0 = t0.item() if isinstance(t0, np.ndarray) else t0
+    if isinstance(t0, np.ndarray):
+        t0 = t0.item()
     tau = hf[DELAY_PATH][()] * t0
-    tau = tau[:, 0] if tau.ndim > 1 else tau      # some files store it as a column
+    if tau.ndim > 1:
+        tau = tau[:, 0]                           # some files store it as a column
     return tau, hf[G2_PATH][()], hf[G2_ERR_PATH][()], hf[DYN_Q_PATH][()]
