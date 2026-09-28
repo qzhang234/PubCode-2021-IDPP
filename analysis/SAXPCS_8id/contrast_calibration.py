@@ -46,7 +46,7 @@ the range used for the sample.
 Panel (b) is flat at about 0.132 out to q ~ 0.021 A^-1 and then falls off,
 reaching 0.107 in the outermost bin at q = 0.0331 A^-1.  That falloff is real
 and instrumental, not a defect of the standard: the 0.03 % bandwidth passed by
-the Si(111) monochromator at 10.91 keV gives a finite LONGITUDINAL coherence
+the Si(111) monochromator at 10.94 keV gives a finite LONGITUDINAL coherence
 length, and the path-length difference across the scattering volume grows with
 scattering angle, so contrast is progressively lost as q rises.  All five bins
 used for the sample sit well below that onset.
