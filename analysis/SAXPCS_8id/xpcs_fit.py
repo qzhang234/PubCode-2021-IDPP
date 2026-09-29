@@ -46,6 +46,14 @@ P_EXP_P0 = [0.5, 0.5]
 P_EXP_LO = [0.2, 0.2]
 P_EXP_HI = [3.0, 3.0]
 
+# Mean collective diffusion coefficient, used only by fit_g2_diffusive.  <D> is
+# of order 1e7 A^2/s while every other fitted parameter is of order 1, so it is
+# fitted in units of D_SCALE.  Without that rescaling its Jacobian column is
+# ~1e-8 smaller than the rest, J^T J is numerically singular in that direction,
+# and the pseudo-inverse returns a zero uncertainty for it.
+D_SCALE = 1e7
+D_LO, D_HI = 1e-5, 1e3          # in units of D_SCALE
+
 
 def double_exp(tau, tau_fast, f, tau_slow, p1, p2):
     """Two-mode g2: a fraction f of the scattering relaxes fast, 1-f slowly.
@@ -176,73 +184,169 @@ def mean_tau(tau_se, p):
     return tau_se * gamma_fn(1.0 / p) / p
 
 
-def fit_g2_joint(datasets, q_indices):
-    """One fit of the whole waiting-time series, sharing p_fast across it.
+def eff_diffusion(D0, p):
+    """Effective diffusion coefficient from the Kohlrausch one.
 
-    WHY.  Fitted separately, each elapsed time returns its own p_fast, and those
-    ran 0.47 to 0.68 across the series.  A Kohlrausch tau is not comparable
-    between fits with different p -- the mean time carries a factor
-    Gamma(1/p)/p that moves by 50 % over that range -- so a trend in tau_fast
-    against waiting time could not be read as a trend in relaxation rate.
-    p_fast is therefore fitted once for the series.  One value describes it: the
-    chi^2/dof profile is flat to 1 % between 0.55 and 0.70, and letting it float
-    per time improves chi^2/dof only from 1.201 to 1.188 for four more
-    parameters.
+    Equation 2 parameterises the fast mode as tau_fast(Q) = 1/(D0 Q^2), so D0 is
+    built from the Kohlrausch time.  A stretched exponential does not relax on
+    that time: its mean is <tau> = Gamma(1/p) tau / p (Guo et al., Phys. Rev.
+    Lett. 109, 055901 (2012)).  The effective coefficient, the one that belongs
+    with a mean relaxation time and the one the XPCS literature quotes, is
 
-    p_slow is left free at every elapsed time.  tau_slow lies beyond the
-    acquisition window and is never used for scaling, so constraining it buys
-    nothing and costs fit quality.
+        D_eff = 1/(<tau_fast> Q^2) = [p / Gamma(1/p)] D0.
 
-    tau_fast stays free in every q bin, so the diffusive q^-2 scaling remains a
-    result to be tested rather than an assumption; it holds within uncertainty
-    at the elapsed times where the fast mode is resolved.
-
-    datasets: list of (tau, g2, g2_err) in waiting-time order.
-    Returns (joint, per_time):
-      joint    = {'p1','p1_err','red_chi2','n_par'}      # p1 = shared p_fast
-      per_time = list of fit_g2_global-style dicts, one per dataset, refitted at
-                 the shared p_fast so callers get the familiar per_q structure
-                 and each time keeps its own p_slow.
+    With p shared across the waiting-time series this is a constant rescaling,
+    but it is what keeps D_eff comparable between fits if p ever differs.
     """
-    # Seed from independent per-time fits.
+    return D0 * p / gamma_fn(1.0 / p)
+
+
+def fit_g2_diffusive(tau, g2, g2_err, q_indices, q_vals, p1_fixed=None):
+    """Two-mode fit with the fast mode constrained to diffuse: Equation 2.
+
+    tau_fast is not free in each q bin.  It is tied to a single coefficient,
+
+        tau_fast(Q) = 1 / (D0 Q^2),
+
+    which is the model the paper reports.  Diffusion is the first thing to try,
+    and it describes the data.  A stretched g2 is still diffusive provided p
+    does not depend on Q and tau goes as Q^-2: the first holds by construction
+    here, and the second is what an unconstrained fit returns, with Q exponents
+    of -2.08 to -2.37 at the elapsed times where the fast mode is resolved.
+
+    p1_fixed holds p_fast at the value fit_g2_joint shares across the series.
+    p_slow is always free: tau_slow lies beyond the acquisition window and is
+    never used for scaling, so constraining it buys nothing.
+
+    Parameter vector = [p_fast (omitted when fixed), p_slow, D0] followed by
+    (f, tau_slow) for each q bin.  D0 is fitted in units of D_SCALE because it
+    is of order 1e7 A^2/s while every other parameter is of order 1; without
+    that rescaling its Jacobian column is small enough that the pseudo-inverse
+    returns a zero uncertainty for it.
+
+    Returns a fit_g2_global-style dict with 'D0', 'D0_err', 'D_eff' and
+    'D_eff_err' added, or None if no q bin has usable data.
+    """
+    data = []
+    for qi in q_indices:
+        usable = (tau > 0) & np.isfinite(g2[:, qi]) & (g2_err[:, qi] > 0)
+        if usable.sum() >= 5:
+            data.append((qi, tau[usable], g2[usable, qi], g2_err[usable, qi]))
+    nq = len(data)
+    if nq == 0:
+        return None
+    qs = np.array([q_vals[qi] for qi, _, _, _ in data])
+
+    # Seed from the unconstrained fit, whose tau_fast gives a starting D0.
+    free = fit_g2_global(tau, g2, g2_err, q_indices, p1_fixed=p1_fixed)
+    if free is None:
+        return None
+    d_seed = float(np.median([1.0 / (free['per_q'][qi]['tau_fast'] * q ** 2)
+                              for (qi, _, _, _), q in zip(data, qs)])) / D_SCALE
+
+    # Head of the parameter vector: p_fast only when it is free, then p_slow and
+    # D0.  HEAD is where the per-bin (f, tau_slow) pairs begin.
+    HEAD = 2 if p1_fixed is not None else 3
+
+    def unpack(p):
+        pf = p1_fixed if p1_fixed is not None else p[0]
+        return pf, p[HEAD - 2], p[HEAD - 1] * D_SCALE        # p_fast, p_slow, D0
+
+    def pair(p, i):
+        return p[HEAD + 2 * i], p[HEAD + 2 * i + 1]           # f, tau_slow
+
+    def residual(p):
+        pf, ps, D0 = unpack(p)
+        parts = []
+        for i, (qi, tv, gv, ev) in enumerate(data):
+            f, ts = pair(p, i)
+            parts.append((double_exp(tv, 1.0 / (D0 * qs[i] ** 2), f, ts, pf, ps)
+                          - gv) / ev)
+        return np.concatenate(parts)
+
+    x0 = ([] if p1_fixed is not None else [free['p1']]) + [free['p2'], d_seed]
+    lo = ([] if p1_fixed is not None else [P_EXP_LO[0]]) + [P_EXP_LO[1], D_LO]
+    hi = ([] if p1_fixed is not None else [P_EXP_HI[0]]) + [P_EXP_HI[1], D_HI]
+    for qi, _, _, _ in data:
+        pq = free['per_q'][qi]
+        x0 += [pq['f'], pq['tau_slow']]
+        lo += [PQ_LO[1], PQ_LO[2]]
+        hi += [PQ_HI[1], PQ_HI[2]]
+    x0 = [min(max(v, l), h) for v, l, h in zip(x0, lo, hi)]
+    res = least_squares(residual, x0, bounds=(lo, hi), max_nfev=120000)
+
+    ndof = max(len(res.fun) - len(res.x), 1)
+    cov = np.linalg.pinv(res.jac.T @ res.jac, rcond=1e-12)
+    perr = np.sqrt(np.abs(np.diag(cov)))
+    pf, ps, D0 = unpack(res.x)
+    D0_err = perr[HEAD - 1] * D_SCALE
+    scale = pf / gamma_fn(1.0 / pf)
+    out = {'p1': pf, 'p1_err': 0.0 if p1_fixed is not None else perr[0],
+           'p2': ps, 'p2_err': perr[HEAD - 2],
+           'D0': D0, 'D0_err': D0_err,
+           'D_eff': scale * D0, 'D_eff_err': scale * D0_err,
+           'red_chi2': float(np.sum(res.fun**2) / ndof),
+           'n_par': len(res.x), 'per_q': {}}
+    for i, (qi, tv, gv, ev) in enumerate(data):
+        tf = 1.0 / (D0 * qs[i] ** 2)
+        f, ts = pair(res.x, i)
+        f_err, ts_err = pair(perr, i)
+        out['per_q'][qi] = {'tau_fast': tf, 'tau_fast_err': tf * D0_err / D0,
+                            'f': f, 'f_err': f_err,
+                            'tau_slow': ts, 'tau_slow_err': ts_err}
+    return out
+
+
+def fit_g2_joint(datasets, q_vals_list, q_indices):
+    """Fit the whole waiting-time series with Equation 2, sharing p_fast.
+
+    Each elapsed time gets its own D0, p_slow, and (f, tau_slow) per q bin;
+    p_fast is one number for the series.  Sharing it costs nothing -- reduced
+    chi^2 is no worse than letting it float, for four fewer parameters -- and
+    the chi^2 profile is flat to within 1 % between p_fast 0.55 and 0.70, so
+    the data cannot resolve five separate values.  Letting a poorly determined
+    p float also lets it trade against tau_fast, which is what makes relaxation
+    times incomparable between elapsed times in the first place.
+
+    Returns (joint, per_time) with joint = {'p1','p1_err','red_chi2','n_par'}.
+    """
     seeds = [fit_g2_global(t, g, e, q_indices) for t, g, e in datasets]
     if not any(s is not None for s in seeds):
         return None, None
     p1_0 = float(np.mean([s['p1'] for s in seeds if s is not None]))
 
-    # Assemble the usable delay points once, in the order the residual walks them.
-    blocks = []
-    for (tau, g2, g2_err) in datasets:
+    blocks, qss = [], []
+    for (tau, g2, g2_err), q_vals in zip(datasets, q_vals_list):
         d = []
         for qi in q_indices:
             usable = (tau > 0) & np.isfinite(g2[:, qi]) & (g2_err[:, qi] > 0)
             if usable.sum() >= 5:
                 d.append((qi, tau[usable], g2[usable, qi], g2_err[usable, qi]))
         blocks.append(d)
+        qss.append(np.array([q_vals[qi] for qi, _, _, _ in d]))
 
-    # Parameter vector: [p_fast] then, per elapsed time, [p_slow, (tau_fast, f,
-    # tau_slow) x nq].  starts[k] is where elapsed time k's p_slow sits, so its
-    # q bins begin one entry later.
-    starts, x0, lo, hi = [], [p1_0], [0.2], [3.0]
-    for d, s in zip(blocks, seeds):
+    # [p_fast] then, per elapsed time, [p_slow, D0, (f, tau_slow) x nq].
+    starts, x0, lo, hi = [], [p1_0], [P_EXP_LO[0]], [P_EXP_HI[0]]
+    for d, qs, s in zip(blocks, qss, seeds):
         starts.append(len(x0))
-        x0.append(s['p2'] if s else P_EXP_P0[1])
-        lo.append(P_EXP_LO[1])
-        hi.append(P_EXP_HI[1])
-        for i, (qi, _, _, _) in enumerate(d):
-            pq = s['per_q'].get(qi) if s else None
-            x0 += [pq['tau_fast'], pq['f'], pq['tau_slow']] if pq else list(PQ_P0)
-            lo += list(PQ_LO)
-            hi += list(PQ_HI)
+        d0 = float(np.median([1.0 / (s['per_q'][qi]['tau_fast'] * q ** 2)
+                              for (qi, _, _, _), q in zip(d, qs)])) / D_SCALE
+        x0 += [s['p2'], d0]; lo += [P_EXP_LO[1], D_LO]; hi += [P_EXP_HI[1], D_HI]
+        for qi, _, _, _ in d:
+            pq = s['per_q'][qi]
+            x0 += [pq['f'], pq['tau_slow']]
+            lo += [PQ_LO[1], PQ_LO[2]]
+            hi += [PQ_HI[1], PQ_HI[2]]
     x0 = [min(max(v, l), h) for v, l, h in zip(x0, lo, hi)]
 
     def residual(p):
         parts = []
-        for d, st in zip(blocks, starts):
-            p2 = p[st]
+        for d, qs, st in zip(blocks, qss, starts):
+            ps, D0 = p[st], p[st + 1] * D_SCALE
             for i, (qi, tv, gv, ev) in enumerate(d):
-                tf, f, ts = bin_params(p, i, offset=st + 1)
-                parts.append((double_exp(tv, tf, f, ts, p[0], p2) - gv) / ev)
+                f, ts = p[st + 2 + 2 * i], p[st + 3 + 2 * i]
+                parts.append((double_exp(tv, 1.0 / (D0 * qs[i] ** 2), f, ts,
+                                         p[0], ps) - gv) / ev)
         return np.concatenate(parts)
 
     res = least_squares(residual, x0, bounds=(lo, hi), max_nfev=300000)
@@ -251,10 +355,6 @@ def fit_g2_joint(datasets, q_indices):
     perr = np.sqrt(np.abs(np.diag(cov)))
     joint = {'p1': res.x[0], 'p1_err': perr[0],
              'red_chi2': float(np.sum(res.fun**2) / ndof), 'n_par': len(res.x)}
-
-    # Refit each elapsed time at the shared p_fast.  Same parameters the joint
-    # fit found, but each time then carries its own covariance and p_slow, and
-    # callers get the per_q dict they already expect.
-    per_time = [fit_g2_global(t, g, e, q_indices, p1_fixed=res.x[0])
-                for t, g, e in datasets]
+    per_time = [fit_g2_diffusive(t, g, e, q_indices, qv, p1_fixed=res.x[0])
+                for (t, g, e), qv in zip(datasets, q_vals_list)]
     return joint, per_time

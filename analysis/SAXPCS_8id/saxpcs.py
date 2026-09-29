@@ -217,12 +217,13 @@ for fp in xpcs_files:
 # fit_g2_joint).  tau_fast stays free in each q bin, so the q^-2 scaling below
 # is a result and not an assumption.
 joint, _per_time = fit_g2_joint([g2_data[fp][:3] for fp in xpcs_files],
+                                [g2_data[fp][3] for fp in xpcs_files],
                                 fit_q_indices)
 fits = dict(zip(xpcs_files, _per_time))
 MEAN_TAU_FACTOR = mean_tau(1.0, joint['p1'])   # <tau>/tau_SE, a constant here
 print(f"  joint fit: {joint['n_par']} par, chi2/dof = {joint['red_chi2']:.3f}, "
       f"shared p_fast = {joint['p1']:.3f}+/-{joint['p1_err']:.3f}, "
-      f"<tau_fast>/tau_SE = {MEAN_TAU_FACTOR:.3f}")
+      f"<tau>/tau_SE = {MEAN_TAU_FACTOR:.3f}")
 for fp in xpcs_files:
     r = fits[fp]
     if r is not None:
@@ -430,34 +431,24 @@ add_minor_grid(ax3)
 # f has nearly vanished -- and those error bars are left visible rather than the
 # points dropped.  Filled black squares against the open coloured f markers.
 ax3r = ax3.twinx()
-d_rows = []
-for fp in xpcs_files:
-    r = fits[fp]
-    if r is None or r['red_chi2'] >= CHI2_MAX:
-        continue
-    _, _, _, q_vals = g2_data[fp]
-    qs = sorted(r['per_q'])
-    Q  = np.array([q_vals[qi] for qi in qs])
-    tf = np.array([r['per_q'][qi]['tau_fast'] for qi in qs])
-    te = np.array([r['per_q'][qi]['tau_fast_err'] for qi in qs])
-    fv = np.array([r['per_q'][qi]['f'] for qi in qs])
-    fe = np.array([r['per_q'][qi]['f_err'] for qi in qs])
-    det = (fv > 3 * fe) & (te < tf)
-    if det.sum() < 2:
-        continue
-    Dv = 1.0 / (mean_tau(tf[det], joint['p1']) * Q[det] ** 2)
-    w  = (tf[det] / te[det]) ** 2
-    d_rows.append((elapsed(fp), np.average(Dv, weights=w), Dv.std(ddof=1)))
+# D_eff is a fitted parameter of Equation 2, not a quantity derived afterwards:
+# the fast mode is tied to tau_fast(Q) = 1/(D0 Q^2) in the model, and D_eff is
+# D0 rescaled by p/Gamma(1/p) so that it belongs with the MEAN relaxation time.
+# Its error bar therefore comes from the covariance matrix.
+d_rows = [(elapsed(fp), fits[fp]['D_eff'], fits[fp]['D_eff_err'])
+          for fp in xpcs_files
+          if fits[fp] is not None and fits[fp]['red_chi2'] < CHI2_MAX]
+d_rows.sort()
 d_rows.sort()
 xd = [r[0] for r in d_rows]
 yd = [r[1] / 1e7 for r in d_rows]
 ed = [r[2] / 1e7 for r in d_rows]
-ax3r.errorbar(xd, yd, yerr=ed, marker='s', ls='none', color='k',
-              markersize=MS_SPARSE, capsize=1.5, mew=MEW,
+ax3r.errorbar(xd, yd, yerr=ed, marker='*', ls='none', color='k',
+              markersize=MS_SPARSE + 2.5, capsize=1.5, mfc='none', mew=MEW,
               elinewidth=LW_THIN, capthick=LW_THIN, zorder=4)
-ax3r.set_ylabel(r'$\langle D \rangle$ ($10^{7}\ \AA^{2}\,$s$^{-1}$)')
+ax3r.set_ylabel(r'$D_{\mathrm{eff}}$ ($10^{7}\ \AA^{2}\,$s$^{-1}$)')
 ax3r.set_ylim(0, max(y + e for y, e in zip(yd, ed)) * 1.30)
-print('  <D> (1e7 A^2/s): ' + '  '.join(f'{x:.0f}s {y:.2f}+/-{e:.2f}'
+print('  D_eff (1e7 A^2/s): ' + '  '.join(f'{x:.0f}s {y:.2f}+/-{e:.2f}'
                                         for x, y, e in zip(xd, yd, ed)))
 
 # --- shared elapsed-time key, one row along the bottom of the figure ---
@@ -481,15 +472,34 @@ save_fig(fig, 'Figure3_Isothermal_SAXPCS.pdf')
 # x-axis -- so only the bottom row needs x tick labels / an x-axis label.
 # All XPCS colours use the same elapsed-time scale as Figure 3.
 # ============================================================
-fig2, (axf, axs, axg) = plt.subplots(1, 3, figsize=FIG2_SIZE)
-label_panels((axf, axs, axg))   # reading order: a b c
+fig2, (axps, axs, axg) = plt.subplots(1, 3, figsize=FIG2_SIZE)
+label_panels((axps, axs, axg))   # reading order: a b c
 
-# The stretching exponents are no longer a panel of their own: fit_g2_joint
-# shares them across the whole waiting-time series, so they are two numbers,
-# quoted in the caption, rather than a curve against elapsed time.
+# The fast mode has no panel of its own here.  Equation 2 ties it to
+# tau_fast(Q) = 1/(D0 Q^2), so a plot of it against Q would be that line and
+# nothing else; the one number it contains, D_eff, is in Figure 3c.  p_fast is
+# likewise a single fitted value for the series and is quoted in the caption.
+# What remains are the slow-mode parameters, which are free at every elapsed
+# time.
 
-# --- (b, c) relaxation times vs Q, one curve per elapsed time; also fit each
-# elapsed time's tau(Q) to a power law tau = A * Q**gamma for panel (d). ---
+# --- (a) slow-mode stretching exponent vs elapsed time ---
+p2_rows = sorted((elapsed(fp), fits[fp]['p2'], fits[fp]['p2_err'], fp)
+                 for fp in xpcs_files
+                 if fits[fp] is not None and fits[fp]['red_chi2'] < CHI2_MAX)
+axps.plot([r[0] for r in p2_rows], [r[1] for r in p2_rows], '-',
+          color='0.75', lw=LW_THIN, zorder=1)
+for x, y, e, fp in p2_rows:
+    axps.errorbar(x, y, yerr=e, marker='s', color=ecolor(fp),
+                  markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
+                  elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
+axps.set_xlabel('Elapsed Time (s)')
+axps.set_ylabel(r'$p_{\mathrm{slow}}$')
+add_minor_grid(axps)
+_tp = 0.16 * (p2_rows[-1][0] - p2_rows[0][0])
+axps.set_xlim(p2_rows[0][0] - _tp, p2_rows[-1][0] + _tp)
+
+# --- (b) mean slow relaxation time vs Q, one curve per elapsed time; each is
+# fitted to a power law tau = A Q**gamma for panel (c). ---
 gamma_rows = []
 for fp in xpcs_files:
     r = fits[fp]
@@ -497,63 +507,28 @@ for fp in xpcs_files:
         continue
     _, _, _, q_vals = g2_data[fp]
     qs = sorted(r['per_q'])
-    Q      = np.array([q_vals[qi] for qi in qs])
-    # Mean relaxation times, not the bare Kohlrausch tau: with p shared across
-    # the series this is a constant rescaling per mode, but <tau> is the
-    # physically meaningful time and the one the XPCS literature quotes.
-    tf     = mean_tau(np.array([r['per_q'][qi]['tau_fast'] for qi in qs]), joint['p1'])
-    tf_err = mean_tau(np.array([r['per_q'][qi]['tau_fast_err'] for qi in qs]), joint['p1'])
+    Q  = np.array([q_vals[qi] for qi in qs])
+    # Mean relaxation time, not the bare Kohlrausch tau: <tau> = Gamma(1/p) tau / p.
     ts     = mean_tau(np.array([r['per_q'][qi]['tau_slow'] for qi in qs]), r['p2'])
     ts_err = mean_tau(np.array([r['per_q'][qi]['tau_slow_err'] for qi in qs]), r['p2'])
-    f_val  = np.array([r['per_q'][qi]['f'] for qi in qs])
-    f_err  = np.array([r['per_q'][qi]['f_err'] for qi in qs])
-    # tau_fast only means something where a fast mode is actually detected AND
-    # its time constant is resolved.  At the last elapsed time the lowest q bin
-    # fits f = 0.012 +/- 0.004: a 3.1 sigma amplitude, which passes an
-    # amplitude-only test, but with tau_fast = 1.1 +/- 1.3 s -- three decades
-    # above every other bin, and consistent with anything.  Keeping it drags the
-    # tau_fast(Q) power law to gamma = -4.3, and at a contrast 1 % lower, where
-    # the same bin fits f = 0.000 and tau_fast rails to 7.6 s, to gamma = -15.
-    # A bin therefore enters panel (b) and the gamma_fast fit only when BOTH
-    # parameters are measured: the amplitude at least 3 sigma from zero and the
-    # relaxation time to better than 100 %.  Every other bin in the series comes
-    # in at 34-63 %, so the test separates cleanly.  The slow mode carries every
-    # bin.
-    det = (f_val > 3 * f_err) & (tf_err < tf)
     color  = ecolor(fp)
-    lbl    = f'{elapsed(fp):.0f} s'
-    axf.errorbar(Q[det], tf[det], yerr=tf_err[det], marker='o', ls='none', color=color,
-                 markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
-                 elinewidth=LW_THIN, capthick=LW_THIN, label=lbl, zorder=2)
     axs.errorbar(Q, ts, yerr=ts_err, marker='s', ls='none', color=color,
                  markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
-                 elinewidth=LW_THIN, capthick=LW_THIN, label=lbl, zorder=2)
-    if det.sum() < len(Q):
-        print(f'    (t_w={elapsed(fp):.0f} s: {int((~det).sum())} q bin(s) dropped '
-              f'from the fast-mode panel: f or tau_fast not measured)')
-
+                 elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
     if len(Q) >= 3:
-        gf, gf_err, gf_A = fit_powerlaw(Q[det], tf[det], tf_err[det]) if det.sum() >= 3 \
-            else (np.nan, np.nan, np.nan)
         gs, gs_err, gs_A = fit_powerlaw(Q, ts, ts_err)
         Q_line = np.linspace(Q.min(), Q.max(), 50)
-        if np.isfinite(gf):
-            Q_line_fast = np.linspace(Q[det].min(), Q[det].max(), 50)
-            axf.plot(Q_line_fast, gf_A * Q_line_fast**gf,
-                     '--', color=color, lw=LW_DATA, zorder=1)
         axs.plot(Q_line, gs_A * Q_line**gs, '--', color=color, lw=LW_DATA, zorder=1)
         gamma_rows.append({'elapsed': elapsed(fp), 'fp': fp,
-                           'gamma_fast': gf, 'gamma_fast_err': gf_err,
                            'gamma_slow': gs, 'gamma_slow_err': gs_err})
-        print(f'  gamma {elapsed(fp):5.0f} s: gamma_fast={gf:.3f}+/-{gf_err:.3f} '
-              f'gamma_slow={gs:.3f}+/-{gs_err:.3f}')
+        print(f'  gamma_slow {elapsed(fp):5.0f} s: {gs:.3f}+/-{gs_err:.3f}')
 
 # Q ticks: label the mantissa (4..8); the x10^-3 factor is folded into the
 # shared x-axis label on the bottom row instead of a separate corner text.
 _q_major = [4e-3, 5e-3, 6e-3, 7e-3, 8e-3]
 # integer multiples of 10^-3 only; see the note on Figure 3a above
 _q_minor = [9e-3]
-for a in (axf, axs):
+for a in (axs,):
     a.set_xscale('log')
     a.set_yscale('log')
     a.set_xlim(3.25e-3, 9.6e-3)          # margin either side of Q = 3.76-8.27
@@ -562,34 +537,26 @@ for a in (axf, axs):
     a.xaxis.set_minor_locator(FixedLocator(_q_minor))
     a.xaxis.set_major_formatter(FixedFormatter(['4', '5', '6', '7', '8']))
     a.xaxis.set_minor_formatter(NullFormatter())
-axf.set_ylabel(r'$\langle\tau_{\mathrm{fast}}\rangle$ (s)')
-axf.set_xlabel(r'$Q$ ($\times 10^{-3}\ \AA^{-1}$)')
 axs.set_ylabel(r'$\langle\tau_{\mathrm{slow}}\rangle$ (s)')
 axs.set_xlabel(r'$Q$ ($\times 10^{-3}\ \AA^{-1}$)')
 
 # --- (d) power-law scaling exponents gamma_fast, gamma_slow vs elapsed time ---
 gamma_rows.sort(key=lambda r: r['elapsed'])
 xg = [r['elapsed'] for r in gamma_rows]
-axg.plot(xg, [r['gamma_fast'] for r in gamma_rows], '-', color='0.75', lw=LW_THIN, zorder=1)
+# gamma_fast is imposed at -2 in the refit that yields <D>, so it is not a
+# fitted quantity and is not plotted; the free-fit values that justify imposing
+# it (-2.08 to -2.37) are quoted in the text.  The reference line marks -2.
 axg.plot(xg, [r['gamma_slow'] for r in gamma_rows], '-', color='0.75', lw=LW_THIN, zorder=1)
-for r in gamma_rows:                                 # gamma_fast = circle, gamma_slow = square
-    axg.errorbar(r['elapsed'], r['gamma_fast'], yerr=r['gamma_fast_err'], marker='o',
-                 color=ecolor(r['fp']), markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
-                 elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
+for r in gamma_rows:
     axg.errorbar(r['elapsed'], r['gamma_slow'], yerr=r['gamma_slow_err'], marker='s',
                  color=ecolor(r['fp']), markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
                  elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
-g_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MEW,
-                    markersize=MS_SPARSE, label=r'$\gamma_{\mathrm{fast}}$'),
-             Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MEW,
-                    markersize=MS_SPARSE, label=r'$\gamma_{\mathrm{slow}}$')]
 # Bottom right, in two columns.  NOT the lower left, which holds the 5040 s
 # gamma_slow point (-3.78 +/- 0.37), the lowest in the panel; a box there hides
 # it completely.  On the right the lowest thing is the 7863 s gamma_fast error
 # bar, which stops at -3.33.
-axg.legend(handles=g_handles, loc='lower right', ncol=2)
 axg.set_xlabel('Elapsed Time (s)')
-axg.set_ylabel(r'Scaling exponent ($\gamma$)')
+axg.set_ylabel(r'Slow-mode exponent ($\gamma_{\mathrm{slow}}$)')
 add_minor_grid(axg)
 
 # Widen the elapsed-time axis so the first and last points are not sitting on
@@ -601,7 +568,7 @@ axg.set_xlim(min(_xe) - _t_pad2, max(_xe) + _t_pad2)
 
 # matplotlib's default 5 % y margin leaves the extreme error-bar caps ~1 mm off
 # the frame; widen it for some breathing room.
-for a in (axf, axs, axg):
+for a in (axs, axg):
     a.set_ymargin(0.11)
     a.autoscale_view()
 

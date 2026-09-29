@@ -90,6 +90,7 @@ label_panels(axes.flat)
 # The exponents are shared across the whole waiting-time series, exactly as in
 # saxpcs.py, so these curves are the fits the paper reports.
 _joint, _per_time = fit_g2_joint([data[fp][:3] for fp in xpcs_files],
+                                 [data[fp][3] for fp in xpcs_files],
                                  fit_q_indices)
 fits = dict(zip(xpcs_files, _per_time))
 print(f"  joint fit: chi2/dof = {_joint['red_chi2']:.3f}, "
