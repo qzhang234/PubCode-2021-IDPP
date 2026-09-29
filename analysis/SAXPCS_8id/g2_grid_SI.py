@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 from common.acs_style import (DOUBLE_COL, MS, MEW, LW_THIN, LW_DATA,
                               apply_style, add_minor_grid, label_panels, save_fig)
 from matplotlib.lines import Line2D
-from xpcs_fit import double_exp, fit_g2_global
+from xpcs_fit import double_exp, fit_g2_joint
 
 FIG_SIZE = (DOUBLE_COL, 5.0)         # 2x2 panels + the shared key row beneath
 LEGEND_H = 0.05                      # height fraction reserved for that key
@@ -87,10 +87,13 @@ label_panels(axes.flat)
 
 # One global fit per elapsed time, over all five q bins at once -- identical to
 # saxpcs.py, so the curves below are the fits the paper reports.
-fits = {}
-for fp in xpcs_files:
-    tau, g2, g2_err, q_vals = data[fp]
-    fits[fp] = fit_g2_global(tau, g2, g2_err, fit_q_indices)
+# The exponents are shared across the whole waiting-time series, exactly as in
+# saxpcs.py, so these curves are the fits the paper reports.
+_joint, _per_time = fit_g2_joint([data[fp][:3] for fp in xpcs_files],
+                                 fit_q_indices)
+fits = dict(zip(xpcs_files, _per_time))
+print(f"  joint fit: chi2/dof = {_joint['red_chi2']:.3f}, "
+      f"shared p_fast = {_joint['p1']:.3f}")
 
 for ax, q_idx in zip(axes.flat, grid_q_indices):
     for fp in xpcs_files:

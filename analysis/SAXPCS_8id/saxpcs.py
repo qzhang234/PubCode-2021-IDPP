@@ -73,7 +73,7 @@ data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 FIG1_SIZE = (DOUBLE_COL, 3.15)        # 3 panels + the shared key row beneath them
 FIG1_LEGEND_H = 0.075                # fraction of the height reserved at the
                                      # bottom for that shared key
-FIG2_SIZE = (DOUBLE_COL, 4.2)        # 2x2 fit-parameter panels
+FIG2_SIZE = (DOUBLE_COL, 2.6)        # 1x3 fit-parameter panels
 FIG3_SIZE = (DOUBLE_COL, 2.9)        # 2 calibration panels
 # Panel (a) carries no key of its own except the one-line 6 C reference in the
 # bottom-left corner, so its limits sit just clear of the data: a little over a
@@ -110,7 +110,8 @@ COLOR_6C = '#1f77b4'                 # B0146 (6 C reference, before isothermal)
 # --- FIT MODEL ---
 # The model, the measured contrast and the global fit live in xpcs_fit.py so
 # that Figure 3b, Figure S8 and Figure S9 provably share one implementation.
-from xpcs_fit import double_exp, fit_g2_global   # noqa: E402
+from xpcs_fit import (double_exp, fit_g2_joint,   # noqa: E402
+                      mean_tau)
 
 
 # ============================================================================
@@ -207,17 +208,27 @@ print('XPCS files:', [f'{parse_name(f)[1]}-{parse_name(f)[2]} ({elapsed(f):.0f} 
 # --- GLOBAL FITS (one per elapsed time; p1, p2 shared across q) ---
 # Fit each XPCS file once and reuse the result in every panel.
 g2_data = {}   # fp -> (tau, g2, g2_err, q_vals)
-fits = {}      # fp -> result dict from fit_g2_global
 for fp in xpcs_files:
     with h5py.File(fp, 'r') as hf:
         g2_data[fp] = read_g2(hf)
-    tau, g2, g2_err, q_vals = g2_data[fp]
-    fits[fp] = fit_g2_global(tau, g2, g2_err, fit_q_indices)
+
+# One fit of the whole series: the two stretching exponents are shared across
+# every elapsed time so that relaxation times ARE comparable between them (see
+# fit_g2_joint).  tau_fast stays free in each q bin, so the q^-2 scaling below
+# is a result and not an assumption.
+joint, _per_time = fit_g2_joint([g2_data[fp][:3] for fp in xpcs_files],
+                                fit_q_indices)
+fits = dict(zip(xpcs_files, _per_time))
+MEAN_TAU_FACTOR = mean_tau(1.0, joint['p1'])   # <tau>/tau_SE, a constant here
+print(f"  joint fit: {joint['n_par']} par, chi2/dof = {joint['red_chi2']:.3f}, "
+      f"shared p_fast = {joint['p1']:.3f}+/-{joint['p1_err']:.3f}, "
+      f"<tau_fast>/tau_SE = {MEAN_TAU_FACTOR:.3f}")
+for fp in xpcs_files:
     r = fits[fp]
     if r is not None:
         fmt = ' '.join(f'f{qi}={r["per_q"][qi]["f"]:.3f}' for qi in r['per_q'])
-        print(f'  fit {elapsed(fp):5.0f} s: p1={r["p1"]:.3f}+/-{r["p1_err"]:.3f} '
-              f'p2={r["p2"]:.3f}+/-{r["p2_err"]:.3f} chi2={r["red_chi2"]:.2f}  {fmt}')
+        print(f'  fit {elapsed(fp):5.0f} s: chi2={r["red_chi2"]:.2f} '
+              f'p_slow={r["p2"]:.3f}+/-{r["p2_err"]:.3f}  {fmt}')
 
 # --- FIGURE ---
 apply_style()
@@ -410,6 +421,45 @@ ax3.set_xlabel('Elapsed Time (s)')
 ax3.set_ylabel('Fast Fraction, $f$')
 add_minor_grid(ax3)
 
+# --- right axis: mean collective diffusion coefficient of the fast mode ---
+# <D> = 1/(<tau> Q^2), averaged over the q bins where the fast mode is measured
+# (the same det test panel (b) of Figure S8 uses).  Plotted beside f because the
+# comparison is the point: f falls monotonically to zero while <D> moves by
+# about a factor of two with no systematic trend.  The two endpoint times carry
+# large errors -- at 5040 s the two-step decay is only just resolved, at 7863 s
+# f has nearly vanished -- and those error bars are left visible rather than the
+# points dropped.  Filled black squares against the open coloured f markers.
+ax3r = ax3.twinx()
+d_rows = []
+for fp in xpcs_files:
+    r = fits[fp]
+    if r is None or r['red_chi2'] >= CHI2_MAX:
+        continue
+    _, _, _, q_vals = g2_data[fp]
+    qs = sorted(r['per_q'])
+    Q  = np.array([q_vals[qi] for qi in qs])
+    tf = np.array([r['per_q'][qi]['tau_fast'] for qi in qs])
+    te = np.array([r['per_q'][qi]['tau_fast_err'] for qi in qs])
+    fv = np.array([r['per_q'][qi]['f'] for qi in qs])
+    fe = np.array([r['per_q'][qi]['f_err'] for qi in qs])
+    det = (fv > 3 * fe) & (te < tf)
+    if det.sum() < 2:
+        continue
+    Dv = 1.0 / (mean_tau(tf[det], joint['p1']) * Q[det] ** 2)
+    w  = (tf[det] / te[det]) ** 2
+    d_rows.append((elapsed(fp), np.average(Dv, weights=w), Dv.std(ddof=1)))
+d_rows.sort()
+xd = [r[0] for r in d_rows]
+yd = [r[1] / 1e7 for r in d_rows]
+ed = [r[2] / 1e7 for r in d_rows]
+ax3r.errorbar(xd, yd, yerr=ed, marker='s', ls='none', color='k',
+              markersize=MS_SPARSE, capsize=1.5, mew=MEW,
+              elinewidth=LW_THIN, capthick=LW_THIN, zorder=4)
+ax3r.set_ylabel(r'$\langle D \rangle$ ($10^{7}\ \AA^{2}\,$s$^{-1}$)')
+ax3r.set_ylim(0, max(y + e for y, e in zip(yd, ed)) * 1.30)
+print('  <D> (1e7 A^2/s): ' + '  '.join(f'{x:.0f}s {y:.2f}+/-{e:.2f}'
+                                        for x, y, e in zip(xd, yd, ed)))
+
 # --- shared elapsed-time key, one row along the bottom of the figure ---
 # Colour carries the same meaning in all three panels, so this key belongs to
 # the figure, not to any single panel.  Out here it costs no panel any y range.
@@ -431,46 +481,12 @@ save_fig(fig, 'Figure3_Isothermal_SAXPCS.pdf')
 # x-axis -- so only the bottom row needs x tick labels / an x-axis label.
 # All XPCS colours use the same elapsed-time scale as Figure 3.
 # ============================================================
-fig2, ((axp, axf), (axg, axs)) = plt.subplots(2, 2, figsize=FIG2_SIZE,
-                                              sharex='col')
-label_panels((axp, axf, axg, axs))   # reading order: a b / c d
+fig2, (axf, axs, axg) = plt.subplots(1, 3, figsize=FIG2_SIZE)
+label_panels((axf, axs, axg))   # reading order: a b c
 
-# --- (a) shared stretching exponents vs elapsed time (colour = time) ---
-exp_rows = [{'elapsed': elapsed(fp), 'fp': fp,
-             'p1': fits[fp]['p1'], 'p1_err': fits[fp]['p1_err'],
-             'p2': fits[fp]['p2'], 'p2_err': fits[fp]['p2_err']}
-            for fp in xpcs_files
-            if fits[fp] is not None and fits[fp]['red_chi2'] < CHI2_MAX]
-exp_rows.sort(key=lambda r: r['elapsed'])
-xe = [r['elapsed'] for r in exp_rows]
-axp.plot(xe, [r['p1'] for r in exp_rows], '-', color='0.75', lw=LW_THIN, zorder=1)
-axp.plot(xe, [r['p2'] for r in exp_rows], '-', color='0.75', lw=LW_THIN, zorder=1)
-for r in exp_rows:                                   # p1 = circle, p2 = square
-    axp.errorbar(r['elapsed'], r['p1'], yerr=r['p1_err'], marker='o', color=ecolor(r['fp']),
-                 markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
-                 elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
-    axp.errorbar(r['elapsed'], r['p2'], yerr=r['p2_err'], marker='s', color=ecolor(r['fp']),
-                 markersize=MS_SPARSE, capsize=1.5, mfc='none', mew=MEW,
-                 elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
-p_handles = [Line2D([], [], marker='o', ls='none', mfc='none', mec='k', mew=MEW,
-                    markersize=MS_SPARSE, label=r'$p_{\mathrm{fast}}$'),
-             Line2D([], [], marker='s', ls='none', mfc='none', mec='k', mew=MEW,
-                    markersize=MS_SPARSE, label=r'$p_{\mathrm{slow}}$')]
-# One row, two columns, top right.  The y axis is capped at p = 1 below, and
-# nothing in this panel rises above 0.74, so the strip under the cap is free.
-axp.legend(handles=p_handles, loc='upper right', ncol=2)
-# headroom above BOTH the data and the p = 1 reference line, so the upper-left
-# legend box has clear space and does not sit on the dotted line
-_p_lo = min(min(r['p1'] - r['p1_err'], r['p2'] - r['p2_err']) for r in exp_rows)
-_p_hi = max(max(r['p1'] + r['p1_err'], r['p2'] + r['p2_err']) for r in exp_rows)
-_p_span = max(_p_hi, 1.0) - _p_lo
-# Capped at exactly 1.0: every exponent here is below the simple-exponential
-# limit, so the top of the axis states that limit and no reference line is
-# needed.  Headroom above it would only shrink the data.
-axp.set_ylim(_p_lo - 0.10 * _p_span, 1.0)
-axp.set_ylabel('Stretching exponent')
-axp.tick_params(labelbottom=False)
-add_minor_grid(axp)
+# The stretching exponents are no longer a panel of their own: fit_g2_joint
+# shares them across the whole waiting-time series, so they are two numbers,
+# quoted in the caption, rather than a curve against elapsed time.
 
 # --- (b, c) relaxation times vs Q, one curve per elapsed time; also fit each
 # elapsed time's tau(Q) to a power law tau = A * Q**gamma for panel (d). ---
@@ -482,10 +498,13 @@ for fp in xpcs_files:
     _, _, _, q_vals = g2_data[fp]
     qs = sorted(r['per_q'])
     Q      = np.array([q_vals[qi] for qi in qs])
-    tf     = np.array([r['per_q'][qi]['tau_fast'] for qi in qs])
-    tf_err = np.array([r['per_q'][qi]['tau_fast_err'] for qi in qs])
-    ts     = np.array([r['per_q'][qi]['tau_slow'] for qi in qs])
-    ts_err = np.array([r['per_q'][qi]['tau_slow_err'] for qi in qs])
+    # Mean relaxation times, not the bare Kohlrausch tau: with p shared across
+    # the series this is a constant rescaling per mode, but <tau> is the
+    # physically meaningful time and the one the XPCS literature quotes.
+    tf     = mean_tau(np.array([r['per_q'][qi]['tau_fast'] for qi in qs]), joint['p1'])
+    tf_err = mean_tau(np.array([r['per_q'][qi]['tau_fast_err'] for qi in qs]), joint['p1'])
+    ts     = mean_tau(np.array([r['per_q'][qi]['tau_slow'] for qi in qs]), r['p2'])
+    ts_err = mean_tau(np.array([r['per_q'][qi]['tau_slow_err'] for qi in qs]), r['p2'])
     f_val  = np.array([r['per_q'][qi]['f'] for qi in qs])
     f_err  = np.array([r['per_q'][qi]['f_err'] for qi in qs])
     # tau_fast only means something where a fast mode is actually detected AND
@@ -543,9 +562,9 @@ for a in (axf, axs):
     a.xaxis.set_minor_locator(FixedLocator(_q_minor))
     a.xaxis.set_major_formatter(FixedFormatter(['4', '5', '6', '7', '8']))
     a.xaxis.set_minor_formatter(NullFormatter())
-axf.set_ylabel(r'$\tau_{\mathrm{fast}}$ (s)')
-axf.tick_params(labelbottom=False)
-axs.set_ylabel(r'$\tau_{\mathrm{slow}}$ (s)')
+axf.set_ylabel(r'$\langle\tau_{\mathrm{fast}}\rangle$ (s)')
+axf.set_xlabel(r'$Q$ ($\times 10^{-3}\ \AA^{-1}$)')
+axs.set_ylabel(r'$\langle\tau_{\mathrm{slow}}\rangle$ (s)')
 axs.set_xlabel(r'$Q$ ($\times 10^{-3}\ \AA^{-1}$)')
 
 # --- (d) power-law scaling exponents gamma_fast, gamma_slow vs elapsed time ---
@@ -573,15 +592,15 @@ axg.set_xlabel('Elapsed Time (s)')
 axg.set_ylabel(r'Scaling exponent ($\gamma$)')
 add_minor_grid(axg)
 
-# (a) and (d) share the elapsed-time axis; widen it once so the first and last
-# points are not sitting on the frame (matplotlib's 5 % default is too tight
-# for five widely-spaced groups).
-_t_pad2 = 0.16 * (max(xe) - min(xe))
-axg.set_xlim(min(xe) - _t_pad2, max(xe) + _t_pad2)
+# Widen the elapsed-time axis so the first and last points are not sitting on
+# the frame (matplotlib's 5 % default is too tight for five widely-spaced
+# groups).
+_xe = [r['elapsed'] for r in gamma_rows]
+_t_pad2 = 0.16 * (max(_xe) - min(_xe))
+axg.set_xlim(min(_xe) - _t_pad2, max(_xe) + _t_pad2)
 
 # matplotlib's default 5 % y margin leaves the extreme error-bar caps ~1 mm off
-# the frame in the autoscaled panels; widen it for the same breathing room the
-# explicitly-limited panels have.  (axp sets its own limits above.)
+# the frame; widen it for some breathing room.
 for a in (axf, axs, axg):
     a.set_ymargin(0.11)
     a.autoscale_view()
