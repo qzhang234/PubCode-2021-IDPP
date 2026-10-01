@@ -27,6 +27,12 @@
 # DEADLINE is a safety net for the beam coming back, not the expected finish.
 # No new chunk starts after it; chunks already running are left to finish,
 # which takes under a minute. The whole run is about three hours.
+#
+# Mail goes through /usr/sbin/sendmail rather than `mail`, because s-nail on
+# these hosts is configured with an mta of /bin/fmt_mail, which does not
+# exist, so `mail` drops the message into dead.letter and returns 4. An EXIT
+# trap sends the report however the script ends, so a crash or a deadline cut
+# is reported rather than passing silently.
 
 set -u
 
@@ -39,6 +45,7 @@ NWORKERS=${NWORKERS:-4}
 CHUNK=${CHUNK:-12}
 # 2026-10-06 07:00 local, an hour before the beam returns.
 DEADLINE=${DEADLINE:-1791288000}
+EMAIL=${EMAIL:-qzhang234@anl.gov}
 
 export PATH=/home/beams/8IDIUSER/bin:$PATH
 mkdir -p "$RUNDIR" "$OUT"
@@ -46,6 +53,29 @@ LOG=$RUNDIR/progress_${HOST}.log
 STATE=$RUNDIR/state_${HOST}
 
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
+
+notify() {
+    [ -n "$EMAIL" ] || return 0
+    printf 'To: %s\nFrom: 8idiuser@%s.xray.aps.anl.gov\nSubject: %s\n\n%s\n' \
+        "$EMAIL" "$HOST" "$1" "$2" | /usr/sbin/sendmail -t -i 2>>"$LOG"
+}
+
+FINISHED=0
+on_exit() {
+    rc=$?
+    [ "$FINISHED" = 1 ] && return 0
+    notify "babnigg202110 correlation run ENDED EARLY on $HOST (rc=$rc)" \
+"The run stopped before reporting a normal finish.
+
+results present : $(ls "$OUT"/*_results.hdf 2>/dev/null | wc -l) of ${TOTAL:-unknown}
+host            : $HOST
+run directory   : $RUNDIR
+
+last log lines
+--------------
+$(tail -20 "$LOG" 2>/dev/null)"
+}
+trap on_exit EXIT
 
 log "=== start on $HOST, workers=$NWORKERS chunk=$CHUNK deadline=$(date -d @$DEADLINE '+%F %T')"
 [ -f "$QMAP" ] || { log "FATAL: qmap missing: $QMAP"; exit 1; }
@@ -99,4 +129,30 @@ while read -r b; do
     a=$(basename "$b" .bin)
     [ -e "$OUT/${a}_results.hdf" ] || echo "$b" >> "$MISSING"
 done < "$LIST"
-log "missing: $(wc -l < "$MISSING") (listed in $(basename "$MISSING"))"
+NMISS=$(wc -l < "$MISSING")
+log "missing: $NMISS (listed in $(basename "$MISSING"))"
+
+FINISHED=1
+if [ "$NMISS" -eq 0 ] && [ "$DUPE" -eq 0 ]; then
+    STATUS="complete, $DONE/$TOTAL"
+else
+    STATUS="$DONE/$TOTAL done, $NMISS missing, $DUPE duplicates"
+fi
+notify "babnigg202110 correlation run finished on $HOST: $STATUS" \
+"Correlated the 2021-3 isothermal series against the CrossRm qmap.
+
+host            : $HOST
+started         : $(date -d @$T0 '+%F %T')
+finished        : $(date -d @$T1 '+%F %T')
+duration        : $(( (T1-T0)/60 )) min
+acquisitions    : $TOTAL
+results present : $DONE
+missing         : $NMISS
+duplicates      : $DUPE
+qmap            : $(basename "$QMAP")
+output          : $OUT
+run directory   : $RUNDIR
+
+last log lines
+--------------
+$(tail -12 "$LOG" 2>/dev/null)"
