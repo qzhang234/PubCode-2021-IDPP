@@ -143,8 +143,10 @@ With p1_fixed the FAST stretching exponent is held at the value fit_g2_joint
     # f ever settles exactly on its bound of 0, its tau_fast stops affecting the
     # model, J^T J becomes singular, and inv() returns nan for EVERY parameter,
     # including the well-determined ones.  pinv drops only the useless direction
-    # and leaves the rest with honest uncertainties.  No parameter reaches a
-    # bound at the contrast used here, so the two agree in practice.
+    # and leaves the rest with honest uncertainties.  This is not hypothetical:
+    # f refines to exactly 0 in the lowest q bin at t_w = 7863 s, where the fast
+    # decay has gone, so that one direction really is useless and pinv is what
+    # keeps the other 60 parameters' errors finite.
     jtj = res.jac.T @ res.jac
     cov = np.linalg.pinv(jtj, rcond=1e-12)
     perr = np.sqrt(np.abs(np.diag(cov)))

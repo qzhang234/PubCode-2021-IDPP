@@ -212,10 +212,11 @@ for fp in xpcs_files:
     with h5py.File(fp, 'r') as hf:
         g2_data[fp] = read_g2(hf)
 
-# One fit of the whole series: the two stretching exponents are shared across
-# every elapsed time so that relaxation times ARE comparable between them (see
-# fit_g2_joint).  tau_fast stays free in each q bin, so the q^-2 scaling below
-# is a result and not an assumption.
+# One fit of the whole series: p_fast is shared across every elapsed time so
+# that relaxation times ARE comparable between them (see fit_g2_joint); p_slow
+# stays free at each time.  tau_fast is NOT free in each q bin -- Equation 2
+# ties it to 1/(D0 q^2), so the q^-2 scaling is imposed, not fitted.  What
+# justifies imposing it is the free fit, whose q exponents are -2.08 to -2.37.
 joint, _per_time = fit_g2_joint([g2_data[fp][:3] for fp in xpcs_files],
                                 [g2_data[fp][3] for fp in xpcs_files],
                                 fit_q_indices)
@@ -466,10 +467,12 @@ fig.tight_layout(pad=0.4, w_pad=1.1, rect=(0, FIG1_LEGEND_H, 1, 1))
 save_fig(fig, 'Figure3_Isothermal_SAXPCS.pdf')
 
 # ============================================================
-# FIGURE S9 (2x2): (a) p1, p2 vs elapsed time;      (b) tau_fast vs Q
-#                  (c) gamma_fast, gamma_slow vs t;  (d) tau_slow vs Q
-# Column 0 (a, c) shares the elapsed-time x-axis; column 1 (b, d) shares the Q
-# x-axis -- so only the bottom row needs x tick labels / an x-axis label.
+# FIGURE S8 (1x3): (a) p_slow vs elapsed time;  (b) <tau_slow> vs Q;
+#                  (c) gamma_slow vs elapsed time.
+# The fast mode gets no panel: Equation 2 ties it to tau_fast = 1/(D0 q^2), so
+# a plot against q would be that line and nothing else, and the one number it
+# carries, D_eff, is in Figure 3c.  What is left is the slow mode, free at
+# every elapsed time.
 # All XPCS colours use the same elapsed-time scale as Figure 3.
 # ============================================================
 fig2, (axps, axs, axg) = plt.subplots(1, 3, figsize=FIG2_SIZE)
@@ -540,7 +543,7 @@ for a in (axs,):
 axs.set_ylabel(r'$\langle\tau_{\mathrm{slow}}\rangle$ (s)')
 axs.set_xlabel(r'$Q$ ($\times 10^{-3}\ \AA^{-1}$)')
 
-# --- (d) power-law scaling exponents gamma_fast, gamma_slow vs elapsed time ---
+# --- (c) power-law scaling exponent gamma_slow vs elapsed time ---
 gamma_rows.sort(key=lambda r: r['elapsed'])
 xg = [r['elapsed'] for r in gamma_rows]
 # gamma_fast is imposed at -2 in the refit that yields <D>, so it is not a
