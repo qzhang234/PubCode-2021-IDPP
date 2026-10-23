@@ -259,23 +259,25 @@ def convert(job):
 
 def main():
     # convert() reads these at module scope so the pool workers inherit them.
-    global DEST, SCAN_GLOB
+    global DEST
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--procs", type=int, default=16)
-    ap.add_argument("--scan-glob", default=SCAN_GLOB,
-                    help="which scan groups to convert [default: %(default)s]")
+    ap.add_argument("--scan-glob", nargs="+", default=[SCAN_GLOB],
+                    help="one or more scan-group patterns [default: %(default)s]")
     ap.add_argument("--dest", default=DEST,
                     help="output tree [default: %(default)s]")
     ap.add_argument("--manifest", default=MANIFEST,
                     help="where to record what was converted")
     args = ap.parse_args()
-    DEST, SCAN_GLOB = args.dest, args.scan_glob
+    DEST = args.dest
 
+    scan_dirs = sorted({d for pattern in args.scan_glob
+                        for d in glob.glob(os.path.join(ARCHIVE, pattern))})
     jobs = []
-    for scan_dir in sorted(glob.glob(os.path.join(ARCHIVE, args.scan_glob))):
+    for scan_dir in scan_dirs:
         if not os.path.isdir(scan_dir):
             continue
         scan = os.path.basename(scan_dir)
