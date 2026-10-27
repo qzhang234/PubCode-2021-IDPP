@@ -42,22 +42,21 @@ F_GUINIER := $(ANA)/SAXS_12id/FigureS3_Guinier.pdf
 # longer a build target, so the two scripts cannot race for the same file.
 F_CALIB   := $(ANA)/SAXPCS_8id/FigureS5_Calibration.pdf
 F_CYCLE   := $(ANA)/SAXPCS_8id/FigureS4_Thermal_Cycle.pdf
-F_BETA    := $(ANA)/SAXPCS_8id/FigureS6_Contrast.pdf
-F_RAD     := $(ANA)/Rad_Dam_Check/FigureS7_Flux_Control.pdf
+F_RAD     := $(ANA)/Rad_Dam_Check/FigureS6_Flux_Control.pdf
 F_TSERIES := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
-             $(ANA)/SAXPCS_8id/FigureS8_Temperature_2800.pdf \
-             $(ANA)/SAXPCS_8id/FigureS9_Temperature_2825.pdf \
-             $(ANA)/SAXPCS_8id/FigureS10_Temperature_2850.pdf \
-             $(ANA)/SAXPCS_8id/FigureS11_Temperature_2875.pdf
+             $(ANA)/SAXPCS_8id/FigureS7_Temperature_2800.pdf \
+             $(ANA)/SAXPCS_8id/FigureS8_Temperature_2825.pdf \
+             $(ANA)/SAXPCS_8id/FigureS9_Temperature_2850.pdf \
+             $(ANA)/SAXPCS_8id/FigureS10_Temperature_2875.pdf
 F_ARREST  := $(ANA)/SAXPCS_8id/Figure4_Arrest_vs_Temperature.pdf \
-             $(ANA)/SAXPCS_8id/FigureS12_Collapse_AllQ.pdf
+             $(ANA)/SAXPCS_8id/FigureS11_Collapse_AllQ.pdf
 
 # The 2022-1 arrest analysis was retired with the move to the 2021-3
 # temperature series: saxs_evolution.py, g2_grid_SI.py and the fit-parameter
 # panels of saxpcs.py no longer have a figure in either document.  saxpcs.py
 # is still built for the absolute-scale calibration, which both beamtimes share.
 FIGURES := $(F_12ID) $(F_GUINIER) $(F_CALIB) $(F_RAD) \
-            $(F_CYCLE) $(F_BETA) $(F_TSERIES) $(F_ARREST)
+            $(F_CYCLE) $(F_TSERIES) $(F_ARREST)
 
 # every 8-ID-I figure now reads only what average_ranges.py put in data/:
 # the averaged NeXus files, the contrast stack, and the thermal-cycle
@@ -102,8 +101,6 @@ $(F_CYCLE): $(ANA)/SAXPCS_8id/thermal_cycle.py $(ANA)/SAXPCS_8id/abs_xsec.py \
             $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) thermal_cycle.py
 
-$(F_BETA): $(ANA)/SAXPCS_8id/contrast_2021-3.py $(TSERIES_DATA) $(COMMON) $(NEXUS)
-	cd $(ANA)/SAXPCS_8id && $(PY) contrast_2021-3.py
 
 $(F_TSERIES) &: $(ANA)/SAXPCS_8id/temperature_series_2021-3.py $(ANA)/SAXPCS_8id/abs_xsec.py \
                 $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS)

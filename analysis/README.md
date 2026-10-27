@@ -82,7 +82,7 @@ and has its own short chain, reusing the code above unchanged:
     --> reduce_babnigg202110.py           --> data_2021-3/   (average_ranges code path)
 data_2021-3/
     --> temperature_series_2021-3.py      --> Figure3 + FigureS8-S11_Temperature_*.pdf
-    --> arrest_vs_temperature.py          --> Figure4 + FigureS12_Collapse_AllQ.pdf
+    --> arrest_vs_temperature.py          --> Figure4 + FigureS11_Collapse_AllQ.pdf
 ```
 
 The series is correlated against

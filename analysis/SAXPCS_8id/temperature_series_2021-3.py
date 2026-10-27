@@ -420,8 +420,8 @@ for h, (run, sample, target) in RUNS.items():
 
 
 
-FIG_NAMES = {'H0402': 'FigureS8_Temperature_2800.pdf', 'H0407': 'FigureS9_Temperature_2825.pdf',
-             'H0404': 'FigureS10_Temperature_2850.pdf', 'H0413': 'FigureS11_Temperature_2875.pdf'}
+FIG_NAMES = {'H0402': 'FigureS7_Temperature_2800.pdf', 'H0407': 'FigureS8_Temperature_2825.pdf',
+             'H0404': 'FigureS9_Temperature_2850.pdf', 'H0413': 'FigureS10_Temperature_2875.pdf'}
 # REFS is defined above, next to the background-coefficient fit.
 MAX_SHOWN = 7                         # groups drawn in (a), (b), (d)-(g)
 CONVERTING = 0.85                     # f at the lowest Q below which arrest is under way

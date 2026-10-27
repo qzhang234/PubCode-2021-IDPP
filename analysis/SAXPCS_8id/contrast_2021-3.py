@@ -1,11 +1,12 @@
-"""Figure S6: the speckle contrast of the 2021-3 beamtime, and why it is not
-measured over the bins the paper fits.
+"""The speckle contrast of the 2021-3 beamtime, and why it is not measured over
+the bins the paper fits.
 
-(a) g2 of the static reference at the lowest fitted Q and inside the plateau.
-    A static sample cannot relax, so both are flat and their level is 1 + beta.
-(b) beta against Q across every dynamic bin.
+This prints beta; it draws no figure.  The contrast had its own SI figure up to
+27 Oct 2026, and that figure was dropped: the dashed 1 + beta line already drawn
+on every g2 panel shows where the contrast sits, so the figure only restated it.
+How beta is measured is now given in words in SI Section 8.
 
-THE POINT OF (b).  beta is a property of the optics and the detector and is
+beta is a property of the optics and the detector and is
 near enough constant in Q over this range, so a flat line is what a clean
 reference returns.  This one does not give a flat line below 0.0085 A^-1: it
 climbs from 0.1226 at 0.0036 A^-1 to 0.140-0.143 by 0.0086, a 12% rise.  The
@@ -17,9 +18,11 @@ by only 2% across the same interval, which places the effect on the standard
 rather than on the beamline.
 
 So beta is taken from the plateau and applied to every bin.  BETA_BAND ends at
-0.0165 A^-1, which keeps out a detector module gap at 0.0175-0.0185, where beta
-dips to 0.126, and the bin at 0.0214 containing the stuck pixel, where it reads
-high.  Both are marked in (b).
+0.0165 A^-1, the last bin before beta leaves the plateau: it dips to 0.126 at
+0.0175-0.0185 and reads 0.1429 at 0.0214, against 0.1399 in the bins either
+side.  The 0.0214 bin is the one holding the stuck pixel.  The cause of the dip
+just below it is not established, and no cause is assumed here; both intervals
+are simply outside the band beta is read from.
 
 A SINGLE SCALAR, not a value per bin: inside the plateau the bin-to-bin scatter
 is instrumental noise, and letting it into beta would feed that noise straight
@@ -39,21 +42,16 @@ import sys
 
 import numpy as np
 import h5py
-import matplotlib.pyplot as plt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..'))
-from common.acs_style import (DOUBLE_COL, MS, MEW, LW_THIN, LW_DATA,     # noqa: E402
-                              apply_style, add_minor_grid, label_panels, save_fig)
 from nexus_read import read_g2                                           # noqa: E402
 
 DATA = os.path.join(HERE, 'data_2021-3')
 STANDARD = os.path.join(DATA, 'Average_B0005_12IDB_Standard_006C_att00_Rq0_00001_00100_results.hdf')
 QI = [0, 1, 2, 3, 4]                  # the bins the paper fits
 BETA_BAND = (0.0085, 0.0165)          # A^-1, the flat part
-GAP = (0.0170, 0.0190)                # detector module gap
-STUCK_Q = 0.02144                     # the bin holding the stuck pixel
 
 
 def flat_level(tau, g, e):
@@ -75,52 +73,5 @@ print(f'beta = {BETA:.5f} over {sel.sum()} bins in {BETA_BAND[0]}-{BETA_BAND[1]}
       f'(spread {beta[sel].min():.4f}-{beta[sel].max():.4f})')
 print('over the five fitted bins it would read '
       + ', '.join(f'{beta[i]:.4f}' for i in QI))
-
-apply_style()
-fig = plt.figure(figsize=(DOUBLE_COL, 2.55))
-ax1 = fig.add_axes([0.075, 0.205, 0.38, 0.695])
-ax2 = fig.add_axes([0.600, 0.205, 0.385, 0.695])
-
-for qi, c, lab in ((QI[0], '#c0392b', f'{q[QI[0]]*1e3:.2f}'),
-                   (int(np.argmin(abs(q - 0.0115))), '#1f77b4',
-                    f'{q[int(np.argmin(abs(q - 0.0115)))]*1e3:.2f}')):
-    m = (tau > 0) & (tau < 2) & np.isfinite(g2[:, qi]) & (g2e[:, qi] > 0)
-    ax1.errorbar(tau[m], g2[m, qi] - 1.0, yerr=g2e[m, qi], fmt='o', color=c, ms=MS - 1,
-                 mfc='none', mew=MEW, ls='none', elinewidth=LW_THIN, capsize=1.0,
-                 capthick=LW_THIN, label=lab)
-    ax1.axhline(beta[qi], color=c, lw=LW_DATA, zorder=3)
-ax1.set_xscale('log')
-ax1.set_xlabel(r'Delay Time, $\Delta t$ (s)')
-ax1.set_ylabel(r'$g_2 - 1$')
-ax1.set_ylim(0.09, 0.175)
-leg = ax1.legend(title=r'$Q$ ($10^{-3}$ $\AA^{-1}$)', loc='upper right',
-                 handlelength=0.9, handletextpad=0.35, borderpad=0.3, ncol=2,
-                 columnspacing=0.7)
-leg.get_title().set_fontsize(plt.rcParams['font.size'])
-leg.get_frame().set_linewidth(LW_THIN)
-add_minor_grid(ax1)
-
-ax2.axvspan(BETA_BAND[0] * 1e3, BETA_BAND[1] * 1e3, color='crimson', alpha=0.10, lw=0)
-ax2.axhline(BETA, color='crimson', lw=LW_DATA, zorder=2)
-fitted = ok & (q <= q[QI[-1]] + 1e-6)
-gapb = ok & (q >= GAP[0]) & (q <= GAP[1])
-stuck = ok & (abs(q - STUCK_Q) < 5e-4)
-rest = ok & ~fitted & ~gapb & ~stuck
-for m, c, mk, lab in ((rest, '0.15', 'o', None),
-                      (fitted, '#c0392b', 's', 'fitted bins'),
-                      (gapb, '#1f77b4', '^', 'module gap'),
-                      (stuck, '#2ca02c', 'v', 'stuck pixel')):
-    if m.any():
-        ax2.errorbar(q[m] * 1e3, beta[m], yerr=berr[m], fmt=mk, color=c, ms=MS,
-                     mfc='none', mew=MEW, ls='none', elinewidth=LW_THIN, capsize=1.0,
-                     capthick=LW_THIN, label=lab, zorder=3)
-ax2.set_xlabel(r'$Q$ ($10^{-3}$ $\AA^{-1}$)')
-ax2.set_ylabel(r'$\beta$')
-ax2.set_xlim(2.5, 26)
-ax2.set_ylim(0.115, 0.150)
-leg2 = ax2.legend(loc='lower right', handlelength=0.9, handletextpad=0.35,
-                  borderpad=0.3, labelspacing=0.2)
-leg2.get_frame().set_linewidth(LW_THIN)
-add_minor_grid(ax2)
-label_panels([ax1, ax2])
-save_fig(fig, 'FigureS6_Contrast.pdf')
+print('outside the band: ' + ', '.join(f'{q[i]:.4f} {beta[i]:.4f}'
+                                       for i in range(len(q)) if ok[i] and not sel[i]))

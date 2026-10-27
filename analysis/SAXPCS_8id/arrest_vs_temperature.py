@@ -118,9 +118,12 @@ Q_MARKERS = ['o', 's', '^', 'D', 'v']
 #
 # Contrast is a property of the optics and the detector, near enough constant
 # in Q over this range, so it is taken from the clean plateau and applied to
-# every bin.  BETA_BAND stops at 0.0165 A^-1, which excludes both a detector
-# module gap at 0.0175-0.0185 (beta dips to 0.126) and the stuck pixel's bin at
-# 0.0214 (beta reads high).  A single scalar rather than a per-bin value: the
+# every bin.  BETA_BAND stops at 0.0165 A^-1, the last bin before beta leaves
+# the plateau: it dips to 0.126 at 0.0175-0.0185 and reads 0.1429 at 0.0214,
+# the bin holding the stuck pixel, against 0.1399 either side.  The dip was
+# once attributed here to a detector module gap; the XSPA-500k has none, so no
+# cause is assumed and the band is set on the measurement alone.
+# A single scalar rather than a per-bin value: the
 # bin-to-bin scatter inside the plateau is instrumental noise, and letting it
 # into f would inject that noise into the very ordering the paper reports.
 BETA_BAND = (0.0085, 0.0165)          # A^-1, the flat part of the standard
@@ -368,4 +371,4 @@ axts.set_ylabel(r'$T_s$ (K)')
 add_minor_grid(axts)
 label_panels([axq[0], axq[2], axq[4], axq[6], axq[1], axq[3], axq[5], axq[7], axts])
 temperature_key(fig2, 0.5, Q_MARKERS[0])
-save_fig(fig2, 'FigureS12_Collapse_AllQ.pdf')
+save_fig(fig2, 'FigureS11_Collapse_AllQ.pdf')
