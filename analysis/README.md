@@ -80,6 +80,7 @@ and has its own short chain, reusing the code above unchanged:
 data_2021-3/
     --> temperature_series_2021-3.py      --> Figure3 + FigureS7-S10_Temperature_*.pdf
     --> arrest_vs_temperature.py          --> Figure4 + FigureS11_Collapse_AllQ.pdf
+    --> general_model_check.py            --> SI 5.3 numbers on stdout (no figure)
 ```
 
 The series is correlated against

@@ -30,13 +30,73 @@ so nothing hinges on the choice: moving between the two shifts every fitted fast
 fraction by less than 0.02.
 """
 
+import h5py
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.special import gamma as gamma_fn
 
+from nexus_read import read_g2
+
 # --- measured instrumental contrast (see the module docstring) ---
+# This is the 2022-1 value.  The 2021-3 scripts measure their own beta with
+# measure_beta() below and overwrite CONTRAST before fitting anything; a script
+# that forgets to do so silently fits the 2021-3 data at the 2022-1 contrast,
+# which is 6.8% low and drags every fitted f and the scaling temperature with
+# it.  Measuring and overwriting is one line, and it belongs beside the
+# constant it replaces, which is why measure_beta lives here rather than in
+# each figure script.
 CONTRAST = 0.13139
 BASELINE = 1.0
+
+# --- measuring beta on a static reference -----------------------------------
+# NOT measured over the five fitted bins.  The 2021-3 static reference is the
+# NIST glassy carbon standard, whose surface scratches add parasitic scattering
+# at low Q.  That scattering is static, so it dilutes the speckle and depresses
+# the APPARENT contrast exactly where the paper fits.  The measurement shows it
+# plainly: beta climbs from 0.1226 at 0.0036 A^-1 to a plateau of 0.140-0.143
+# by 0.0086 A^-1, a 12% rise.  The 2022-1 reference, a different sample, rises
+# by only 2% over the same interval, so the effect belongs to the standard and
+# not to the beamline.
+#
+# Contrast is a property of the optics and the detector, near enough constant
+# in Q over this range, so it is taken from the clean plateau and applied to
+# every bin.  BETA_BAND stops at 0.0165 A^-1, the last bin before beta leaves
+# the plateau: it dips to 0.126 at 0.0175-0.0185 and reads 0.1429 at 0.0214,
+# the bin holding the stuck pixel, against 0.1399 either side.  The dip was
+# once attributed here to a detector module gap; the XSPA-500k has none, so no
+# cause is assumed and the band is set on the measurement alone.  A single
+# scalar rather than a per-bin value: the bin-to-bin scatter inside the plateau
+# is instrumental noise, and letting it into f would inject that noise into the
+# very ordering the paper reports.
+BETA_BAND = (0.0085, 0.0165)          # A^-1, the flat part of the standard
+
+
+def flat_level(tau, g, e):
+    """Inverse-variance weighted mean of g2 over the measurable delays, and its
+    standard error.  Every delay carries its own g2 uncertainty, so each enters
+    with weight 1/e^2 and the noisy short delays count for little."""
+    ok = (tau > 0) & (tau < 2) & np.isfinite(g) & (e > 0)
+    w = 1.0 / e[ok] ** 2
+    return float(np.sum(w * g[ok]) / np.sum(w)), float(np.sqrt(1.0 / np.sum(w)))
+
+
+def measure_beta(path, label, fitted_bins=(0, 1, 2, 3, 4)):
+    """beta from the flat correlation level of a static reference, over
+    BETA_BAND.  A static sample cannot relax, so each of its correlation
+    functions is flat in delay and sits at 1 + beta."""
+    with h5py.File(path, 'r') as hf:
+        tau, g2, g2e, q_std = read_g2(hf)
+    lv = [flat_level(tau, g2[:, i], g2e[:, i]) for i in range(g2.shape[1])]
+    b = np.array([x[0] - 1.0 for x in lv])
+    e = np.array([x[1] for x in lv])
+    sel = (q_std >= BETA_BAND[0]) & (q_std <= BETA_BAND[1]) & np.isfinite(b)
+    w = 1.0 / e[sel] ** 2
+    beta = float(np.sum(w * b[sel]) / np.sum(w))
+    print(f'beta ({label}) = {beta:.5f} from {sel.sum()} bins over '
+          f'{BETA_BAND[0]}-{BETA_BAND[1]} A^-1 (spread {b[sel].min():.4f}-{b[sel].max():.4f})')
+    print('   over the five FITTED bins it would read '
+          + ', '.join(f'{b[i]:.4f}' for i in fitted_bins) + '  <- depressed by the standard')
+    return beta
 
 # per-q parameter bounds / start (tau_fast, f, tau_slow) and shared (p1, p2)
 PQ_P0    = [1e-3, 0.5, 100.0]

@@ -5,6 +5,7 @@
 #   make papers     compile main.pdf, si.pdf, cover_letter.pdf into manuscript/build/
 #   make all        figures + papers
 #   make check      report undefined citations / references / missing figures
+#   make robustness recompute the SI 5.3 robustness numbers (no figure)
 #   make clean      remove LaTeX aux files (keeps the PDFs)
 #
 # Figure 1 (Setup.pdf) is the approved illustrator schematic and is NOT
@@ -73,7 +74,7 @@ XFIT      := $(ANA)/SAXPCS_8id/xpcs_fit.py
 # to it has to rebuild all four; without it here they would go quietly stale.
 NEXUS     := $(ANA)/SAXPCS_8id/nexus_read.py
 
-.PHONY: all figures papers main si cover check clean distclean env
+.PHONY: all figures papers main si cover check robustness clean distclean env
 
 all: figures papers
 
@@ -169,6 +170,14 @@ check:
 	@echo "== missing figures =="
 	@grep -hE "No file|not found" $(BUILD)/*.log 2>/dev/null | grep -iE '\.pdf|\.png' || true
 	@echo "== done (no lines under a heading means clean) =="
+
+# --- the SI 5.3 robustness check --------------------------------------------
+# Numbers only; this one draws nothing, so it is a prerequisite of nothing and
+# `make all` does not run it.  It refits all 34 groups three ways over a p_fast
+# grid and takes roughly half an hour.  Run it when SI Section 5.3 is rewritten
+# or the 2021-3 data are reprocessed, and paste its output into that section.
+robustness:
+	cd $(ANA)/SAXPCS_8id && $(PY) general_model_check.py
 
 # --- cleaning ---------------------------------------------------------------
 clean:

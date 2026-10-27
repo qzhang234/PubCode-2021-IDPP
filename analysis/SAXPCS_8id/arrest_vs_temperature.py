@@ -114,55 +114,7 @@ T_CMAP, T_LO, T_HI = plt.cm.viridis, 0.05, 0.85
 Q_MARKERS = ['o', 's', '^', 'D', 'v']
 
 
-# --- beta for this beamtime -------------------------------------------------
-# NOT measured over the five fitted bins.  The 2021-3 static reference is the
-# NIST glassy carbon standard, whose surface scratches add parasitic scattering
-# at low Q.  That scattering is static, so it dilutes the speckle and depresses
-# the APPARENT contrast exactly where the paper fits.  The measurement shows it
-# plainly: beta climbs from 0.1226 at 0.0036 A^-1 to a plateau of 0.140-0.143
-# by 0.0086 A^-1, a 12% rise.  The 2022-1 reference, a different sample, rises
-# by only 2% over the same interval, so the effect belongs to the standard and
-# not to the beamline.
-#
-# Contrast is a property of the optics and the detector, near enough constant
-# in Q over this range, so it is taken from the clean plateau and applied to
-# every bin.  BETA_BAND stops at 0.0165 A^-1, the last bin before beta leaves
-# the plateau: it dips to 0.126 at 0.0175-0.0185 and reads 0.1429 at 0.0214,
-# the bin holding the stuck pixel, against 0.1399 either side.  The dip was
-# once attributed here to a detector module gap; the XSPA-500k has none, so no
-# cause is assumed and the band is set on the measurement alone.
-# A single scalar rather than a per-bin value: the
-# bin-to-bin scatter inside the plateau is instrumental noise, and letting it
-# into f would inject that noise into the very ordering the paper reports.
-BETA_BAND = (0.0085, 0.0165)          # A^-1, the flat part of the standard
-
-
-def flat_level(tau, g, e):
-    """Inverse-variance weighted mean of g2 over the measurable delays, and its
-    standard error.  Every delay carries its own g2 uncertainty, so each enters
-    with weight 1/e^2 and the noisy short delays count for little."""
-    ok = (tau > 0) & (tau < 2) & np.isfinite(g) & (e > 0)
-    w = 1.0 / e[ok] ** 2
-    return float(np.sum(w * g[ok]) / np.sum(w)), float(np.sqrt(1.0 / np.sum(w)))
-
-
-def measure_beta(path, label):
-    with h5py.File(path, 'r') as hf:
-        tau, g2, g2e, q_std = read_g2(hf)
-    lv = [flat_level(tau, g2[:, i], g2e[:, i]) for i in range(g2.shape[1])]
-    b = np.array([x[0] - 1.0 for x in lv])
-    e = np.array([x[1] for x in lv])
-    sel = (q_std >= BETA_BAND[0]) & (q_std <= BETA_BAND[1]) & np.isfinite(b)
-    w = 1.0 / e[sel] ** 2
-    beta = float(np.sum(w * b[sel]) / np.sum(w))
-    print(f'beta ({label}) = {beta:.5f} from {sel.sum()} bins over '
-          f'{BETA_BAND[0]}-{BETA_BAND[1]} A^-1 (spread {b[sel].min():.4f}-{b[sel].max():.4f})')
-    print('   over the five FITTED bins it would read '
-          + ', '.join(f'{b[i]:.4f}' for i in QI) + '  <- depressed by the standard')
-    return beta
-
-
-xpcs_fit.CONTRAST = measure_beta(STANDARD, '2021-3 static standard')
+xpcs_fit.CONTRAST = xpcs_fit.measure_beta(STANDARD, '2021-3 static standard')
 
 
 def t_zero(run):

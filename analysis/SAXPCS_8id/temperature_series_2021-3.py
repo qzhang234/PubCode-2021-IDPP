@@ -136,52 +136,7 @@ INC = '/entry/instrument/incident_beam/incident_beam_intensity'
 TRN = '/entry/instrument/incident_beam/transmitted_beam_intensity'
 
 
-# --- beta for this beamtime -------------------------------------------------
-# NOT measured over the five fitted bins.  The 2021-3 static reference is the
-# NIST glassy carbon standard, whose surface scratches add parasitic scattering
-# at low Q.  That scattering is static, so it dilutes the speckle and depresses
-# the APPARENT contrast exactly where the paper fits.  The measurement shows it
-# plainly: beta climbs from 0.1226 at 0.0036 A^-1 to a plateau of 0.140-0.143
-# by 0.0086 A^-1, a 12% rise.  The 2022-1 reference, a different sample, rises
-# by only 2% over the same interval, so the effect belongs to the standard and
-# not to the beamline.
-#
-# Contrast is a property of the optics and the detector, near enough constant
-# in Q over this range, so it is taken from the clean plateau and applied to
-# every bin.  BETA_BAND stops at 0.0165 A^-1, which excludes a detector module
-# gap at 0.0175-0.0185 where beta dips to 0.126.  A single scalar rather than a
-# per-bin value: the
-# bin-to-bin scatter inside the plateau is instrumental noise, and letting it
-# into f would inject that noise into the very ordering the paper reports.
-BETA_BAND = (0.0085, 0.0165)          # A^-1, the flat part of the standard
-
-
-def flat_level(tau, g, e):
-    """Inverse-variance weighted mean of g2 over the measurable delays, and its
-    standard error.  Every delay carries its own g2 uncertainty, so each enters
-    with weight 1/e^2 and the noisy short delays count for little."""
-    ok = (tau > 0) & (tau < 2) & np.isfinite(g) & (e > 0)
-    w = 1.0 / e[ok] ** 2
-    return float(np.sum(w * g[ok]) / np.sum(w)), float(np.sqrt(1.0 / np.sum(w)))
-
-
-def measure_beta(path, label):
-    with h5py.File(path, 'r') as hf:
-        tau, g2, g2e, q_std = read_g2(hf)
-    lv = [flat_level(tau, g2[:, i], g2e[:, i]) for i in range(g2.shape[1])]
-    b = np.array([x[0] - 1.0 for x in lv])
-    e = np.array([x[1] for x in lv])
-    sel = (q_std >= BETA_BAND[0]) & (q_std <= BETA_BAND[1]) & np.isfinite(b)
-    w = 1.0 / e[sel] ** 2
-    beta = float(np.sum(w * b[sel]) / np.sum(w))
-    print(f'beta ({label}) = {beta:.5f} from {sel.sum()} bins over '
-          f'{BETA_BAND[0]}-{BETA_BAND[1]} A^-1 (spread {b[sel].min():.4f}-{b[sel].max():.4f})')
-    print('   over the five FITTED bins it would read '
-          + ', '.join(f'{b[i]:.4f}' for i in QI) + '  <- depressed by the standard')
-    return beta
-
-
-BETA = measure_beta(STANDARD, '2021-3 static standard')
+BETA = xpcs_fit.measure_beta(STANDARD, '2021-3 static standard')
 xpcs_fit.CONTRAST = BETA              # double_exp reads it at call time
 
 
@@ -234,7 +189,7 @@ print(f'background E0411: coefficient {COEF_BG:.4g}, absolute band mean '
 #
 # HOW IT IS FITTED, AND WHY NOT BY ORDINARY LEAST SQUARES.  Straight least
 # squares on I minimises ABSOLUTE residuals, and at the bottom of the range the
-# background is six times the 6 C signal, so the two or three lowest Q points
+# empty cell is 3.2 to 3.5 times the 6 C signal, so the lowest Q points
 # carry almost all the weight and drag ALPHA up.  That is what left a 10-20%
 # bowl near 0.004-0.005 A^-1 in every loading: too much background subtracted
 # over the part of the range the fit was not really looking at.  Instead the
@@ -254,8 +209,9 @@ print(f'background E0411: coefficient {COEF_BG:.4g}, absolute band mean '
 # no single coefficient removes it.  A q-scale mismatch between the two was
 # tested and rejected: flattening the residual that way needs a 6% stretch of
 # the background q axis and improves the rms by half a point.  The arrested and
-# assembling groups are 40 to 800 times the background over the same range, so
-# this limit touches the 6 C reference alone.
+# assembling groups average 54 to 322 times the background over 0.004-0.008
+# A^-1, so this limit touches the 6 C reference alone.  Both ratios are printed
+# at the end of the run: they had drifted while they lived only in comments.
 FIT_BAND = (0.0036, 0.0305)           # A^-1; starts at the lowest fitted Q bin
 FIT_NBINS = 9                         # logarithmic Q bins across FIT_BAND
 PLATEAU_BAND = (0.012, 0.0305)        # A^-1, where every reference is flat
@@ -329,11 +285,12 @@ REFS = {'H0402': 'H0403_D8_060C10p', 'H0407': 'H0407_D6_060C10p',
 # the opposite curvature at every coefficient, a steep low-Q tail standing on
 # a plateau.  Figure 3a subtracts a BUFFER measured in the same cell, which
 # takes windows, solvent and parasitic scattering off together.  2021-3 has
-# no buffer, and at 0.004 A^-1 its empty cell is 4.7 times the 6 C signal, so
+# no buffer, and at 0.004 A^-1 its empty cell is 3.0 to 3.7 times the 6 C
+# signal (2.4 to 3.0 after BG_COEF), so
 # subtracting enough to remove the instrumental tail removes the sample's own
 # low-Q signal with it.  That is a limit of the 2021-3 measurement, not of
 # the coefficient, and it is confined to the 6 C reference: every hold group
-# is 40 to 800 times the background over the same range.
+# averages 54 to 322 times the background over 0.004-0.008 A^-1.
 BG_COEF = 0.80
 
 _BG_FITS = flattest_coef({h: os.path.join(DATA, f'Average_{r}_att00_Rq0_00001_00020_results.hdf')
@@ -525,6 +482,48 @@ for h in RUNS:
     q, I = abs_iq(os.path.join(DATA, f'Average_{REFS[h]}_att00_Rq0_00001_00020_results.hdf'))
     flat = (q > 0.006) & (q < 0.03)
     print(f'  {REFS[h]}: mean over 0.006-0.03 {np.mean(I[flat]):.4f} +/- {np.std(I[flat]):.4f}')
+
+
+# How far the empty cell stands above the 6 C reference, and how far the hold
+# groups stand above the empty cell.  Both numbers are quoted in SI 8.2, and
+# both had drifted while they lived only in comments, so they are printed here.
+print('\nempty cell against the 6 C reference it has to be subtracted from:')
+_use = BG_COEF * COEF_BG * I_BG
+_raw = COEF_BG * I_BG
+for _qt in (0.0036, 0.0040, 0.0050):
+    _j = int(np.argmin(np.abs(Q_BG - _qt)))
+    _r = []
+    for h in RUNS:
+        _, _I = abs_iq(os.path.join(DATA, f'Average_{REFS[h]}_att00_Rq0_00001_00020_results.hdf'))
+        _r.append(_raw[_j] / _I[_j])
+    print(f'  Q = {Q_BG[_j]:.5f}: empty cell {_raw[_j]:.4g} mm^-1, '
+          f'{min(_r):.1f}-{max(_r):.1f}x the 6 C signal '
+          f'({BG_COEF:.2f} x it: {min(_r)*BG_COEF:.1f}-{max(_r)*BG_COEF:.1f}x)')
+
+print('\nfitted groups against the subtracted background, over 0.004-0.008 A^-1:')
+_band = (Q_BG >= 0.004) & (Q_BG <= 0.008)
+_pts, _means = [], []
+for h, (run, sample, target) in RUNS.items():
+    _t0 = load_trace(run)[3]
+    _tws = {round(r['tw']) for r in series[h]}
+    _p, _m = [], []
+    for _fp in sorted(glob.glob(os.path.join(DATA, f'Average_{run}_*_results.hdf')),
+                      key=lambda x: parse_name(x)[1]):
+        with h5py.File(_fp, 'r') as _hf:
+            _w = (read_start_time(_hf) - _t0).total_seconds()
+        if round(_w) not in _tws:
+            continue
+        _r = abs_iq(_fp)[1][_band] / (BG_COEF * COEF_BG * I_BG)[_band]
+        _p.append(_r); _m.append(_r.mean())
+    _pts += _p; _means += _m
+    _a = np.concatenate(_p)
+    print(f'  {run}: {len(_m):2d} groups, pointwise {_a.min():5.0f}-{_a.max():5.0f}x, '
+          f'group means {min(_m):5.0f}-{max(_m):5.0f}x')
+_all = np.concatenate(_pts)
+print(f'  all {len(_means)} fitted groups: pointwise {_all.min():.0f}-{_all.max():.0f}x, '
+      f'group means {min(_means):.0f}-{max(_means):.0f}x')
+print('  (SI 8.2 quotes the group-mean range; the two differ because one is a '
+      'per-point\n   extremum and the other a per-group average)')
 
 
 # --- FIGURES S11-S14 ---
