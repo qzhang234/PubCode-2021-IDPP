@@ -121,7 +121,7 @@ def q_log_ticks(ax, axis='x'):
     a.set_minor_formatter(NullFormatter())
 
 
-def label_panels(axes, dx=-30, dy=5):
+def label_panels(axes, dx=-30, dy=5, start=0):
     """Bold (a), (b), (c)... just outside the top-left corner of each axes.
 
     The offset is in POINTS, not axes fractions, so every panel label in the
@@ -136,8 +136,14 @@ def label_panels(axes, dx=-30, dy=5):
     that tick label at the same x, so the two collided at the original dy = 2.
     Raising it to 5 leaves 2.1 pt of clear space in the worst case and changes
     nothing else: no figure in the paper draws anything else in that corner.
+
+    start skips that many letters, so a figure whose panels are created in more
+    than one call can label the second group (d), (e), ... rather than starting
+    over at (a).  A panel row that shares its y axis has no tick labels to clear
+    on its second and later panels, and there dx = -30 would place the label
+    nearer the previous panel than its own; pass a smaller dx for that row.
     """
-    for ax, letter in zip(axes, 'abcdefgh'):
+    for ax, letter in zip(axes, 'abcdefghijklmnopqrstuvwxyz'[start:]):
         ax.annotate(f'({letter})', xy=(0, 1), xycoords='axes fraction',
                     xytext=(dx, dy), textcoords='offset points',
                     fontsize=FONT_SIZE, fontweight='bold', va='bottom', ha='left')

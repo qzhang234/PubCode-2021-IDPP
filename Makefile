@@ -36,17 +36,28 @@ export MPLBACKEND := Agg
 # --- data-derived figures: script -> outputs --------------------------------
 F_12ID    := $(ANA)/SAXS_12id/Figure2_SAXS_WAXS.pdf
 F_GUINIER := $(ANA)/SAXS_12id/FigureS3_Guinier.pdf
-F_XPCS    := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
-             $(ANA)/SAXPCS_8id/FigureS8_Fit_Parameters.pdf \
-             $(ANA)/SAXPCS_8id/FigureS6_Calibration.pdf
-F_EVOL    := $(ANA)/SAXPCS_8id/FigureS5_SAXS_Evolution.pdf
-F_GRID    := $(ANA)/SAXPCS_8id/FigureS9_g2_Grid.pdf
+# Figure 3 is now the 28.50 C loading of the 2021-3 series and is written by
+# temperature_series_2021-3.py (see F_TSERIES).  saxpcs.py still builds the
+# 2022-1 calibration and fit-parameter panels; its own Figure 3 output is no
+# longer a build target, so the two scripts cannot race for the same file.
+F_CALIB   := $(ANA)/SAXPCS_8id/FigureS5_Calibration.pdf
 F_CYCLE   := $(ANA)/SAXPCS_8id/FigureS4_Thermal_Cycle.pdf
-F_BETA    := $(ANA)/SAXPCS_8id/FigureS7_Contrast.pdf
-F_RAD     := $(ANA)/Rad_Dam_Check/FigureS10_Flux_Control.pdf
+F_BETA    := $(ANA)/SAXPCS_8id/FigureS6_Contrast.pdf
+F_RAD     := $(ANA)/Rad_Dam_Check/FigureS7_Flux_Control.pdf
+F_TSERIES := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
+             $(ANA)/SAXPCS_8id/FigureS8_Temperature_2800.pdf \
+             $(ANA)/SAXPCS_8id/FigureS9_Temperature_2825.pdf \
+             $(ANA)/SAXPCS_8id/FigureS10_Temperature_2850.pdf \
+             $(ANA)/SAXPCS_8id/FigureS11_Temperature_2875.pdf
+F_ARREST  := $(ANA)/SAXPCS_8id/Figure4_Arrest_vs_Temperature.pdf \
+             $(ANA)/SAXPCS_8id/FigureS12_Collapse_AllQ.pdf
 
-FIGURES := $(F_12ID) $(F_GUINIER) $(F_XPCS) $(F_EVOL) $(F_GRID) $(F_RAD) \
-            $(F_CYCLE) $(F_BETA)
+# The 2022-1 arrest analysis was retired with the move to the 2021-3
+# temperature series: saxs_evolution.py, g2_grid_SI.py and the fit-parameter
+# panels of saxpcs.py no longer have a figure in either document.  saxpcs.py
+# is still built for the absolute-scale calibration, which both beamtimes share.
+FIGURES := $(F_12ID) $(F_GUINIER) $(F_CALIB) $(F_RAD) \
+            $(F_CYCLE) $(F_BETA) $(F_TSERIES) $(F_ARREST)
 
 # every 8-ID-I figure now reads only what average_ranges.py put in data/:
 # the averaged NeXus files, the contrast stack, and the thermal-cycle
@@ -55,6 +66,8 @@ XPCS_DATA := $(wildcard $(ANA)/SAXPCS_8id/data/*.hdf) \
              $(ANA)/SAXPCS_8id/data/thermal_cycle_temperature.csv
 CSV_DATA  := $(wildcard $(ANA)/SAXS_12id/reduced_data/*.csv)
 RAD_DATA  := $(wildcard $(ANA)/Rad_Dam_Check/cluster_results/*.hdf)
+TSERIES_DATA := $(wildcard $(ANA)/SAXPCS_8id/data_2021-3/*.hdf) \
+                $(ANA)/SAXPCS_8id/data_2021-3/trace_2021-3.csv
 COMMON    := $(ANA)/common/acs_style.py
 XFIT      := $(ANA)/SAXPCS_8id/xpcs_fit.py
 # nexus_read.py is imported by the four 8-ID-I figure scripts below, so a change
@@ -80,21 +93,26 @@ $(F_GUINIER): $(ANA)/SAXS_12id/Guinier_Plot.py $(CSV_DATA) $(COMMON)
 	cd $(ANA)/SAXS_12id && $(PY) Guinier_Plot.py
 
 # one script, three figures
-$(F_XPCS) &: $(ANA)/SAXPCS_8id/saxpcs.py $(ANA)/SAXPCS_8id/abs_xsec.py $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
+$(F_CALIB): $(ANA)/SAXPCS_8id/saxpcs.py $(ANA)/SAXPCS_8id/abs_xsec.py $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) saxpcs.py
 
-$(F_EVOL): $(ANA)/SAXPCS_8id/saxs_evolution.py $(ANA)/SAXPCS_8id/abs_xsec.py $(XPCS_DATA) $(COMMON) $(NEXUS)
-	cd $(ANA)/SAXPCS_8id && $(PY) saxs_evolution.py
 
-$(F_GRID): $(ANA)/SAXPCS_8id/g2_grid_SI.py $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
-	cd $(ANA)/SAXPCS_8id && $(PY) g2_grid_SI.py
 
 $(F_CYCLE): $(ANA)/SAXPCS_8id/thermal_cycle.py $(ANA)/SAXPCS_8id/abs_xsec.py \
             $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) thermal_cycle.py
 
-$(F_BETA): $(ANA)/SAXPCS_8id/contrast_calibration.py $(XPCS_DATA) $(COMMON)
-	cd $(ANA)/SAXPCS_8id && $(PY) contrast_calibration.py
+$(F_BETA): $(ANA)/SAXPCS_8id/contrast_2021-3.py $(TSERIES_DATA) $(COMMON) $(NEXUS)
+	cd $(ANA)/SAXPCS_8id && $(PY) contrast_2021-3.py
+
+$(F_TSERIES) &: $(ANA)/SAXPCS_8id/temperature_series_2021-3.py $(ANA)/SAXPCS_8id/abs_xsec.py \
+                $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS)
+	cd $(ANA)/SAXPCS_8id && $(PY) temperature_series_2021-3.py
+
+# reads BOTH beamtimes: the 2021-3 holds and the 2022-1 isothermal series
+$(F_ARREST) &: $(ANA)/SAXPCS_8id/arrest_vs_temperature.py \
+             $(TSERIES_DATA) $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
+	cd $(ANA)/SAXPCS_8id && $(PY) arrest_vs_temperature.py
 
 $(F_RAD): $(ANA)/Rad_Dam_Check/g2_SAXPCS_Rad_Cali.py $(ANA)/Rad_Dam_Check/Flux_Cal.py $(RAD_DATA) $(COMMON)
 	cd $(ANA)/Rad_Dam_Check && $(PY) g2_SAXPCS_Rad_Cali.py
@@ -140,10 +158,13 @@ cover: $(MS)/cover_letter.tex $(MS)/cover_letter_header.tex
 	$(call compile,cover_letter)
 
 # --- verification -----------------------------------------------------------
-# NB: LaTeX writes Citation `key' undefined -- backtick then straight quote.
+# NB: LaTeX writes  Reference `key' on page N undefined on input line M.
+# The "undefined" does NOT follow the closing quote directly, so the pattern
+# has to allow the page clause in between.  An earlier version anchored on
+# "' undefined" and therefore matched nothing, reporting every build clean.
 check:
 	@echo "== undefined citations / references =="
-	@grep -hoE "(Citation|Reference) \`[^']+' undefined" \
+	@grep -hoE "(Citation|Reference) \`[^']+'.*undefined" \
 	    $(BUILD)/main.log $(BUILD)/si.log 2>/dev/null | sort -u || true
 	@echo "== bibtex database/entry problems =="
 	@grep -hE "couldn't open|I didn't find a database entry" \

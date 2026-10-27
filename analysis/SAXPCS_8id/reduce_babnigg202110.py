@@ -7,7 +7,8 @@ into data_2021-3/.
 THE DATA
 --------
 Four ELP loadings (D6-D9) in the same cell block, each taken from 20 C to a
-different final temperature on the QNW zone-3 controller, on 17 Oct 2021:
+different final temperature on zone 3 of the QNW stage, read by its RTD, on
+17 Oct 2021:
 
     H0402  D8  28.00 C        H0407  D6  28.25 C
     H0404  D7  28.50 C        H0413  D9  28.75 C
@@ -29,12 +30,21 @@ WHAT IS WRITTEN
    temperature, which is t_w = 0, the analogue of the RTD reaching 30 C.
 3. The 6 C reference of each loading and the 12IDB static standard B0005, each
    averaged whole, for the SAXS baseline and for the speckle contrast.
-4. The empty-cell and air measurements, each header averaged whole through the
-   same two outlier cuts, as candidate backgrounds.  They were correlated with
+4. The six candidate background measurements, each header averaged whole
+   through the same two outlier cuts.  Their names were entered at the
+   beamline and do not reliably say what was in the cell; which one is used,
+   and why, is settled from the monitors and I(Q) in
+   temperature_series_2021-3.py.  They were correlated with
    the same qmap and boost_corr flags as the sample data.
 
-    python reduce_babnigg202110.py            # everything
-    python reduce_babnigg202110.py empties    # only item 4
+    python reduce_babnigg202110.py            # items 1-3
+    python reduce_babnigg202110.py empties    # item 4, the backgrounds
+
+BOTH are needed after a reprocessing.  The bare call does NOT rebuild the six
+background averages of item 4; it returns before them.  Leaving them behind
+mixes a background reduced against one qmap with samples reduced against
+another, which is how the stuck pixel survived in the E0411 background on
+26 Oct 2026 after every sample file had been rebuilt without it.
 """
 
 import os

@@ -33,15 +33,20 @@ reprocessed, and they will only run at the beamline.
 
 ### Code that reads outside this repository
 
-There are exactly four places in the Python where a path can point outside the
+There are exactly eight places in the Python where a path can point outside the
 repository, and **none of them is on the path from the committed data to a
-figure** — `make figures` never executes any of them.
+figure** — `make figures` never executes any of them. Every beamline data path
+among them is on `/gdata`, which APS monitors and backs up.
 
 | Where | Out-of-repo location | How the path is set |
 |---|---|---|
-| `analysis/SAXS_12id/Read_12ID_SAWAXS.py`, `fn_path` (line 54) | `/home/8-id-i/2021-1/12-id-b/ZuoApr13/Processed/` — the 12-ID-B reduced `.avg` profiles from the 2021-1 run | hard-coded |
+| `analysis/SAXS_12id/Read_12ID_SAWAXS.py`, `fn_path` (line 56) | `/gdata/s8id-dmdtn/2021-1/12-id-b/ZuoApr13/Processed/` — the 12-ID-B reduced `.avg` profiles from the 2021-1 run | hard-coded |
 | `analysis/SAXPCS_8id/average_ranges.py`, `prefix` (line 80) | `/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/reprocess_results` — the 8-ID-I per-acquisition cluster results from the 2022-1 run | hard-coded |
-| `analysis/SAXPCS_8id/restore_dx_metadata.py`, `ARCHIVE` and `NEXUS` | `/gdata/s8id-dmdtn/2022-1/babnigg202203` and `…_nexus` — the one-off repair described below | hard-coded |
+| `analysis/SAXPCS_8id/restore_dx_metadata.py`, `ARCHIVE` and `NEXUS` (lines 67–68) | `/gdata/s8id-dmdtn/2022-1/babnigg202203` and `…_nexus` — the one-off repair described below | hard-coded |
+| `analysis/SAXPCS_8id/nexus_convert_babnigg202110.py`, `ARCHIVE` (line 81) | `/gdata/s8id-dmdtn/2021-3/babnigg202110` and `…_nexus` — the Data Exchange to NeXus conversion of the 2021-3 beamtime | hard-coded |
+| `analysis/SAXPCS_8id/make_qmap_babnigg202110.py`, `ARCHIVE`, `OUT_DIR`, `BLEMISH`, `PYSIMPLEMASK_SRC` (lines 104–126) | the same 2021-3 pair, plus the current detector blemish map and the pySimpleMask source, both under `/home/beams*/8IDIUSER` | hard-coded |
+| `analysis/SAXPCS_8id/restore_dx_metadata_2021-3.py`, `ARCHIVE` and `NEXUS` (lines 51–52) | the same 2021-3 pair — the 2021-3 counterpart of the check described below | hard-coded |
+| `analysis/SAXPCS_8id/reduce_babnigg202110.py`, `PREFIX` (line 52) | `/gdata/s8id-dmdtn/2021-3/babnigg202110_nexus/reprocess_results` — the per-acquisition results that `data_2021-3/` is reduced from | hard-coded |
 | `analysis/common/utils.py`, beamline-side helpers | wherever the caller points them | **no default** — `prefix` must be passed in |
 
 The `utils.py` helpers in question are `read_keys_from_files`,
@@ -177,7 +182,7 @@ Section 3.1.
 | `common/acs_style.py` | Single source of ACS figure compliance: 3.33 / 7.0 in column widths, 8 pt Arial everywhere, ≥ 0.5 pt lines, TrueType embedding, `save_fig()`. Imported by every plotting script. |
 | `common/utils.py` | `outlier_removal` and `average_datasets`, used by `average_ranges.py`; plus beamline-side reduction helpers kept for provenance that cannot run from a clone. |
 | `SAXS_12id/` | 12-ID-B: `Read_12ID_SAWAXS.py` (reduction), `Plot_12ID.py` → **Fig. 2**, `Guinier_Plot.py` → **Fig. S3**, and the committed `reduced_data/*.csv`. |
-| `SAXPCS_8id/` | 8-ID-I: `average_ranges.py` (reduction) and the committed `data/`; `saxpcs.py` → **Figs. 3, S6, S8**; `contrast_calibration.py` → **Fig. S7**; `thermal_cycle.py` → **Fig. S4**; `saxs_evolution.py` → **Fig. S5**; `g2_grid_SI.py` → **Fig. S9**. `abs_xsec.py` holds the absolute-cross-section calibration and `xpcs_fit.py` the shared two-mode g2 model, so every figure uses one implementation of each. `restore_dx_metadata.py` is the one-off repair of the 2025 NeXus rewrite and `dx_restore_manifest.csv` its record; `timelist_2022-1.txt` is the saved directory listing that recovered acquisition times before that repair, kept as a cross-check; `nexus_manual.txt` documents the NeXus layout. |
+| `SAXPCS_8id/` | 8-ID-I: `average_ranges.py` (reduction) and the committed `data/`; `saxpcs.py` → **Figs. 3, S6, S8**; `contrast_calibration.py` → **Fig. S7**; `thermal_cycle.py` → **Fig. S4**; `saxs_evolution.py` → **Fig. S5**; `g2_grid_SI.py` → **Fig. S9**; `temperature_series_2021-3.py` → **Figs. S11-S14**, from the 2021-3 temperature series reduced into `data_2021-3/` by `reduce_babnigg202110.py`. `abs_xsec.py` holds the absolute-cross-section calibration and `xpcs_fit.py` the shared two-mode g2 model, so every figure uses one implementation of each. `restore_dx_metadata.py` is the one-off repair of the 2025 NeXus rewrite and `dx_restore_manifest.csv` its record; `timelist_2022-1.txt` is the saved directory listing that recovered acquisition times before that repair, kept as a cross-check; `nexus_manual.txt` documents the NeXus layout. |
 | `Rad_Dam_Check/` | Flux-dependence control → **Fig. S10**, with its four result files, the PIN-diode calibration sheet and certificate. See `analysis/Rad_Dam_Check/README.md`. |
 
 ### `manuscript/`

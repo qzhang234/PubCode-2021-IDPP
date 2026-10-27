@@ -1,9 +1,9 @@
 """Reduce the 12-ID-B .avg files into reduced_data/Merged_*.csv.
 
-BEAMLINE-ONLY.  Together with SAXPCS_8id/average_ranges.py this is one of the
-two scripts in the repository that read raw beamline storage; ``fn_path`` below
-points at the 12-ID-B processed directory and exists only there.  Its outputs
-are committed under reduced_data/, so Plot_12ID.py (Figure 2) and
+BEAMLINE-ONLY.  ``fn_path`` below points at the 12-ID-B processed directory on
+/gdata, which APS monitors and backs up and which mounts on the 10.x hosts
+(amber) and not on the 164.x analysis machines, so this script runs only there.
+Its outputs are committed under reduced_data/, so Plot_12ID.py (Figure 2) and
 Guinier_Plot.py (Figure S3) run from a clone of this repository alone and this
 script does not have to be rerun unless the raw data are reprocessed.
 
@@ -51,7 +51,9 @@ def merge_data(q_sa, i_sa, e_sa, q_wa, i_wa, e_wa):
 
     return q_comb[sort_idx], i_comb[sort_idx], e_comb[sort_idx]
 
-fn_path = '/home/8-id-i/2021-1/12-id-b/ZuoApr13/Processed/'
+# The archival copy.  The /home/8-id-i/2021-1/12-id-b copy this read until
+# October 2026 is byte-identical, but /home/8-id-i is not backed up by APS.
+fn_path = '/gdata/s8id-dmdtn/2021-1/12-id-b/ZuoApr13/Processed/'
 
 # 1. LOAD COORDINATES ONCE
 SA_ql, _, _ = Read_12ID(fn_path + 'SPA1_10C_00070.avg')

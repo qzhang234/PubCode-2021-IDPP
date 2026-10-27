@@ -11,3 +11,8 @@ claude_log/
 
 # Publisher PDFs fetched for the citation audit; not ours to redistribute.
 References/
+
+# Working area for the 26 Oct 2026 stuck-pixel reprocessing: the stdout
+# baselines the comparison was made against, the run logs, and a copy of the
+# pre-reprocessing data_2021-3 (127 MB). Provenance only; safe to delete.
+analysis/SAXPCS_8id/_scratch/

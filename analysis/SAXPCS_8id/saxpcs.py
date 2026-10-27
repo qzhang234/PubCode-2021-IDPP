@@ -464,7 +464,11 @@ leg_fig.get_frame().set_linewidth(LW_THIN)
 # Reserve the bottom strip for that key; w_pad keeps the y labels of panels (b)
 # and (c) clear of the neighbouring panel's tick labels.
 fig.tight_layout(pad=0.4, w_pad=1.1, rect=(0, FIG1_LEGEND_H, 1, 1))
-save_fig(fig, 'Figure3_Isothermal_SAXPCS.pdf')
+# Figure 3 of the manuscript is now the \SI{28.50}{\degreeCelsius} loading of the
+# 2021-3 series, written by temperature_series_2021-3.py.  This panel set is kept
+# for the 2022-1 analysis but is written under its own name so the two scripts
+# never write the same file.
+save_fig(fig, 'Figure_2022-1_Isothermal_SAXPCS.pdf')
 
 # ============================================================
 # FIGURE S8 (1x3): (a) p_slow vs elapsed time;  (b) <tau_slow> vs Q;
@@ -576,7 +580,11 @@ for a in (axs, axg):
     a.autoscale_view()
 
 fig2.tight_layout(pad=0.4, w_pad=1.4, h_pad=0.8)
-save_fig(fig2, 'FigureS8_Fit_Parameters.pdf')
+# Renamed off the SI numbering: 'S8' now belongs to the 28.00 C hold of the
+# 2021-3 series.  These 2022-1 fit parameters are in neither document; the
+# script is kept because the absolute-scale calibration below is, and that
+# calibration is shared by both beamtimes.
+save_fig(fig2, 'Figure_2022-1_Fit_Parameters.pdf')
 
 # ============================================================
 # FIGURE S3 (2 panels): ion-chamber -> photon calibration
@@ -610,6 +618,6 @@ axc.legend(loc='upper left')
 add_minor_grid(axc)
 
 fig3.tight_layout(pad=0.4, w_pad=1.4)
-save_fig(fig3, 'FigureS6_Calibration.pdf')
+save_fig(fig3, 'FigureS5_Calibration.pdf')
 
 plt.show()

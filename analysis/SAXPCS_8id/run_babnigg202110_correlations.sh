@@ -1,12 +1,13 @@
 #!/bin/bash
 # Correlate every acquisition of the 2021-3 isothermal series.
 #
-# BEAMLINE-ONLY. Needs /gdata and a GPU host (adamite, amazonite). Written to
-# run during the 5-6 Oct 2026 APS shutdown, and kept here for provenance.
+# BEAMLINE-ONLY. Needs /gdata and a GPU host (adamite, amazonite). Written for
+# the 5-6 Oct 2026 APS shutdown and re-run on 26 Oct 2026 against CrossRm2,
+# which masks the second stuck pixel (63, 166).
 #
 # Scheduled with `at` on the GPU host rather than from a Claude session, so the
 # run does not depend on anything staying alive:
-#     echo /path/to/run_babnigg202110_correlations.sh | at 08:00 2026-10-05
+#     echo /path/to/run_babnigg202110_correlations.sh | at 08:00 2026-10-26
 #
 # Design notes
 # ------------
@@ -19,7 +20,8 @@
 #
 # --crop-ratio-threshold defaults to 1.0, which crops whenever any pixel is
 # masked, and cropping makes every g2 come back NaN on this data. 0.5 keeps
-# cropping off for this qmap, whose valid fraction is 0.87.
+# cropping off for this qmap, whose valid fraction is 0.8654 before the second
+# stuck pixel is masked and 0.8654 after: one pixel in 524,288 does not move it.
 #
 # -w overwrites in place. Without it boost_corr appends _1 to the name of any
 # result that already exists, which is how duplicates appeared before.
@@ -38,13 +40,15 @@ set -u
 
 HOST=$(hostname -s)
 NEXUS=/gdata/s8id-dmdtn/2021-3/babnigg202110_nexus
-QMAP=$NEXUS/babnigg202110_nexus_Sq270_Dq27_Sphi8_Dphi1_Q0p0032_Lin_CrossRm.hdf
+QMAP=$NEXUS/babnigg202110_nexus_Sq270_Dq27_Sphi8_Dphi1_Q0p0032_Lin_CrossRm2.hdf
 OUT=$NEXUS/reprocess_results
-RUNDIR=$NEXUS/correlation_run_20261005
+RUNDIR=$NEXUS/correlation_run_20261026
 NWORKERS=${NWORKERS:-4}
 CHUNK=${CHUNK:-12}
-# 2026-10-06 07:00 local, an hour before the beam returns.
-DEADLINE=${DEADLINE:-1791288000}
+# 2026-10-26 18:00 local. The run itself is about three hours from an 08:00
+# start; the rest of the window is left for the re-reduction and the figures,
+# which have to be finished by 08:00 on 27 Oct.
+DEADLINE=${DEADLINE:-1793055600}
 EMAIL=${EMAIL:-qzhang234@anl.gov}
 
 export PATH=/home/beams/8IDIUSER/bin:$PATH
@@ -139,7 +143,7 @@ else
     STATUS="$DONE/$TOTAL done, $NMISS missing, $DUPE duplicates"
 fi
 notify "babnigg202110 correlation run finished on $HOST: $STATUS" \
-"Correlated the 2021-3 isothermal series against the CrossRm qmap.
+"Correlated the 2021-3 isothermal series against the CrossRm2 qmap.
 
 host            : $HOST
 started         : $(date -d @$T0 '+%F %T')

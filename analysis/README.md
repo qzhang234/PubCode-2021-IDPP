@@ -68,6 +68,42 @@ data/
     --> contrast_calibration.py --> FigureS7_Contrast.pdf
 ```
 
+The temperature series of SI Section 8 comes from the earlier 2021-3 beamtime
+and has its own short chain, reusing the code above unchanged:
+
+```
+2021-3 Data Exchange archive (/gdata/s8id-dmdtn/2021-3/babnigg202110; BEAMLINE-ONLY)
+    --> make_qmap_babnigg202110.py        geometry and mask provenance;
+                                          --crossrm2 writes the qmap in use
+    --> sweep_stuck_pixels_2021-3.py      finds the stuck pixels that mask needs
+    --> nexus_convert_babnigg202110.py    NeXus tree, monitors carried across
+    --> restore_dx_metadata_2021-3.py     check that every file carries them
+    --> boost_corr_bin                    (run_babnigg202110_correlations.sh)
+    --> reduce_babnigg202110.py           --> data_2021-3/   (average_ranges code path)
+data_2021-3/
+    --> temperature_series_2021-3.py      --> Figure3 + FigureS8-S11_Temperature_*.pdf
+    --> arrest_vs_temperature.py          --> Figure4 + FigureS12_Collapse_AllQ.pdf
+```
+
+The series is correlated against
+`babnigg202110_nexus_Sq270_Dq27_Sphi8_Dphi1_Q0p0032_Lin_CrossRm2.hdf`. That
+qmap masks two stuck pixels: (30, 340), found when the qmap was first built,
+and (63, 166), found on 26 Oct 2026 by `sweep_stuck_pixels_2021-3.py` and
+masked by `make_qmap_babnigg202110.py --crossrm2`. The second read a constant
+1.5 photons per frame in every 17 Oct measurement and sat at Q = 0.0214 A^-1,
+outside the five fitted bins. Masking it and reprocessing all 7805
+acquisitions left every fitted number unchanged; the largest move anywhere in
+the figure scripts' output was one unit in the last displayed digit.
+
+`temperature_series_2021-3.py` fits Equation 2 with the `xpcs_fit.py` model,
+puts I(Q) on the `abs_xsec.py` absolute scale and subtracts the background
+measurement E0411, scaled by a coefficient chosen on the trade-off its
+docstring tabulates. That docstring lists every choice that differs from
+Figure 3 and why, including why E0411 is the only usable background of the
+six (settled from the ion chambers and I(Q), not from the beamline names,
+which do not reliably say what was in the cell) and why loading D8 behaves
+differently from the other three.
+
 `average_ranges.py` is the second of the two beamline-only scripts and the
 only one in this directory that reads the beamline storage. It reduces
 them into `data/`, which is committed: an averaged NeXus file per frame range
@@ -86,7 +122,7 @@ crossing the beam during one exposure looks like. `spike_removal()` in
 0.004–0.008 Å⁻¹, the same band Figure S4b reports. It is applied to every group
 on identical terms, removes 35 of the 1708 shape-cut survivors (2.0 %), and is
 nearly inert outside the Figure S4 thermal cycles. `MANUAL_EXCLUDE` remains as
-an empty escape hatch for anything neither cut can see. SI Section 7.1 states
+an empty escape hatch for anything neither cut can see. SI Section 7.5 states
 what the cut does to the figure. Re-reduce one group with
 `python average_ranges.py B0083`.
 
@@ -145,6 +181,7 @@ differs, and the top-level `Makefile` resolves it via `TEXINPUTS`.
 | `SAXPCS_8id/FigureS5_SAXS_Evolution.pdf` | `saxs_evolution.py` | SI Fig. S5 | 1 |
 | `SAXPCS_8id/FigureS9_g2_Grid.pdf` | `g2_grid_SI.py` | SI Fig. S9 | 4 (2×2) |
 | `Rad_Dam_Check/FigureS10_Flux_Control.pdf` | `g2_SAXPCS_Rad_Cali.py` | SI Fig. S10 | 2 |
+| `SAXPCS_8id/FigureS11_Temperature_2800.pdf` ... `FigureS14_Temperature_2875.pdf` | `temperature_series_2021-3.py` | SI Figs. S11-S14 | 7 each |
 
 Main Fig. 1 (`manuscript/figures/Setup.pdf`) is an illustrator schematic and is
 not produced by any script here. SI Fig. S1 is a LaTeX-typeset box of

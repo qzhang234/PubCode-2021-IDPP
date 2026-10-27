@@ -95,7 +95,6 @@ from common.acs_style import (DOUBLE_COL, MS, MS_DENSE, MS_SPARSE, MEW, LW_THIN,
                               apply_style, add_minor_grid, label_panels,
                               q_log_ticks, save_fig)
 from abs_xsec import abs_xsec_coef
-from xpcs_fit import CONTRAST
 
 # Everything this figure reads was written by average_ranges.py into data/: one
 # averaged file per group, and one CSV holding the per-acquisition thermal
@@ -427,9 +426,49 @@ axG.set_xscale('log')
 axG.set_ylim(0.94, 1.28)
 axG.set_xlabel(r'Delay Time, $\Delta t$ (s)')
 axG.set_ylabel('$g_2$')
-axG.axhline(1 + CONTRAST, color='0.6', ls=':', lw=LW_THIN)
-axG.text(0.985, 1 + CONTRAST, '$1+\\beta$', transform=axG.get_yaxis_transform(),
-         ha='right', va='bottom', color='0.45')
+# THE REFERENCE LEVEL IS A MEASURED CURVE, NOT A CALIBRATION.  A static sample
+# cannot relax, so its correlation function is flat and its level is the
+# instrumental contrast of the beamtime that recorded it.  Rather than import a
+# contrast number from a calibration figure, the static reference taken in THIS
+# beamtime is read at the SAME Q bin as the data in this panel and drawn as a
+# dashed line at its fitted level.  The reader then compares two measured
+# correlation functions on one axis: the 33.8 C curves sit just below the
+# static line and run flat across four decades, which is arrest; the 31.9 C
+# curves decay away from it, which is not.  Nothing quantitative is claimed
+# from the gap, and no contrast calibration is needed to read the panel.
+STATIC_REF = os.path.join(DATA,
+                          'Average_F0145_10nm_Glass_006C_att00_Rq0_00001_00050'
+                          '_BadpixRm_results.hdf')
+with h5py.File(STATIC_REF, 'r') as hf:
+    _ft = float(np.asarray(hf[FRAME_TIME_PATH][()]).reshape(-1)[0])
+    _tau = np.asarray(hf[DELAY_PATH][()]).reshape(-1) * _ft
+    _g = hf[G2_PATH][()][:, 0]
+    _e = hf[G2_ERR_PATH][()][:, 0]
+_ok = (_tau > 0) & (_tau < 2) & np.isfinite(_g) & (_e > 0)
+_w = 1.0 / _e[_ok] ** 2
+STATIC_LEVEL = float(np.sum(_w * _g[_ok]) / np.sum(_w))
+print(f'static reference level at the panel Q bin: g2 = {STATIC_LEVEL:.4f} '
+      f'({_ok.sum()} delays)')
+axG.axhline(STATIC_LEVEL, color='0.35', ls='--', lw=LW_DATA * 1.7, zorder=2)
+axG.annotate('static reference', xy=(0.985, STATIC_LEVEL),
+             xycoords=axG.get_yaxis_transform(), xytext=(0, 5),
+             textcoords='offset points', ha='right', va='bottom', color='0.35')
+
+axG.set_xscale('log')
+# The shortest delays average only 10 acquisitions (against 63-200 in Figure 3),
+# so their error bars run far outside the correlation itself; the limits show the
+# correlation and let those few caps clip.
+axG.set_ylim(0.94, 1.28)
+axG.set_xlabel(r'Delay Time, $\Delta t$ (s)')
+axG.set_ylabel('$g_2$')
+# NO 1+beta REFERENCE LINE.  The contrast of this beamtime is no longer
+# measured anywhere in the paper: its static reference was dropped with the
+# rest of the 2022-1 arrest analysis.  Nothing here needs it.  What the panel
+# has to show is that the sample is arrested at 33.8 C and mobile at 31.9 C,
+# and that is a statement about the SHAPE of g2, not its level: the 33.8 C
+# curves show no resolvable decay across four decades of delay while the
+# 31.9 C curves decay throughout.  Drawing a contrast line measured on a
+# different sample would imply a calibration this figure does not rest on.
 add_minor_grid(axG)
 axG.set_title(f'$Q = {Q_G2:.5f}\\ \\AA^{{-1}}$')
 
