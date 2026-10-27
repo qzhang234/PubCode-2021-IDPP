@@ -58,8 +58,14 @@ Three sources, unioned:
 
     beamstop        mask_beamstop_10_09.mat, the hand-drawn 2021-3 beamstop
                     (2548 px).  Read as-is: h5py already returns it [y, x].
-    blemish         the current 8idRigaku500k bad-pixel map (52288 px),
-                    which carries the module gaps and the detector border.
+    blemish         the current 8idRigaku500k bad-pixel map (52288 px): a
+                    border frame, rows 0-18 and 494-511 and columns 0-14 and
+                    1009-1023, plus 150 scattered bad pixels inside it.  The
+                    detector has no module gaps and the map holds none: strip
+                    the frame and not one interior row or column is fully
+                    masked.  An earlier note here said it carried module gaps,
+                    which was wrong and had been used to explain away a dip in
+                    beta near 0.018 A^-1; that dip has no cause assigned.
     legacy bad px   the 47 pixels the 2021-3 Matlab mask excluded that the
                     current blemish does not, so nothing the original analysis
                     threw away comes back.
