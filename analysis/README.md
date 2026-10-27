@@ -59,13 +59,10 @@ measurement curves, annotates the high-Q power law, and fits the two
 raw cluster-result .hdf files (8-ID-I, per-file g2, g2_err, saxs_1d, IC readout)
     --> average_ranges.py    --> data/
 data/
-    --> saxpcs.py              --> Figure3_Isothermal_SAXPCS.pdf,
-                                    FigureS8_Fit_Parameters.pdf,
-                                    FigureS6_Calibration.pdf
-    --> saxs_evolution.py      --> FigureS5_SAXS_Evolution.pdf
-    --> g2_grid_SI.py          --> FigureS9_g2_Grid.pdf
+    --> saxpcs.py              --> FigureS5_Calibration.pdf
+                                   (+ Figure_2022-1_*.pdf, the retired 2022-1
+                                    isothermal panels, in neither document)
     --> thermal_cycle.py       --> FigureS4_Thermal_Cycle.pdf
-    --> contrast_calibration.py --> FigureS7_Contrast.pdf
 ```
 
 The temperature series of SI Section 8 comes from the earlier 2021-3 beamtime
@@ -81,7 +78,7 @@ and has its own short chain, reusing the code above unchanged:
     --> boost_corr_bin                    (run_babnigg202110_correlations.sh)
     --> reduce_babnigg202110.py           --> data_2021-3/   (average_ranges code path)
 data_2021-3/
-    --> temperature_series_2021-3.py      --> Figure3 + FigureS8-S11_Temperature_*.pdf
+    --> temperature_series_2021-3.py      --> Figure3 + FigureS7-S10_Temperature_*.pdf
     --> arrest_vs_temperature.py          --> Figure4 + FigureS11_Collapse_AllQ.pdf
 ```
 
@@ -151,7 +148,7 @@ then holds fixed.
 ```
 cluster-result .hdf files at 4 attenuation settings (E0171-E0174)
 Pind_calibration.csv (PIN-diode <-> ion-chamber calibration sheet)
-    --> g2_SAXPCS_Rad_Cali.py --> FigureS10_Flux_Control.pdf
+    --> g2_SAXPCS_Rad_Cali.py --> FigureS6_Flux_Control.pdf
 ```
 
 Converts each measurement's ion-chamber reading to an on-sample photon flux
@@ -173,15 +170,13 @@ differs, and the top-level `Makefile` resolves it via `TEXINPUTS`.
 |---|---|---|---|
 | `SAXS_12id/Figure2_SAXS_WAXS.pdf` | `Plot_12ID.py` | Main Fig. 2 | 1 (+ inset) |
 | `SAXS_12id/FigureS3_Guinier.pdf` | `Guinier_Plot.py` | SI Fig. S3 | 1 |
-| `SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf` | `saxpcs.py` | Main Fig. 3 | 3 |
-| `SAXPCS_8id/FigureS8_Fit_Parameters.pdf` | `saxpcs.py` | SI Fig. S8 | 4 (2×2) |
-| `SAXPCS_8id/FigureS6_Calibration.pdf` | `saxpcs.py` | SI Fig. S6 | 2 |
-| `SAXPCS_8id/FigureS7_Contrast.pdf` | `contrast_calibration.py` | SI Fig. S7 | 2 |
+| `SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf` | `temperature_series_2021-3.py` | Main Fig. 3 | 3 |
+| `SAXPCS_8id/Figure4_Arrest_vs_Temperature.pdf` | `arrest_vs_temperature.py` | Main Fig. 4 | 2 |
 | `SAXPCS_8id/FigureS4_Thermal_Cycle.pdf` | `thermal_cycle.py` | SI Fig. S4 | 3 |
-| `SAXPCS_8id/FigureS5_SAXS_Evolution.pdf` | `saxs_evolution.py` | SI Fig. S5 | 1 |
-| `SAXPCS_8id/FigureS9_g2_Grid.pdf` | `g2_grid_SI.py` | SI Fig. S9 | 4 (2×2) |
-| `Rad_Dam_Check/FigureS10_Flux_Control.pdf` | `g2_SAXPCS_Rad_Cali.py` | SI Fig. S10 | 2 |
-| `SAXPCS_8id/FigureS11_Temperature_2800.pdf` ... `FigureS14_Temperature_2875.pdf` | `temperature_series_2021-3.py` | SI Figs. S11-S14 | 7 each |
+| `SAXPCS_8id/FigureS5_Calibration.pdf` | `saxpcs.py` | SI Fig. S5 | 2 |
+| `Rad_Dam_Check/FigureS6_Flux_Control.pdf` | `g2_SAXPCS_Rad_Cali.py` | SI Fig. S6 | 2 |
+| `SAXPCS_8id/FigureS7_Temperature_2800.pdf` ... `FigureS10_Temperature_2875.pdf` | `temperature_series_2021-3.py` | SI Figs. S7-S10 | 7 each |
+| `SAXPCS_8id/FigureS11_Collapse_AllQ.pdf` | `arrest_vs_temperature.py` | SI Fig. S11 | 9 |
 
 Main Fig. 1 (`manuscript/figures/Setup.pdf`) is an illustrator schematic and is
 not produced by any script here. SI Fig. S1 is a LaTeX-typeset box of

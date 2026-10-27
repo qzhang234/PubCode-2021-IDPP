@@ -1,6 +1,7 @@
 """Absolute scattering cross-section calibration (shared helper).
 
-saxpcs.py (Figures 3 and S6) and saxs_evolution.py (Figure S5) both import from
+saxpcs.py (Figure S5), thermal_cycle.py (Figure S4b) and
+temperature_series_2021-3.py (Figure 3a and Figures S7-S10a) all import from
 here, so they use identical constants and one per-file coefficient function.
 
 PROVENANCE: worked out originally in two beamline notebooks, IC_pind4_convert

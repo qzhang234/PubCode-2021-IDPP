@@ -1,11 +1,11 @@
 """Shared XPCS two-mode fit: the model, the measured contrast, and the global fit.
 
-Figure 3b,c, Figure S8 and Figure S9 must all show the SAME model applied the
-SAME way -- Figure S9 is an expansion of Figure 3b onto the four higher q bins
--- so the model and the fitting routine live here and every figure script
+Figure 3b,c and panels (b)-(g) of Figures S7-S10 must all show the SAME model
+applied the SAME way -- (d)-(g) are an expansion of (b) onto the four higher q
+bins -- so the model and the fitting routine live here and every figure script
 imports them.  (Before this module, g2_grid_SI.py carried its own copy that
 fitted each q bin independently with the stretching exponents frozen at 0.5, so
-Figure S9 was showing a different model from the one its caption described.)
+that grid was showing a different model from the one its caption described.)
 
 CONTRAST
 --------

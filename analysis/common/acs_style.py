@@ -106,9 +106,8 @@ def q_log_ticks(ax, axis='x'):
     labels one tick, 10^-2.  A reader then has no way to read a value off the
     axis.  The three named ticks below are integer multiples of a decade, so
     they satisfy the add_minor_grid() rule about half-decade positions, and the
-    same three are used on every Q axis in the paper (Figures 3a, S10a, S4b
-    and S8) so
-    the profiles can be compared tick for tick.
+    same three are used on every Q axis in the paper (Figures 3a, S4b and
+    S7a-S10a) so the profiles can be compared tick for tick.
     """
     if axis == 'x':
         a = ax.xaxis

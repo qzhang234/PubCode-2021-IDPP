@@ -6,7 +6,8 @@ Three panels, all from the four 2021-3 holds and nothing else.
       waiting time Figure 3 uses, one curve per hold;
   (b) the same points with time rescaled by exp[(T - T_REF)/T_s], which brings
       all four onto one master curve;
-  (c) the T_s that collapses each Q bin separately, against Q.
+  (c) the T_s that collapses each Q bin separately, against Q -- drawn not in
+      Figure 4 but as panel (i) of Figure S11, where the other four bins are.
 
 WHY f AND NOT THE RATE.  Across these holds the rate of the fast mode stays
 inside the same 2-4 x 10^7 A^2/s band once arrest is under way, while the time
@@ -18,9 +19,9 @@ WHAT THE COLLAPSE MEANS.  It is a stronger statement than "warmer is faster".
 If one rescaling of time superposes the curves, the sample passes through the
 SAME sequence of dynamical states at every temperature and temperature sets
 only the pace.  That is the dynamic scaling reported for thermoreversible
-colloidal gels (Zhang et al., Phys. Rev. Lett. 119, 178006 (2017)), and panel
-(c) is the test that matters: one T_s has to work at every length scale, not
-just the one plotted.
+colloidal gels (Zhang et al., Phys. Rev. Lett. 119, 178006 (2017)), and the
+T_s-against-Q panel is the test that matters: one T_s has to work at every
+length scale, not just the one plotted.
 
 T_REF IS A CONVENTION, NOT A MEASUREMENT.  Writing the rescaling as
 exp[(T - T_REF)/T_s] factorises into exp(-T_REF/T_s) exp(T/T_s), so T_REF
@@ -36,6 +37,13 @@ at once, weighted by the fit uncertainties on f.  T_s is a free parameter of
 that single fit alongside A, x_c and n, so it carries a covariance uncertainty
 like any other parameter; the error bars drawn in (c) are instead a bootstrap
 over the pooled points, which is the larger of the two.
+
+WHICH UNCERTAINTY IS QUOTED.  Each Q bin's collapse carries a bootstrap error
+of 0.016-0.022 K (TS_ERR, drawn in panels (e)-(h) and (i)).  The five per-bin
+values also drift apart by 0.012 K (TS_SD).  The drift is the SMALLER of the
+two and the bins are not independent, so the paper quotes TS_UNC, the mean
+single-bin bootstrap error, 0.02 K.  Quoting the drift instead would claim
+twice the precision the collapse actually has.
 
 An earlier version scored a trial T_s by binning the rescaled times and
 measuring the scatter of f within each bin.  That is NOT used, because the bin
@@ -250,11 +258,23 @@ for qi in range(len(QI)):
 TS_PER_Q = np.array(TS_PER_Q); TS_ERR = np.array(TS_ERR)
 TS = float(TS_PER_Q.mean())
 TS_SD = float(TS_PER_Q.std(ddof=1))
+# TWO DIFFERENT QUANTITIES, and the quoted uncertainty has to be the second.
+# TS_SD is how far the five per-bin values drift apart; it is a systematic, and
+# because the five bins share the same correlation functions, groups and fits it
+# is not an error on a mean of five independent estimates.  TS_ERR is how well
+# ONE bin's collapse is determined, bootstrapped over its pooled points.  Here
+# TS_SD (0.012 K) is SMALLER than every TS_ERR (0.016-0.022 K), so quoting the
+# spread would state a precision the data do not support and would draw a band
+# in (i) narrower than the error bars inside it.  TS_UNC is what the paper
+# quotes: the bootstrap error of a single-bin collapse, which also spans the
+# bin-to-bin drift.
+TS_UNC = float(np.mean(TS_ERR))
 print('\nT_s from one master curve per Q bin, bootstrap uncertainties:')
 for q, s_, e_, a, b in zip(QVALS, TS_PER_Q, TS_ERR, RMS_ON, RMS_OFF):
     print(f'   Q = {q:.5f} A^-1 ({2 * np.pi / q / 10:5.0f} nm): T_s = {s_:.3f} +/- {e_:.3f} K'
           f'   residual {a:.1f} vs {b:.1f} unrescaled ({b / a:.1f}x better)')
-print(f'   mean over Q: {TS:.3f} +/- {TS_SD:.3f} K (spread), drift low->high Q '
+print(f'   mean over Q: {TS:.3f} K; quoted uncertainty {TS_UNC:.3f} K (mean '
+      f'single-bin bootstrap), bin-to-bin spread {TS_SD:.3f} K, drift low->high Q '
       f'{100 * (TS_PER_Q[-1] / TS_PER_Q[0] - 1):.0f}%')
 
 # the curve drawn in (b): refitted with T_s held at the across-Q mean
@@ -334,7 +354,7 @@ gs = GridSpec(1, 2, figure=fig, left=0.078, right=0.985, top=0.905,
               bottom=0.205 + LEG_H / FIG_H, wspace=0.30)
 ax1, ax2 = (fig.add_subplot(gs[0, k]) for k in range(2))
 draw_pair(ax1, ax2, Q0, TS)
-ax2.text(0.05, 0.06, f'$T_s$ = {TS:.2f} $\\pm$ {TS_SD:.2f} K', transform=ax2.transAxes,
+ax2.text(0.05, 0.06, f'$T_s$ = {TS:.2f} $\\pm$ {TS_UNC:.2f} K', transform=ax2.transAxes,
          ha='left', va='bottom')
 label_panels([ax1, ax2])
 temperature_key(fig, 0.5, Q_MARKERS[Q0])
@@ -357,7 +377,7 @@ for k, qi in enumerate([1, 2, 3, 4]):
     axq += [a_raw, a_col]
 # (i) the scaling temperature that collapses each Q bin on its own
 axts = fig2.add_subplot(gs2[2, 1:3])
-axts.fill_between([3.2, 8.0], TS - TS_SD, TS + TS_SD, color='crimson', alpha=0.15,
+axts.fill_between([3.2, 8.0], TS - TS_UNC, TS + TS_UNC, color='crimson', alpha=0.15,
                   lw=0, zorder=0)
 axts.axhline(TS, color='crimson', lw=LW_DATA, zorder=1)
 for qi, (q, sv, ev) in enumerate(zip(QVALS, TS_PER_Q, TS_ERR)):

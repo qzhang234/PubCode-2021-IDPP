@@ -1,9 +1,9 @@
-"""Figures S11-S14: the 2021-3 temperature series, drawn as Figure 3 and Figure S9 are.
+"""Figures S7-S10 and Figure 3: the 2021-3 temperature series.
 
 Reads only data_2021-3/, written by reduce_babnigg202110.py.  One figure per
 temperature, in the order 28.00, 28.25, 28.50, 28.75 C (loadings D8, D6, D7,
-D9).  Each figure carries the three panels of Figure 3 on its top row and the
-four further Q bins of Figure S9 on its bottom row:
+D9).  Each figure carries three panels on its top row and the four further Q
+bins on its bottom row; the 28.50 C loading's top row is also Figure 3:
 
   (a) absolute, background-subtracted I(Q): the 6 C reference of that loading,
       the first group on target (t_w = 0) and the groups shown in (b);
@@ -51,7 +51,7 @@ WHAT DIFFERS, AND WHY.
 * Panel (a) starts at the lowest fitted Q bin.  Below it the points sit on the
   edge of the beamstop shadow, where no single coefficient reconciles the empty
   cell with the sample and the subtraction leaves a spike.
-* D8 has two 6 C measurements and Figure S11 shows the LATER one, H0403.
+* D8 has two 6 C measurements and Figure S7 shows the LATER one, H0403.
   H0402, taken before the hold, was the first measurement of the beamtime and
   is not a dissolved state: it carries a Q^-2.7 low-Q excess that dies out
   above 0.01 A^-1, where it is 4% of the plateau, and it fits a background
