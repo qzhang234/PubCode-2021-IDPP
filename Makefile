@@ -28,21 +28,13 @@ PY        := conda run --no-capture-output -n $(CONDA_ENV) python
 export TEXMFHOME := $(MS)/texmf
 # Bare figure names in the .tex resolve through here; that is what lets the
 # manuscript keep short names while the files live under analysis/.
-export TEXINPUTS := .:$(MS)/figures:$(ANA)/SAXS_12id:$(ANA)/SAXPCS_8id:$(ANA)/Rad_Dam_Check:
+export TEXINPUTS := .:$(MS)/figures:$(ANA)/SAXPCS_8id:$(ANA)/Rad_Dam_Check:
 # $(BUILD) must be on BIBINPUTS: achemso writes a control file (acs-main.bib)
 # next to the .aux, and BibTeX aborts all databases if it cannot open it.
 export BIBINPUTS := .:$(MS):$(BUILD):
 export MPLBACKEND := Agg
 
 # --- data-derived figures: script -> outputs --------------------------------
-F_12ID    := $(ANA)/SAXS_12id/Figure2_SAXS_WAXS.pdf
-F_GUINIER := $(ANA)/SAXS_12id/FigureS3_Guinier.pdf
-# Figure 3 is now the 28.50 C loading of the 2021-3 series and is written by
-# temperature_series_2021-3.py (see F_TSERIES).  saxpcs.py still builds the
-# 2022-1 calibration and fit-parameter panels; its own Figure 3 output is no
-# longer a build target, so the two scripts cannot race for the same file.
-F_CALIB   := $(ANA)/SAXPCS_8id/FigureS5_Calibration.pdf
-F_CYCLE   := $(ANA)/SAXPCS_8id/FigureS4_Thermal_Cycle.pdf
 F_RAD     := $(ANA)/Rad_Dam_Check/FigureS6_Flux_Control.pdf
 F_TSERIES := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
              $(ANA)/SAXPCS_8id/FigureS7_Temperature_2800.pdf \
@@ -56,15 +48,8 @@ F_ARREST  := $(ANA)/SAXPCS_8id/Figure4_Arrest_vs_Temperature.pdf \
 # temperature series: saxs_evolution.py, g2_grid_SI.py and the fit-parameter
 # panels of saxpcs.py no longer have a figure in either document.  saxpcs.py
 # is still built for the absolute-scale calibration, which both beamtimes share.
-FIGURES := $(F_12ID) $(F_GUINIER) $(F_CALIB) $(F_RAD) \
-            $(F_CYCLE) $(F_TSERIES) $(F_ARREST)
+FIGURES := $(F_RAD) $(F_TSERIES) $(F_ARREST)
 
-# every 8-ID-I figure now reads only what average_ranges.py put in data/:
-# the averaged NeXus files, the contrast stack, and the thermal-cycle
-# temperature trace.  Nothing reads the beamline storage at build time.
-XPCS_DATA := $(wildcard $(ANA)/SAXPCS_8id/data/*.hdf) \
-             $(ANA)/SAXPCS_8id/data/thermal_cycle_temperature.csv
-CSV_DATA  := $(wildcard $(ANA)/SAXS_12id/reduced_data/*.csv)
 RAD_DATA  := $(wildcard $(ANA)/Rad_Dam_Check/cluster_results/*.hdf)
 TSERIES_DATA := $(wildcard $(ANA)/SAXPCS_8id/data_2021-3/*.hdf) \
                 $(ANA)/SAXPCS_8id/data_2021-3/trace_2021-3.csv
@@ -86,30 +71,15 @@ env:
 figures: $(FIGURES)
 	@echo "all figures up to date"
 
-$(F_12ID): $(ANA)/SAXS_12id/Plot_12ID.py $(CSV_DATA) $(COMMON)
-	cd $(ANA)/SAXS_12id && $(PY) Plot_12ID.py
-
-$(F_GUINIER): $(ANA)/SAXS_12id/Guinier_Plot.py $(CSV_DATA) $(COMMON)
-	cd $(ANA)/SAXS_12id && $(PY) Guinier_Plot.py
-
 # one script, three figures
-$(F_CALIB): $(ANA)/SAXPCS_8id/saxpcs.py $(ANA)/SAXPCS_8id/abs_xsec.py $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
-	cd $(ANA)/SAXPCS_8id && $(PY) saxpcs.py
-
-
-
-$(F_CYCLE): $(ANA)/SAXPCS_8id/thermal_cycle.py $(ANA)/SAXPCS_8id/abs_xsec.py \
-            $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
-	cd $(ANA)/SAXPCS_8id && $(PY) thermal_cycle.py
-
 
 $(F_TSERIES) &: $(ANA)/SAXPCS_8id/temperature_series_2021-3.py $(ANA)/SAXPCS_8id/abs_xsec.py \
                 $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) temperature_series_2021-3.py
 
-# reads BOTH beamtimes: the 2021-3 holds and the 2022-1 isothermal series
+# the four 2021-3 holds
 $(F_ARREST) &: $(ANA)/SAXPCS_8id/arrest_vs_temperature.py \
-             $(TSERIES_DATA) $(XPCS_DATA) $(COMMON) $(XFIT) $(NEXUS)
+             $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) arrest_vs_temperature.py
 
 $(F_RAD): $(ANA)/Rad_Dam_Check/g2_SAXPCS_Rad_Cali.py $(ANA)/Rad_Dam_Check/Flux_Cal.py $(RAD_DATA) $(COMMON)

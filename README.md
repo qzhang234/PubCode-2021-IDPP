@@ -4,9 +4,15 @@ Everything needed to reproduce the Nano Letters submission: the reduced
 experimental data, the analysis code that turns it into every figure, and the
 LaTeX sources for the manuscript, Supporting Information and cover letter.
 
-The measurements combine SAXS/WAXS at APS beamline **12-ID-B** (static
-structure across the thermal transition) with SA-XPCS at **8-ID-I** (dynamics
-during an isothermal hold at 30 °C).
+The measurement is SA-XPCS at APS beamline **8-ID-I**: four isothermal holds
+between 28.00 and 28.75 °C, and the scaling that collapses them.
+
+The structural half of the original Letter -- the 12-ID-B SAXS/WAXS, the
+beta-sheet peaks and the thermal-cycling reversibility -- was split out on
+28 Oct 2026 into
+[PubCode-2021-IDPP-Reversibility](https://github.com/qzhang234/PubCode-2021-IDPP-Reversibility),
+which now owns the 2022-1 `data/` and the whole `SAXS_12id/` tree. The combined
+version is recoverable from the tag `pre-split`.
 
 ```
 make env        # create the conda environment, once
@@ -182,7 +188,6 @@ Section 3.1.
 | `environment.yml` | Conda environment `env-2021-LLDP`: python 3.11, numpy, scipy, matplotlib 3.9.4 (pinned for byte-stable figures), h5py, pandas. |
 | `common/acs_style.py` | Single source of ACS figure compliance: 3.33 / 7.0 in column widths, 8 pt Arial everywhere, ≥ 0.5 pt lines, TrueType embedding, `save_fig()`. Imported by every plotting script. |
 | `common/utils.py` | `outlier_removal` and `average_datasets`, used by `average_ranges.py`; plus beamline-side reduction helpers kept for provenance that cannot run from a clone. |
-| `SAXS_12id/` | 12-ID-B: `Read_12ID_SAWAXS.py` (reduction), `Plot_12ID.py` → **Fig. 2**, `Guinier_Plot.py` → **Fig. S3**, and the committed `reduced_data/*.csv`. |
 | `SAXPCS_8id/` | 8-ID-I: `average_ranges.py` (reduction) and the committed `data/`; `saxpcs.py` → **Fig. S5**; `thermal_cycle.py` → **Fig. S4**; `temperature_series_2021-3.py` → **Fig. 3 and Figs. S7-S10** and `arrest_vs_temperature.py` → **Fig. 4 and Fig. S11**, both from the 2021-3 temperature series reduced into `data_2021-3/` by `reduce_babnigg202110.py`. `saxs_evolution.py`, `g2_grid_SI.py` and `contrast_calibration.py` were retired with the 2022-1 arrest analysis and no longer feed either document. `abs_xsec.py` holds the absolute-cross-section calibration and `xpcs_fit.py` the shared two-mode g2 model, so every figure uses one implementation of each. `general_model_check.py` prints the SI Section 5.3 check -- the general two-mode form with `tau_fast` free in every bin, seeded from a `p_fast` profile and from the bare default -- and draws nothing. `restore_dx_metadata.py` is the one-off repair of the 2025 NeXus rewrite and `dx_restore_manifest.csv` its record; `timelist_2022-1.txt` is the saved directory listing that recovered acquisition times before that repair, kept as a cross-check; `nexus_manual.txt` documents the NeXus layout. |
 | `Rad_Dam_Check/` | Flux-dependence control → **Fig. S6**, with its four result files, the PIN-diode calibration sheet and certificate. See `analysis/Rad_Dam_Check/README.md`. |
 

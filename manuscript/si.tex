@@ -131,7 +131,7 @@ where $I_s(Q)$ and $I_b(Q)$ are the temporal-mean detector intensities from the 
 where $F_j$ is the incident photon flux, $T_j$ is the transmission, $N_{\mathrm{f}}=100{,}000$ is the number of frames, $t_{\mathrm{exp}}=\SI{2}{\second}$ is the total exposure time, so that $t_{\mathrm{exp}}/N_{\mathrm{f}}$ is the \SI{20}{\micro\second} frame time, $L=\SI{2}{\milli\meter}$ is the sample thickness, and $\Delta\Omega=(d_{\mathrm{pix}}/D)^2$ is the solid angle per detector pixel.\cite{Sheyfer2020-yb} Lengths are carried in millimeters throughout, so $A_jI_j$ is in mm$^{-1}$, and that is the quantity plotted in Figures~\ref{MT-fig:xpcs}a and \ref{fig:S7}--\ref{fig:S10}: no further scaling of any kind is applied between the calibration and the figure.
 
 \subsection{Transmission and incident-flux calibration}
-Sample transmission was obtained from ion chambers immediately upstream and downstream of the sample. Across the attenuation series, the transmission of the intervening air path was independent of beam intensity within uncertainty, with a mean value of $0.8679\pm0.0009$ (Figure~\ref{fig:S5}a; mean $\pm$ standard deviation). The upstream ion-chamber signal was converted to incident photon flux by calibration against a PIN diode positioned in the flight path upstream of the beamstop. The measured photon flux varied linearly with the upstream ion-chamber readout (Figure~\ref{fig:S5}b).
+Sample transmission was obtained from ion chambers immediately upstream and downstream of the sample. Across the attenuation series, the transmission of the intervening air path was independent of beam intensity within uncertainty, with a mean value of $0.8679\pm0.0009$ (mean $\pm$ standard deviation). The upstream ion-chamber signal was converted to incident photon flux by calibration against a PIN diode positioned in the flight path upstream of the beamstop. The measured photon flux varied linearly with the upstream ion-chamber readout; the calibration series and its fit are shown in the companion paper, which reports the 2022-1 beamtime these measurements come from.
 
 \section{8-ID-I SA-XPCS Correlation Analysis}
 \label{sec:b8xpcs}
@@ -261,13 +261,7 @@ GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
 
 
 
-\clearpage
-\begin{figure}[H]
-  \centering
-  \acsfig{FigureS5_Calibration.pdf}
-  \caption{Transmission and photon-flux calibration for conversion to absolute scattering cross section. (a) Air-path transmission across seven measurements in the attenuation series; the line marks the mean, $0.8679\pm0.0009$ (standard deviation). (b) Photon counts recorded by a calibrated PIN diode as a function of the upstream ion-chamber readout (both in the scaled detector units of the calibration series); the line is the linear calibration fit, from which the incident flux follows as $F=(A\cdot\mathrm{Up\_IC})/t_{\mathrm{exp}}+B$.}
-  \label{fig:S5}
-\end{figure}
+
 
 \clearpage
 \begin{figure}[H]
