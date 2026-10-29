@@ -35,6 +35,7 @@ export BIBINPUTS := .:$(MS):$(BUILD):
 export MPLBACKEND := Agg
 
 # --- data-derived figures: script -> outputs --------------------------------
+F_CALIB   := $(ANA)/SAXPCS_8id/FigureS2_Calibration.pdf
 F_RAD     := $(ANA)/Rad_Dam_Check/FigureS6_Flux_Control.pdf
 F_TSERIES := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
              $(ANA)/SAXPCS_8id/FigureS7_Temperature_2800.pdf \
@@ -48,7 +49,7 @@ F_ARREST  := $(ANA)/SAXPCS_8id/Figure4_Arrest_vs_Temperature.pdf \
 # temperature series: saxs_evolution.py, g2_grid_SI.py and the fit-parameter
 # panels of saxpcs.py no longer have a figure in either document.  saxpcs.py
 # is still built for the absolute-scale calibration, which both beamtimes share.
-FIGURES := $(F_RAD) $(F_TSERIES) $(F_ARREST)
+FIGURES := $(F_CALIB) $(F_RAD) $(F_TSERIES) $(F_ARREST)
 
 RAD_DATA  := $(wildcard $(ANA)/Rad_Dam_Check/cluster_results/*.hdf)
 TSERIES_DATA := $(wildcard $(ANA)/SAXPCS_8id/data_2021-3/*.hdf) \
@@ -81,6 +82,10 @@ $(F_TSERIES) &: $(ANA)/SAXPCS_8id/temperature_series_2021-3.py $(ANA)/SAXPCS_8id
 $(F_ARREST) &: $(ANA)/SAXPCS_8id/arrest_vs_temperature.py \
              $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS)
 	cd $(ANA)/SAXPCS_8id && $(PY) arrest_vs_temperature.py
+
+# Reads no data: every point is a constant of abs_xsec.py.  See its docstring.
+$(F_CALIB): $(ANA)/SAXPCS_8id/calibration_figure.py $(ANA)/SAXPCS_8id/abs_xsec.py $(COMMON)
+	cd $(ANA)/SAXPCS_8id && $(PY) calibration_figure.py
 
 $(F_RAD): $(ANA)/Rad_Dam_Check/g2_SAXPCS_Rad_Cali.py $(ANA)/Rad_Dam_Check/Flux_Cal.py $(RAD_DATA) $(COMMON)
 	cd $(ANA)/Rad_Dam_Check && $(PY) g2_SAXPCS_Rad_Cali.py
