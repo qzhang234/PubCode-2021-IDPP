@@ -4,6 +4,7 @@
 #   make figures    regenerate every data-derived figure in analysis/
 #   make papers     compile main.pdf, si.pdf, cover_letter.pdf into manuscript/build/
 #   make all        figures + papers
+#   make significance  build the standalone PNAS significance-statement page
 #   make check      report undefined citations / references / missing figures
 #   make robustness recompute the SI 5.3 robustness numbers (no figure)
 #   make clean      remove LaTeX aux files (keeps the PDFs)
@@ -60,7 +61,7 @@ XFIT      := $(ANA)/SAXPCS_8id/xpcs_fit.py
 # to it has to rebuild all four; without it here they would go quietly stale.
 NEXUS     := $(ANA)/SAXPCS_8id/nexus_read.py
 
-.PHONY: all figures papers main si cover check robustness clean distclean env
+.PHONY: all figures papers main si cover significance check check-significance robustness clean distclean env
 
 all: figures papers
 
@@ -115,11 +116,15 @@ endef
 # both directions resolve.  `make main` / `make si` alone stay available for
 # iterating on one document; `make check` reports anything still unresolved.
 papers: $(FIGURES) $(MS)/main.tex $(MS)/si.tex $(MS)/reference.bib \
-        $(MS)/cover_letter.tex $(MS)/cover_letter_header.tex
+        $(MS)/cover_letter.tex $(MS)/cover_letter_header.tex $(MS)/significance.tex
 	$(call compile,si)
 	$(call compile,main)
 	$(call compile,si)
 	$(call compile,cover_letter)
+	$(call compile,significance)
+
+significance: $(MS)/significance.tex $(MS)/cover_letter_header.tex
+	$(call compile,significance)
 
 main: $(FIGURES) $(MS)/main.tex $(MS)/reference.bib
 	$(call compile,main)
@@ -153,6 +158,11 @@ check:
 # or the 2021-3 data are reprocessed, and paste its output into that section.
 robustness:
 	cd $(ANA)/SAXPCS_8id && $(PY) general_model_check.py
+
+# The significance statement exists twice: as a section of main.tex and as the
+# standalone page the submission portal wants.  They must not drift.
+check-significance:
+	@python3 $(ROOT)/tools/check_significance.py
 
 # --- cleaning ---------------------------------------------------------------
 clean:

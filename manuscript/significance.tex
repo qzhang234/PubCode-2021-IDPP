@@ -1,0 +1,50 @@
+% The PNAS significance statement as a standalone page, for the submission
+% portal, which takes it as its own field rather than as part of the manuscript.
+%
+% The text here is the SINGLE SOURCE for that field, and it is kept identical
+% to the \section*{Significance Statement} block of main.tex.  If one is edited
+% the other has to follow; `make check-significance` compares them word for
+% word and fails if they have drifted.
+%
+% PNAS: "Explain the significance of the research at a level understandable to
+% an undergraduate-educated scientist outside their field of specialty.
+% Include no more than 120 words."  This is 118.
+\documentclass[11pt]{article}
+\input{cover_letter_header.tex}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+\raggedbottom
+
+\begin{document}
+
+{\large\bfseries Significance Statement}
+
+\vspace{0.6em}
+
+{\footnotesize\itshape
+Temperature, Not Structure, Sets Dynamic Arrest in an Elastin-like Protein
+Polymer \\
+Ozgulbas, Chu, Lavens, Marks, Du, Zuo, Irvin, Ma, Seifert, Lee, Vescovi,
+Foster, Mateevitsi, Jensen, Akins, Ramanathan, Babnigg and Zhang \\
+Physical Sciences: Applied Physical Sciences; secondary, Biophysics and
+Computational Biology}
+
+\vspace{1.2em}
+
+Whether a soft material has solidified is usually inferred from its structure:
+a scattering pattern that has grown enough is read as a gel. We show that this
+inference can fail. In a designed protein polymer, samples held within a degree
+of one another develop nearly the same structure, yet only the warmer ones stop
+moving. Seeing this needed X-ray speckle framed at fifty thousand images per
+second, because the motion reporting on arrest is millisecond-scale, below what
+conventional detectors reach. Arrest spreads region by region, largest scales
+first, and one rescaling of waiting time collapses every sample onto a single
+pathway whose temperature scale is a fifth of a degree, too sharp for single
+contacts to set.
+
+\vspace{1.4em}
+
+{\footnotesize 118 words. Limit 120.}
+
+\end{document}
