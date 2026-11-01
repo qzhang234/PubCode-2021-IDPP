@@ -87,8 +87,8 @@ quotes cm⁻¹, which is ten times larger.)
 |---|---|
 | `Makefile` | The whole build: figures, the three PDFs, `make check`, `make robustness`. |
 | `README.md` | This file. |
-| `PNAS_author_guide.pdf` | The PNAS submission guidelines, the target for this manuscript. |
-| `ACS_author_guide.pdf` | ACS figure guidelines; Appendix 2 is the source of the numbers in `analysis/common/acs_style.py`. |
+| `PNAS_author_guide.pdf` | The PNAS submission guidelines, the target for this manuscript. Local copy only, gitignored. |
+| `ACS_author_guide.pdf` | ACS figure guidelines; Appendix 2 is the source of the numbers in `analysis/common/acs_style.py`. Local copy only, gitignored. |
 | `analysis/` | Data reduction and figure generation. See `analysis/README.md`. |
 | `manuscript/` | LaTeX sources and compiled PDFs. See `manuscript/README.md`. |
 | `tools/` | `check_refs.py` and `pdf_comments.py`, manuscript utilities. |
