@@ -41,7 +41,8 @@ F_TSERIES := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
              $(ANA)/SAXPCS_8id/FigureS7_Temperature_2800.pdf \
              $(ANA)/SAXPCS_8id/FigureS8_Temperature_2825.pdf \
              $(ANA)/SAXPCS_8id/FigureS9_Temperature_2850.pdf \
-             $(ANA)/SAXPCS_8id/FigureS10_Temperature_2875.pdf
+             $(ANA)/SAXPCS_8id/FigureS10_Temperature_2875.pdf \
+             $(ANA)/SAXPCS_8id/FigureS12_Fast_Mode.pdf
 F_ARREST  := $(ANA)/SAXPCS_8id/Figure4_Arrest_vs_Temperature.pdf \
              $(ANA)/SAXPCS_8id/FigureS11_Collapse_AllQ.pdf
 
@@ -59,6 +60,9 @@ XFIT      := $(ANA)/SAXPCS_8id/xpcs_fit.py
 # nexus_read.py is imported by the four 8-ID-I figure scripts below, so a change
 # to it has to rebuild all four; without it here they would go quietly stale.
 NEXUS     := $(ANA)/SAXPCS_8id/nexus_read.py
+# The 2021-3 clock (group midpoints) and background subtraction, shared by both
+# temperature-series scripts.
+SERIES    := $(ANA)/SAXPCS_8id/series_2021_3.py
 
 .PHONY: all figures papers main si cover check robustness clean distclean env
 
@@ -75,12 +79,12 @@ figures: $(FIGURES)
 # one script, three figures
 
 $(F_TSERIES) &: $(ANA)/SAXPCS_8id/temperature_series_2021-3.py $(ANA)/SAXPCS_8id/abs_xsec.py \
-                $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS)
+                $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS) $(SERIES)
 	cd $(ANA)/SAXPCS_8id && $(PY) temperature_series_2021-3.py
 
 # the four 2021-3 holds
-$(F_ARREST) &: $(ANA)/SAXPCS_8id/arrest_vs_temperature.py \
-             $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS)
+$(F_ARREST) &: $(ANA)/SAXPCS_8id/arrest_vs_temperature.py $(ANA)/SAXPCS_8id/abs_xsec.py \
+             $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS) $(SERIES)
 	cd $(ANA)/SAXPCS_8id && $(PY) arrest_vs_temperature.py
 
 # Reads no data: every point is a constant of abs_xsec.py.  See its docstring.

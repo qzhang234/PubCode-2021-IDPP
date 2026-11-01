@@ -24,6 +24,11 @@ import inspect
 import os
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import hsv_to_rgb
+from matplotlib.font_manager import FontProperties
+from matplotlib.lines import Line2D
+from matplotlib.offsetbox import AnchoredOffsetbox, DrawingArea, HPacker, TextArea, VPacker
+from matplotlib.textpath import text_to_path
 from matplotlib.ticker import FixedFormatter, FixedLocator, NullFormatter
 
 # --- geometry (in) ---
@@ -146,6 +151,76 @@ def label_panels(axes, dx=-30, dy=5, start=0):
         ax.annotate(f'({letter})', xy=(0, 1), xycoords='axes fraction',
                     xytext=(dx, dy), textcoords='offset points',
                     fontsize=FONT_SIZE, fontweight='bold', va='bottom', ha='left')
+
+
+def key_rows(fig, rows, y, x=0.5):
+    """One framed key below the panels, with a row for each variable.
+
+    rows is a list of (title, handles), e.g. the t_w colours and the Q markers;
+    each handle is a Line2D carrying the marker style and the label.  Every row
+    opens with its title, and the titles share the first column, so they line up
+    on the left and the first marker of every row sits in the same column.
+
+    Built from offset boxes rather than fig.legend: a legend stacks each column
+    on its own, so a title taller than the entries beside it (Q in 10^-3 A^-1,
+    whose superscripts rise 11 pt against 6 pt for a number) pushes its row
+    down in that column alone.  Here each row is aligned on one baseline, and
+    every column is given a fixed width, the widest of its entries.  Spacing,
+    padding and frame match the legends used elsewhere.  The box is centred on
+    x with its bottom at y (figure fractions).
+    """
+    fs = FONT_SIZE
+    prop = FontProperties(size=fs)
+    hl, pad, gap = 1.0 * fs, 0.4 * fs, 1.0 * fs      # handle length, handle-text pad, column gap
+
+    def width(s):
+        return text_to_path.get_text_width_height_descent(s, prop, ismath=s.count('$') >= 2)[0]
+
+    def entry(h):
+        mark = Line2D([hl / 2], [0.35 * fs])          # the legend's handle box: 0.7 font sizes tall
+        mark.update_from(h)
+        box = DrawingArea(hl, 0.7 * fs)
+        box.add_artist(mark)
+        return (HPacker(children=[box, TextArea(h.get_label(), textprops={'fontsize': fs})],
+                        align='baseline', pad=0, sep=pad), hl + pad + width(h.get_label()))
+
+    def fixed(box, w, w_col):
+        return HPacker(children=[box, DrawingArea(w_col - w, 0)], align='baseline', pad=0, sep=0)
+
+    titles = [(TextArea(t, textprops={'fontsize': fs}), width(t)) for t, _ in rows]
+    entries = [[entry(h) for h in hs] for _, hs in rows]
+    w_title = max(w for _, w in titles)
+    w_cols = [max(r[c][1] for r in entries if c < len(r)) for c in range(max(map(len, entries)))]
+    lines = [HPacker(children=[fixed(*ttl, w_title)] + [fixed(b, w, w_cols[c]) for c, (b, w) in enumerate(r)],
+                     align='baseline', pad=0, sep=gap)
+             for ttl, r in zip(titles, entries)]
+    key = AnchoredOffsetbox(loc='lower center', child=VPacker(children=lines, align='left', pad=0,
+                                                              sep=0.35 * fs),
+                            pad=0.3, borderpad=0, frameon=True, prop={'size': fs},
+                            bbox_to_anchor=(x, y), bbox_transform=fig.transFigure)
+    key.patch.set_boxstyle('square', pad=0)
+    key.patch.set(facecolor='white', edgecolor='black', linewidth=LW_THIN)
+    fig.add_artist(key)
+    return key
+
+
+def hsv_colors(hues, min_contrast=3.0):
+    """Fully saturated colours at the given hues of the hsv wheel (0 red, 1/3
+    green, 2/3 blue), each darkened only as far as it takes to keep min_contrast
+    against the white page.  ACS asks 3:1 of every non-text element; pure hsv
+    green, cyan and yellow reach only 1.1-1.4:1 on white.
+    """
+    def contrast(rgb):
+        lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+        return 1.05 / (0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2] + 0.05)
+
+    out = []
+    for h in hues:
+        v = 1.0
+        while contrast(hsv_to_rgb((h, 1.0, v))) < min_contrast:
+            v -= 0.01
+        out.append(tuple(hsv_to_rgb((h, 1.0, v))))
+    return out
 
 
 def save_fig(fig, filename):

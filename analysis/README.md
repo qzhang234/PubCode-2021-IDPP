@@ -1,242 +1,100 @@
-# llps-saxpcs
+# analysis
 
-Data reduction and figure-generation code for the manuscript
-"Reversible β-Sheet-like Ordering and XPCS-Resolved Dynamic Arrest during
-Elastin-like Polypeptide Phase Separation" (main text + Supplemental Information).
+Data reduction and figure generation for "Dynamic Arrest Follows Assembly on a
+Temperature-Scaled Common Clock in an Elastin-like Polypeptide" (main text and
+SI Appendix). Everything here comes from one SA-XPCS beamtime at APS 8-ID-I,
+October 2021 (2021-3), apart from the flux-dependence control in
+`Rad_Dam_Check/`.
 
-The experiment combines small/wide-angle X-ray scattering (SAXS/WAXS) at
-12-ID-B with X-ray photon correlation spectroscopy (XPCS) at 8-ID-I to follow
-an elastin-like polypeptide (ELP) sample through a liquid-liquid phase
-separation (LLPS): SAXS/WAXS resolves the static structure (Guinier radius,
-the emergent β-sheet-like correlation peaks), while XPCS resolves the
-dynamics (g2 relaxation) as the sample ages after a temperature jump. This
-repo goes from raw beamline files to the PDF figures used in the paper.
+## Layout
 
-## Repository layout
-
-- **`common/`** — code shared by more than one plotting script.
-  - `utils.py`: cross-correlation-based outlier removal and averaging for XPCS
-    cluster-result files. Only `outlier_removal` and `average_datasets` are on
-    the path to a figure (both used by `average_ranges.py`); the rest of the
-    module is beamline-side tooling that walks raw result directories and
-    cannot run from a clone of this repository.
-  - `acs_style.py`: the shared ACS figure-formatting module (column widths,
-    fonts, line/marker sizes, panel-letter helper) used by every script below
-    — see [Figure formatting](#figure-formatting).
-- **`SAXS_12id/`** — 12-ID-B SAXS/WAXS: Guinier analysis and the merged
-  SAXS+WAXS structure-factor plot.
-- **`SAXPCS_8id/`** — 8-ID-I XPCS: g2 relaxation, fit parameters, absolute
-  SAXS cross-section evolution, and the beamline flux/photon calibration.
-- **`Rad_Dam_Check/`** — radiation-damage control: confirms the XPCS dynamics
-  are flux-independent over the attenuation range used in the main
-  measurement.
+- **`common/`** -- `acs_style.py`, the figure-formatting module every plotting
+  script imports (column widths, 8 pt Arial, line and marker sizes, panel
+  letters, `save_fig()`); `utils.py`, the outlier cuts and averaging used by
+  the reduction, plus beamline-side helpers that cannot run from a clone.
+- **`SAXPCS_8id/`** -- the 2021-3 temperature series, from the raw archive to
+  the figures.
+- **`Rad_Dam_Check/`** -- the flux-dependence control. See its README.
 
 ## Data flow
-
-### `SAXS_12id/`
-
-```
-raw .avg files (12-ID-B beamline storage; BEAMLINE-ONLY)
-    --> Read_12ID_SAWAXS.py   (merge SAXS+WAXS, scale WAXS onto SAXS, propagate errors)
-    --> reduced_data/Merged_*.csv
-    --> Guinier_Plot.py       --> FigureS3_Guinier.pdf
-    --> Plot_12ID.py          --> Figure2_SAXS_WAXS.pdf
-```
-
-`Read_12ID_SAWAXS.py` is one of only two scripts in the repository that read
-raw beamline storage (the other is `SAXPCS_8id/average_ranges.py`). Its outputs
-are committed under `reduced_data/`, so it only has to be rerun if the raw
-12-ID-B data are reprocessed.
-
-`Guinier_Plot.py` fits `ln[I(Q)]` vs. `Q^2` in the low-Q Guinier region of the
-10 °C reference to get R_g. `Plot_12ID.py` overlays the merged reference and
-measurement curves, annotates the high-Q power law, and fits the two
-β-sheet-like correlation peaks with Gaussians in an inset.
-
-### `SAXPCS_8id/`
-
-```
-raw cluster-result .hdf files (8-ID-I, per-file g2, g2_err, saxs_1d, IC readout)
-    --> average_ranges.py    --> data/
-data/
-    --> saxpcs.py              --> FigureS5_Calibration.pdf
-                                   (+ Figure_2022-1_*.pdf, the retired 2022-1
-                                    isothermal panels, in neither document)
-    --> thermal_cycle.py       --> FigureS4_Thermal_Cycle.pdf
-```
-
-The temperature series of SI Section 8 comes from the earlier 2021-3 beamtime
-and has its own short chain, reusing the code above unchanged:
 
 ```
 2021-3 Data Exchange archive (/gdata/s8id-dmdtn/2021-3/babnigg202110; BEAMLINE-ONLY)
     --> make_qmap_babnigg202110.py        geometry and mask provenance;
-                                          --crossrm2 writes the qmap in use
+                                          --crossrm2 writes the q-map in use
     --> sweep_stuck_pixels_2021-3.py      finds the stuck pixels that mask needs
     --> nexus_convert_babnigg202110.py    NeXus tree, monitors carried across
     --> restore_dx_metadata_2021-3.py     check that every file carries them
     --> boost_corr_bin                    (run_babnigg202110_correlations.sh)
-    --> reduce_babnigg202110.py           --> data_2021-3/   (average_ranges code path)
+    --> reduce_babnigg202110.py           --> data_2021-3/   (groups of 100 acquisitions,
+                                                              two outlier cuts, and the trace)
 data_2021-3/
-    --> temperature_series_2021-3.py      --> Figure3 + FigureS7-S10_Temperature_*.pdf
-    --> arrest_vs_temperature.py          --> Figure4 + FigureS11_Collapse_AllQ.pdf
-    --> general_model_check.py            --> SI 5.3 numbers on stdout (no figure)
+    --> temperature_series_2021-3.py  --> Figure3_Isothermal_SAXPCS.pdf (main Fig. 2),
+                                          FigureS7-S10_Temperature_*.pdf, FigureS12_Fast_Mode.pdf
+    --> arrest_vs_temperature.py      --> Figure4_Arrest_vs_Temperature.pdf (main Fig. 3),
+                                          FigureS11_Collapse_AllQ.pdf
+    --> general_model_check.py        --> SI 5.3 and 8.2 robustness numbers on stdout (no figure)
+    --> contrast_2021-3.py            --> the speckle contrast on stdout (no figure)
+abs_xsec.py constants
+    --> calibration_figure.py         --> FigureS2_Calibration.pdf
 ```
 
-The series is correlated against
-`babnigg202110_nexus_Sq270_Dq27_Sphi8_Dphi1_Q0p0032_Lin_CrossRm2.hdf`. That
-qmap masks two stuck pixels: (30, 340), found when the qmap was first built,
-and (63, 166), found on 26 Oct 2026 by `sweep_stuck_pixels_2021-3.py` and
-masked by `make_qmap_babnigg202110.py --crossrm2`. The second read a constant
-1.5 photons per frame in every 17 Oct measurement and sat at Q = 0.0214 A^-1,
-outside the five fitted bins. Masking it and reprocessing all 7805
-acquisitions left every fitted number unchanged; the largest move anywhere in
-the figure scripts' output was one unit in the last displayed digit.
+The file names carry the numbers of an earlier figure order; the manuscript
+resolves them by label, so the names are not the printed numbers.
 
-`temperature_series_2021-3.py` fits Equation 2 with the `xpcs_fit.py` model,
-puts I(Q) on the `abs_xsec.py` absolute scale and subtracts the background
-measurement E0411, scaled by a coefficient chosen on the trade-off its
-docstring tabulates. That docstring lists every choice that differs from
-Figure 3 and why, including why E0411 is the only usable background of the
-six (settled from the ion chambers and I(Q), not from the beamline names,
-which do not reliably say what was in the cell) and why loading D8 behaves
-differently from the other three.
+## The shared modules
 
-`average_ranges.py` is the second of the two beamline-only scripts and the
-only one in this directory that reads the beamline storage. It reduces
-them into `data/`, which is committed: an averaged NeXus file per frame range
-(outlier-filtered, carrying its own mean ion-chamber readings and the list of
-acquisitions that survived), the per-acquisition temperature trace of the
-thermal-cycling sequence, and the 50 individual correlation functions of the
-contrast standard. Every figure script below reads only `data/`, so the whole
-analysis can be rerun from this repository alone.
+- `xpcs_fit.py` -- the two-mode g2 model of Equation 2 and its global fit, and
+  `measure_beta()`, which reads the speckle contrast off the plateau of the
+  static standard (the standard's scratches depress it in the fitted bins).
+- `abs_xsec.py` -- the ion-chamber calibration behind every absolute intensity.
+- `series_2021_3.py` -- the clock and the SAXS shared by the two figure
+  scripts: t_w = 0 at the first acquisition with the RTD at its target, each
+  group placed at the midpoint of the acquisitions it averages, and the
+  absolute I(Q) with the empty cell E0411 subtracted at the coefficient its
+  comments justify.
+- `nexus_read.py` -- reading the averaged NeXus files.
 
-Every group goes through two outlier cuts. `outlier_removal()` cuts on the
-*shape* of log10 I(q) and therefore cannot see a curve that spikes in the three
-lowest q bins and is normal everywhere else — which is what a large object
-crossing the beam during one exposure looks like. `spike_removal()` in
-`average_ranges.py` is the second cut: a one-sided iterated modified z-score
-(median + 1.4826 × MAD, threshold 3) on the per-acquisition mean of I(q) over
-0.004–0.008 Å⁻¹, the same band Figure S4b reports. It is applied to every group
-on identical terms, removes 35 of the 1708 shape-cut survivors (2.0 %), and is
-nearly inert outside the Figure S4 thermal cycles. `MANUAL_EXCLUDE` remains as
-an empty escape hatch for anything neither cut can see. SI Section 7.5 states
-what the cut does to the figure. Re-reduce one group with
-`python average_ranges.py B0083`.
+## What the figure scripts compute
 
-`saxpcs.py` reads the averaged B0147 (isothermal 30 °C) and D0138 (buffer)
-HDF files directly with h5py, fits a double-exponential (KWW) model to g2(τ)
-globally over the five lowest q bins at once, with the two stretching exponents
-shared across q, then fits each elapsed time's τ_fast(Q) and τ_slow(Q)
-to a power law τ = A·Q^γ (weighted log-log regression with error propagation)
-to extract the scaling exponents γ_fast and γ_slow. It also converts SAXS
-intensities to an absolute differential cross section via `abs_xsec.py`
-(per-file ion-chamber-based coefficients — see the calibration derivation in
-that file), and calibrates the upstream ion-chamber reading against the
-incident photon flux. `saxs_evolution.py`
-reuses the same absolute-cross-section calibration to show the full SAXS
-evolution across all B0147 files. Every absolute-scale axis in the paper is
-mm⁻¹ — the coefficient's own unit, plotted with no further scaling. The
-literature more often quotes cm⁻¹, which is ten times larger. `g2_grid_SI.py` repeats the g2 fit for the
-four secondary q bins not shown in the main figure. `thermal_cycle.py` puts the
-seven thermal cycles of the reversibility control on the same absolute scale
-with the same buffer subtraction, and `contrast_calibration.py` measures the
-instrumental speckle contrast β on the static glass standard that every g2 fit
-then holds fixed.
+`temperature_series_2021-3.py` fits Equation 2 to the five lowest Q bins of
+every group, with beta fixed, p_fast free and started from the minimum of a
+p_fast profile. It draws the four per-temperature figures (the 28.50 C one is
+also main Figure 2), the fast mode of every group against the arrested
+fraction, and prints the numbers SI Section 8 quotes. Its docstring lists
+every analysis choice and why, including the background measurement and why
+loading D8 has two 6 C references.
 
-### `Rad_Dam_Check/`
+`arrest_vs_temperature.py` refits the same groups and collapses the fast
+fraction at the lowest Q of all four holds onto one master curve,
+f = A / [1 + (X/X_c)^n] with X = t_w exp[(T - T0)/T_s]. It bootstraps T_s over
+whole groups, collapses each higher Q bin on its own for the SI, places the
+low-Q SAXS of the same groups on the same clock, and prints the numbers main
+Figure 3 and the scaling paragraphs quote.
 
-```
-cluster-result .hdf files at 4 attenuation settings (E0171-E0174)
-Pind_calibration.csv (PIN-diode <-> ion-chamber calibration sheet)
-    --> g2_SAXPCS_Rad_Cali.py --> FigureS6_Flux_Control.pdf
-```
-
-Converts each measurement's ion-chamber reading to an on-sample photon flux
-(the nominal attenuator labels are not monotonic in flux, so the true flux is
-recovered from the calibration sheet) and shows that both the SAXS I(Q) and
-the XPCS g2(τ) are unchanged across the flux range used in the main
-measurement — i.e., the reported dynamics are not a radiation-damage
-artifact. `Flux_Cal.py` holds the underlying flux-conversion formula. The four
-result files are committed under `cluster_results/`, so this figure also
-rebuilds from the repository alone.
-
-## Figure-to-manuscript mapping
-
-Each output PDF is named exactly as `main.tex` / `si.tex` reference it, so the
-LaTeX build picks the files up straight from this directory — only the path
-differs, and the top-level `Makefile` resolves it via `TEXINPUTS`.
-
-| Output PDF | Script | Figure | Panels |
-|---|---|---|---|
-| `SAXS_12id/Figure2_SAXS_WAXS.pdf` | `Plot_12ID.py` | Main Fig. 2 | 1 (+ inset) |
-| `SAXS_12id/FigureS3_Guinier.pdf` | `Guinier_Plot.py` | SI Fig. S3 | 1 |
-| `SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf` | `temperature_series_2021-3.py` | Main Fig. 3 | 3 |
-| `SAXPCS_8id/Figure4_Arrest_vs_Temperature.pdf` | `arrest_vs_temperature.py` | Main Fig. 4 | 2 |
-| `SAXPCS_8id/FigureS4_Thermal_Cycle.pdf` | `thermal_cycle.py` | SI Fig. S4 | 3 |
-| `SAXPCS_8id/FigureS5_Calibration.pdf` | `saxpcs.py` | SI Fig. S5 | 2 |
-| `Rad_Dam_Check/FigureS6_Flux_Control.pdf` | `g2_SAXPCS_Rad_Cali.py` | SI Fig. S6 | 2 |
-| `SAXPCS_8id/FigureS7_Temperature_2800.pdf` ... `FigureS10_Temperature_2875.pdf` | `temperature_series_2021-3.py` | SI Figs. S7-S10 | 7 each |
-| `SAXPCS_8id/FigureS11_Collapse_AllQ.pdf` | `arrest_vs_temperature.py` | SI Fig. S11 | 9 |
-
-Main Fig. 1 (`manuscript/figures/Setup.pdf`) is an illustrator schematic and is
-not produced by any script here. SI Fig. S1 is a LaTeX-typeset box of
-oligonucleotide sequences with no image file. SI Fig. S2 is a photograph of the
-sample cells (`manuscript/figures/FigureS2_Sample_Cells.png`). The Video S1 still frame
-(`manuscript/figures/VideoS1_Still.png`) is likewise a photograph.
+`general_model_check.py` repeats that collapse with f from five versions of
+the g2 fit (Equation 2; the general two-mode form seeded and unseeded;
+p_fast frozen at 0.5; the lower contrast of the fitted bins). It takes about a
+quarter of an hour and is run by `make robustness`, not by `make figures`.
 
 ## Environment
 
-`environment.yml` pins the five scientific packages the figure scripts need:
+`environment.yml` pins the scientific packages the scripts need:
 
 ```
 conda env create -f environment.yml     # creates env-2021-LLDP
-conda activate env-2021-LLDP
 ```
 
-matplotlib is pinned to 3.9.4 for reproducible layout: `tight_layout` spacing
-metrics shift slightly between minor releases, which moves axes, keys, and
-annotations inside the frame. The page size itself no longer moves with the
-version — `save_fig()` writes at the exact figure size with no
-`bbox_inches='tight'` trimming — but the pin preserves the collision-free
-placements checked for this submission. `pyxpcsviewer` is *not* required — it is imported
-lazily inside `common/utils.py` helpers that read raw beamline files, which is
-not on the path from the reduced data in this repo to any figure.
-
-Regenerate everything from the repository root with `make figures`, or run a
-single script from its own directory (`cd SAXPCS_8id && python saxpcs.py`).
+matplotlib is pinned to 3.9.4 so layout does not move between releases.
+`pyxpcsviewer` is not required: it is imported lazily inside the beamline-side
+helpers of `common/utils.py`, which no figure depends on.
 
 ## Figure formatting
 
-All figures follow the ACS "Preparing Graphics" guidelines (Appendix 2 of the
-Nano Letters author guide), centralized in `common/acs_style.py`:
-
-- Single-panel figures are single-column width (exactly 3.33 in / 240 pt, the
-  ACS maximum); any figure with more than one panel is double-column width
-  (exactly 7.0 in / 504 pt, likewise the maximum). Depths are well inside the
-  9.167 in cap.
-- One typeface and one size everywhere: 8 pt Arial, for text and for mathtext,
-  against an ACS floor of 4.5 pt.
-- Nothing is drawn thinner than the 0.5 pt ACS floor: 0.5 pt spines, ticks,
-  grids and error bars; 0.6 pt marker edges; 1.0 pt data and fit curves.
-  Markers are 3.5 pt, 4.5 pt where marker shape encodes a variable, and 2.4 pt
-  (with a 0.5 pt edge) on the dense profiles that carry several hundred points
-  per curve.
-- Series are separated by marker shape (or a colourbar) as well as colour, so
-  no information is carried by colour alone.
-- Fonts are embedded as TrueType (`pdf.fonttype = 42`), never Type 3.
-- `save_fig()` writes the PDF at exactly the figure size, with no
-  `bbox_inches='tight'` trimming, so the media box stays exactly one or two
-  columns wide and the manuscript can embed it unscaled — 8 pt drawn is 8 pt
-  printed.
-- Multi-panel figures are labeled (a), (b), (c)... via `label_panels()`, in
-  reading order across then down.
-- Every log Q axis is labeled 0.004, 0.01 and 0.03 Å⁻¹ via `q_log_ticks()`.
-  The 8-ID Q range spans about one decade, so matplotlib's automatic log
-  locator labels a single tick (10⁻²); the shared helper gives Figures 3a,
-  S10a, S4b and S8 the same three named ticks so they compare tick for tick.
-  Call it *after* `set_xscale('log')` -- setting a scale resets the locators.
-
-Regenerate a figure by running its script directly from its own directory,
-e.g. `cd SAXPCS_8id && python3 saxpcs.py` (headless environments can set
-`MPLBACKEND=Agg` to skip the interactive `plt.show()`).
+`common/acs_style.py` fixes the house style for every figure: single-column
+figures exactly 3.33 in wide and double-column exactly 7.0 in, 8 pt Arial for
+every character, nothing thinner than 0.5 pt, fonts embedded as TrueType, and
+series separated by marker shape as well as colour. `save_fig()` writes at the
+exact figure size, so the manuscript embeds each figure unscaled and 8 pt drawn
+is 8 pt printed. These sizes also satisfy PNAS (text 6-12 pt; figures up to
+18 cm wide).

@@ -1,18 +1,20 @@
-# Reversible β-Sheet-like Ordering and Dynamic Arrest in an Elastin-like Polypeptide
+# Dynamic Arrest Follows Assembly on a Temperature-Scaled Common Clock in an Elastin-like Polypeptide
 
-Everything needed to reproduce the Nano Letters submission: the reduced
-experimental data, the analysis code that turns it into every figure, and the
-LaTeX sources for the manuscript, Supporting Information and cover letter.
+Everything needed to reproduce the PNAS submission: the reduced experimental
+data, the analysis code that turns it into every data-derived figure, and the
+LaTeX sources for the manuscript, the SI Appendix and the cover letter.
 
-The measurement is SA-XPCS at APS beamline **8-ID-I**: four isothermal holds
-between 28.00 and 28.75 °C, and the scaling that collapses them.
+The measurement is small-angle X-ray photon correlation spectroscopy (SA-XPCS)
+at APS beamline **8-ID-I**, October 2021 (beamtime 2021-3): four loadings of
+the elastin-like polypeptide (VPAVG)30 held at 28.00, 28.25, 28.50 and
+28.75 °C. Correlating the detector frames gives the fast and arrested
+fractions at five length scales; averaging the same frames gives I(Q).
 
 The structural half of the original Letter -- the 12-ID-B SAXS/WAXS, the
-beta-sheet peaks and the thermal-cycling reversibility -- was split out on
-28 Oct 2026 into
-[PubCode-2021-IDPP-Reversibility](https://github.com/qzhang234/PubCode-2021-IDPP-Reversibility),
-which now owns the 2022-1 `data/` and the whole `SAXS_12id/` tree. The combined
-version is recoverable from the tag `pre-split`.
+beta-sheet-like peaks, the thermal-cycling reversibility and the 2022-1 data --
+was split out on 28 Oct 2026 into
+[PubCode-2021-IDPP-Reversibility](https://github.com/qzhang234/PubCode-2021-IDPP-Reversibility).
+The combined version is recoverable from the tag `pre-split`.
 
 ```
 make env        # create the conda environment, once
@@ -20,198 +22,81 @@ make figures    # regenerate every data-derived figure from the reduced data
 make papers     # compile main.pdf, si.pdf, cover_letter.pdf into manuscript/build/
 make all        # figures + papers
 make check      # report undefined citations / references / missing figures
-make robustness # recompute the SI 5.3 robustness numbers (no figure)
+make robustness # recompute the SI 5.3 and 8.2 robustness numbers (no figure)
 make clean      # remove LaTeX aux files, keep the PDFs
 ```
 
 ## Reproducibility
 
-Two scripts, and only two, read raw beamline storage:
-
-| Script | Reads | Writes |
-|---|---|---|
-| `analysis/SAXS_12id/Read_12ID_SAWAXS.py` | 12-ID-B `.avg` profiles | `analysis/SAXS_12id/reduced_data/Merged_*.csv` |
-| `analysis/SAXPCS_8id/average_ranges.py` | 8-ID-I reprocessed NeXus results | `analysis/SAXPCS_8id/data/`: the group averages and `thermal_cycle_temperature.csv` |
-
-Both of their outputs are committed, so **`make figures` and `make papers` run
-from a clone of this repository alone** — no beamline account, no network, no
-raw data. The two scripts above have to be rerun only if the raw data are
-reprocessed, and they will only run at the beamline.
+The reduced data every figure is drawn from are committed:
+`analysis/SAXPCS_8id/data_2021-3/` (127 MB: one averaged NeXus file per group
+of acquisitions, plus the per-acquisition trace of time, RTD temperature,
+monitors and low-Q intensity) and `analysis/Rad_Dam_Check/cluster_results/`.
+**`make figures` and `make papers` therefore run from a clone of this
+repository alone** -- no beamline account, no network, no raw data.
 
 ### Code that reads outside this repository
 
-There are exactly eight places in the Python where a path can point outside the
-repository, and **none of them is on the path from the committed data to a
-figure** — `make figures` never executes any of them. Every beamline data path
-among them is on `/gdata`, which APS monitors and backs up.
+These scripts document how the committed data were produced. None of them is
+on the path from the committed data to a figure, and `make figures` never runs
+them. Every beamline data path is on `/gdata`, which APS backs up and which
+mounts only on the beamline GPU hosts (amber, amazonite, adamite).
 
-| Where | Out-of-repo location | How the path is set |
-|---|---|---|
-| `analysis/SAXS_12id/Read_12ID_SAWAXS.py`, `fn_path` (line 56) | `/gdata/s8id-dmdtn/2021-1/12-id-b/ZuoApr13/Processed/` — the 12-ID-B reduced `.avg` profiles from the 2021-1 run | hard-coded |
-| `analysis/SAXPCS_8id/average_ranges.py`, `prefix` (line 80) | `/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/reprocess_results` — the 8-ID-I per-acquisition cluster results from the 2022-1 run | hard-coded |
-| `analysis/SAXPCS_8id/restore_dx_metadata.py`, `ARCHIVE` and `NEXUS` (lines 67–68) | `/gdata/s8id-dmdtn/2022-1/babnigg202203` and `…_nexus` — the one-off repair described below | hard-coded |
-| `analysis/SAXPCS_8id/nexus_convert_babnigg202110.py`, `ARCHIVE` (line 81) | `/gdata/s8id-dmdtn/2021-3/babnigg202110` and `…_nexus` — the Data Exchange to NeXus conversion of the 2021-3 beamtime | hard-coded |
-| `analysis/SAXPCS_8id/make_qmap_babnigg202110.py`, `ARCHIVE`, `OUT_DIR`, `BLEMISH`, `PYSIMPLEMASK_SRC` (lines 104–126) | the same 2021-3 pair, plus the current detector blemish map and the pySimpleMask source, both under `/home/beams*/8IDIUSER` | hard-coded |
-| `analysis/SAXPCS_8id/restore_dx_metadata_2021-3.py`, `ARCHIVE` and `NEXUS` (lines 51–52) | the same 2021-3 pair — the 2021-3 counterpart of the check described below | hard-coded |
-| `analysis/SAXPCS_8id/reduce_babnigg202110.py`, `PREFIX` (line 52) | `/gdata/s8id-dmdtn/2021-3/babnigg202110_nexus/reprocess_results` — the per-acquisition results that `data_2021-3/` is reduced from | hard-coded |
-| `analysis/common/utils.py`, beamline-side helpers | wherever the caller points them | **no default** — `prefix` must be passed in |
+| Script | Out-of-repo location |
+|---|---|
+| `analysis/SAXPCS_8id/nexus_convert_babnigg202110.py` | `/gdata/s8id-dmdtn/2021-3/babnigg202110` (the Data Exchange archive) and `..._nexus` (the NeXus tree it writes) |
+| `analysis/SAXPCS_8id/restore_dx_metadata_2021-3.py` | the same pair; checks that every file carries its monitors |
+| `analysis/SAXPCS_8id/make_qmap_babnigg202110.py` | the same pair, the detector blemish map and the pySimpleMask source under `/home/beams*/8IDIUSER` |
+| `analysis/SAXPCS_8id/sweep_stuck_pixels_2021-3.py` | the NeXus tree |
+| `analysis/SAXPCS_8id/run_babnigg202110_correlations.sh`, `stop_babnigg202110_correlations.sh` | the NeXus tree; drive `boost_corr_bin` on a GPU host |
+| `analysis/SAXPCS_8id/reduce_babnigg202110.py` | `/gdata/s8id-dmdtn/2021-3/babnigg202110_nexus/reprocess_results`, the per-acquisition results `data_2021-3/` is averaged from |
+| `analysis/common/utils.py`, beamline-side helpers | wherever the caller points them; no default |
 
-The `utils.py` helpers in question are `read_keys_from_files`,
-`read_keys_from_files_parallel`, `get_temperature`,
-`read_temperature_from_files`, `_read_xpcs_hdf`, `process_group` and
-`process_group_by_range`. They are kept for provenance and for reprocessing at
-the beamline; two of them also import `pyxpcsviewer`, which is deliberately not
-in `environment.yml`. The only two functions in that module that a figure
-depends on are `outlier_removal` and `average_datasets`, and both take numpy
-arrays — neither ever opens a file.
+All paths are hard-coded at the top of each script. Every other script anchors
+its input and output on its own directory and runs from any working directory.
 
-Those are the only absolute path literals in the whole tree. Every other
-script anchors its input and output on
-`os.path.dirname(os.path.abspath(__file__))`, so it reads and writes inside its
-own directory and runs correctly from any working directory.
+### Where the 8-ID-I data live
 
-### Where the 8-ID-I data actually live
+| Path | What it holds |
+|---|---|
+| `/gdata/s8id-dmdtn/2021-3/babnigg202110` | Raw detector frames and the 2021 Data Exchange metadata. The archival copy, never written to. |
+| `/gdata/s8id-dmdtn/2021-3/babnigg202110_nexus` | NeXus metadata rewritten for the current `boost_corr_bin`, the q-map, and `reprocess_results/`, the per-acquisition correlation results. The `.bin` files are symlinks into the archive. |
+| `/gdata/s8id-dmdtn/2025-1/qzhang202503/flux_control_results` | The four flux-control result files, E0171–E0174 (2025). Their raw frames are in the DM experiment qzhang202503, archived on 23 Aug 2025; see `analysis/Rad_Dam_Check/README.md`. |
 
-The 2022-1 beamtime lives in two directories, both on `/gdata`, which APS
-monitors and backs up.
-
-| Path | What it holds | Size |
-|---|---|---|
-| `/gdata/s8id-dmdtn/2022-1/babnigg202203` | Raw detector frames and the 2022 Data Exchange metadata. The archival copy, never written to. | 3.0 TB |
-| `/gdata/s8id-dmdtn/2022-1/babnigg202203_nexus/` | NeXus metadata rewritten for the current pipeline. `reprocess_results/` holds the per-acquisition correlation results that `average_ranges.py` reads. The `.bin` files alongside are symlinks into `babnigg202203`, so this directory holds no second copy of the frames. | 51 GB |
-
-`/gdata` is mounted on the 10.x hosts and not on the 164.x analysis machines, so
-`average_ranges.py` has to be run from a host that sees both, such as `amber`.
-Every other script reads only `analysis/SAXPCS_8id/data/` and runs anywhere.
-
-A third copy, `/home/8-id-i/2022-1/babnigg202203_nexus` (52 GB), is what
-`average_ranges.py` read until September 2026. `/home/8-id-i` is not backed up
-by APS and the hardware is near end of life, which is why the reduction was
-moved onto `/gdata`. Nothing reads that copy now and it can be deleted.
-
-**Why the `_nexus` directory exists.** 8-ID-I moved to NeXus around 2024, and
-`boost_corr_bin` (M. Chu) was changed permanently to read NeXus metadata. That
-is incompatible with the older Data Exchange schema the 2022 data were written
-under (De Carlo *et al.*, *J. Synchrotron Rad.* **21**, 1224–1230, 2014,
-[10.1107/S160057751401604X](https://doi.org/10.1107/S160057751401604X)).
-Rewriting the metadata into `babnigg202203_nexus` while leaving the frames in
-`babnigg202203` lets the 2022 beamtime be reanalysed with the current
-`boost_corr_bin`.
-
-**What the rewrite dropped, and how it was restored.** The 2025 rewrite carried
-the detector data across intact but wrote constants in place of four recorded
-quantities: the upstream ion chamber (`incident_beam_intensity`, left at
-133.49012809232), the downstream ion chamber (`transmitted_beam_intensity`,
-left at 0.0001), the ring current (left at 0.0) and the acquisition timestamps
-(`start_time` and `end_time`, left at the date the rewrite ran). The first two
-matter: `abs_xsec.py` turns them into the incident flux and the sample
-transmission, and with the constants in place the implied transmission is
-8.6 × 10⁻⁷ instead of 0.35 and the implied flux is negative.
-
-All four survive in the 2022 archive, which the rewrite never touched.
-`analysis/SAXPCS_8id/restore_dx_metadata.py` copies them back into the `_nexus`
-tree, at both levels: the per-acquisition `*_metadata.hdf`, so a future
-reprocessing inherits the measured values, and the `reprocess_results/` files
-that `average_ranges.py` reads. It writes a field only when that field still
-holds the exact constant the rewrite left, so it is idempotent and cannot
-overwrite a value corrected by hand. Every restored value is recorded in
-`analysis/SAXPCS_8id/dx_restore_manifest.csv`.
-
-Because the acquisition timestamps are now correct in the files themselves,
-`average_ranges.py` reads `/entry/start_time` directly and no longer needs
-`timelist_2022-1.txt`, the saved directory listing that used to recover them.
-That file is kept as the independent cross-check it now is: its directory
-mtimes track the restored timestamps with a constant offset of 86.6 ± 0.5 s
-across the whole run.
-
-The calibration constants in `abs_xsec.py` are corroborated by the same archive
-files, which record `UpIC_dark_per_second` 83.6, `DnIC_dark_per_second` 204.4
-and `Tr_air` 0.868 against the repository's 83.6, 204.4 and 0.8679. Those three
-are derived numbers rather than measurements, so they are not copied into the
-NeXus tree; `abs_xsec.py` keeps deriving them from the calibration series.
-
-The 12-ID-B equivalent is the single `fn_path` in the table above; that run has
-no NeXus rewrite and no second copy.
+8-ID-I moved to NeXus around 2024 and `boost_corr_bin` reads only NeXus
+metadata, which is why the 2021 beamtime was converted
+(`nexus_convert_babnigg202110.py`, manifests alongside it). The series is
+correlated against `babnigg202110_nexus_Sq270_Dq27_Sphi8_Dphi1_Q0p0032_Lin_CrossRm2.hdf`,
+which masks the two stuck pixels (30, 340) and (63, 166).
 
 ## Source data integrity
 
-No data file is modified by the act of producing a figure. Checked three ways.
+No data file is modified by producing a figure. Every `h5py.File` call in the
+figure scripts and in the modules they import opens its file with mode `'r'`;
+the only writing opens in `analysis/` are in `make_qmap_babnigg202110.py`,
+which writes a new q-map on beamline storage and is never run by `make`.
 
-**1. Every read is read-only.** Every `h5py.File` call in every plotting script
-opens with mode `'r'`. The tree contains exactly one `'r+'` open, in
-`average_ranges.py:save_average`, and it acts on the *destination* of a
-`shutil.copyfile` under `analysis/SAXPCS_8id/data/` — never on a source file.
-The complete list of things any script writes is: the four
-`SAXS_12id/reduced_data/*.csv`, the contents of `SAXPCS_8id/data/`, and the ten
-figure PDFs. One in-place-mutation hazard is guarded explicitly:
-`apply_cross_corr_threshold` copies its input before rewriting NaNs and
-non-positive values to make the similarity metric well defined, so those
-injected values cannot leak back into `saxs_1d`.
-
-**2. Syscall trace.** A full `make figures` was run under `strace`, tracing
-`open`/`openat`/`unlink`/`rename`/`truncate` across all child processes. The
-complete set of paths opened for writing is the figure PDFs, four
-`__pycache__/*.pyc` files, and matplotlib's scratch files in `/tmp`. No `.hdf`
-or `.csv` is opened for writing, and no `unlink`, `rename` or `truncate` touches
-a data file. Every data file appears in the trace as `O_RDONLY` only. Nothing
-outside the repository is read except Python/conda libraries, matplotlib's font
-cache and `/proc`–`/sys`.
-
-**3. Checksums.** md5 of all 131 reduced data files — 125 `.hdf` and 6 `.csv` —
-taken before and after a full `make figures`, repeated. All 131 identical every
-time.
-
-Related, and for the same reason: nothing is rescaled between the calibration
-and the plot. `abs_xsec_coef()` is built from millimetres, so every absolute
-intensity axis in this work is **mm⁻¹**, plotted as the coefficient comes out
-with no conversion factor applied. (The literature more often quotes cm⁻¹, which
-is ten times larger.) The single non-unity coefficient anywhere in the analysis
-is the empirical `alpha_WA = 0.95` in the 12-ID WAXS reduction, disclosed in SI
-Section 3.1.
+Nothing is rescaled between the calibration and the plot. `abs_xsec_coef()` is
+built from millimetres, so every absolute intensity axis in this work is
+**mm⁻¹**, plotted as the coefficient comes out. (The literature more often
+quotes cm⁻¹, which is ten times larger.)
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `Makefile` | The whole build: figures, the three PDFs, and `make check`. |
+| `Makefile` | The whole build: figures, the three PDFs, `make check`, `make robustness`. |
 | `README.md` | This file. |
-| `ACS_author_guide.pdf` | ACS/Nano Letters author guidelines. Appendix 2 is the source of every number in `analysis/common/acs_style.py`; the Editorial Policies section is the source of the length caps. |
+| `PNAS_author_guide.pdf` | The PNAS submission guidelines, the target for this manuscript. |
+| `ACS_author_guide.pdf` | ACS figure guidelines; Appendix 2 is the source of the numbers in `analysis/common/acs_style.py`. |
 | `analysis/` | Data reduction and figure generation. See `analysis/README.md`. |
 | `manuscript/` | LaTeX sources and compiled PDFs. See `manuscript/README.md`. |
-| `.gitignore` | Excludes Claude Code session state (`.claude/`, `CLAUDE.md`, `claude_log/`). |
+| `tools/` | `check_refs.py` and `pdf_comments.py`, manuscript utilities. |
 | `.loglogin` | Beamline login log, carried over from the acquisition account. Not used by anything here. |
 
-### `analysis/`
+## Submission target
 
-| Path | What it is |
-|---|---|
-| `environment.yml` | Conda environment `env-2021-LLDP`: python 3.11, numpy, scipy, matplotlib 3.9.4 (pinned for byte-stable figures), h5py, pandas. |
-| `common/acs_style.py` | Single source of ACS figure compliance: 3.33 / 7.0 in column widths, 8 pt Arial everywhere, ≥ 0.5 pt lines, TrueType embedding, `save_fig()`. Imported by every plotting script. |
-| `common/utils.py` | `outlier_removal` and `average_datasets`, used by `average_ranges.py`; plus beamline-side reduction helpers kept for provenance that cannot run from a clone. |
-| `SAXPCS_8id/` | 8-ID-I: `average_ranges.py` (reduction) and the committed `data/`; `saxpcs.py` → **Fig. S5**; `thermal_cycle.py` → **Fig. S4**; `temperature_series_2021-3.py` → **Fig. 3 and Figs. S7-S10** and `arrest_vs_temperature.py` → **Fig. 4 and Fig. S11**, both from the 2021-3 temperature series reduced into `data_2021-3/` by `reduce_babnigg202110.py`. `saxs_evolution.py`, `g2_grid_SI.py` and `contrast_calibration.py` were retired with the 2022-1 arrest analysis and no longer feed either document. `abs_xsec.py` holds the absolute-cross-section calibration and `xpcs_fit.py` the shared two-mode g2 model, so every figure uses one implementation of each. `general_model_check.py` prints the SI Section 5.3 check -- the general two-mode form with `tau_fast` free in every bin, seeded from a `p_fast` profile and from the bare default -- and draws nothing. `restore_dx_metadata.py` is the one-off repair of the 2025 NeXus rewrite and `dx_restore_manifest.csv` its record; `timelist_2022-1.txt` is the saved directory listing that recovered acquisition times before that repair, kept as a cross-check; `nexus_manual.txt` documents the NeXus layout. |
-| `Rad_Dam_Check/` | Flux-dependence control → **Fig. S6**, with its four result files, the PIN-diode calibration sheet and certificate. See `analysis/Rad_Dam_Check/README.md`. |
-
-### `manuscript/`
-
-| Path | What it is |
-|---|---|
-| `main.tex` | The Letter (`achemso`, `journal=nalefd`). |
-| `si.tex` | Supporting Information, a separate document as Nano Letters requires. |
-| `cover_letter.tex`, `cover_letter_header.tex` | Cover letter and its preamble. |
-| `reference.bib` | Shared bibliography for both documents. |
-| `figures/Setup.pdf` | **Fig. 1**, the approved schematic. Not generated by any script; do not regenerate. |
-| `figures/FigureS1_Sample_Cells.png` | **Fig. S2** (the file name predates the current SI figure order). Fig. S1 is a LaTeX-typeset sequence box with no image file. |
-| `figures/VideoS1_Still.png`, `figures/anl.png` | Video S1 still frame and the Argonne logo. |
-| `texmf/` | Vendored `achemso` and `captdef`, exposed as `TEXMFHOME` so the build needs no root TeX install. |
-| `build/` | Build output. The three finished PDFs are committed; the LaTeX aux files are ignored. |
-
-Figures are named exactly as the `.tex` files reference them and are embedded at
-natural size, so 8 pt drawn is 8 pt printed. The build resolves the names
-through `TEXINPUTS` rather than copying the files, so there is one copy of each
-figure and it is the one the script wrote.
-
-## Submission targets
-
-Nano Letters Editorial Policies: under 3000 words, no more than 5 figures,
-abstract no more than 150 words, no subsection titles, Supporting Information as
-a separate file.
+PNAS Research Report, Direct Submission (`PNAS_author_guide.pdf`): preferred
+length six pages, about 4,000 words, 50 references and four medium figures;
+abstract at most 250 words; significance statement at most 120 words; at least
+three keywords; SI Appendix as a single PDF.

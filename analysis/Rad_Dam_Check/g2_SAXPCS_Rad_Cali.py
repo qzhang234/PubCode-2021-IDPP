@@ -11,6 +11,16 @@ from the upstream ion-chamber (IC) reading of each measurement:
 The IC readout is stored in each results file at
 ``entry/instrument/incident_beam/incident_beam_intensity`` and must be scaled by
 1e-9 (matches the numbers reported on Slide_Screenshot.png).
+
+Source data: the four result files read here, cluster_results/E0171-E0174,
+are committed, byte-identical copies of the copy of record on beamline
+storage, /gdata/s8id-dmdtn/2025-1/qzhang202503/flux_control_results (placed
+there on 1 Nov 2026). They were correlated in 2025 from raw frames under
+/gdata/dm/8ID/8IDI/2025-1/qzhang202503/data with the qmap
+rigaku_s360_d36_lin_MC.hdf, and each file records both paths. That DM
+experiment was archived on 23 Aug 2025. The same-named files in
+.../qzhang202503/Multitau are an older reduction with a different qmap and are
+not used.
 """
 
 import os
@@ -27,6 +37,7 @@ from common.acs_style import (DOUBLE_COL, MS, MEW, LW_THIN,
                               q_log_ticks, save_fig)
 
 # --- PATHS (all local, relative to this script) ---
+# cluster_results/ is the committed copy of the source data (see the docstring)
 here = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(here, 'cluster_results')
 calib_csv = os.path.join(here, 'Pind_calibration.csv')
@@ -106,14 +117,29 @@ for key in ORDER:
         t_el = hf['xpcs/multitau/delay_list'][:]
         t0 = hf['entry/instrument/detector_1/frame_time'][()]
         ql_sta = hf['xpcs/qmap/static_v_list_dim0'][:]
+        ql_dyn = hf['xpcs/qmap/dynamic_v_list_dim0'][:]
 
     pind = slope * ic
     flux = pind_to_flux(pind)
     data[key] = dict(ic=ic, flux=flux, g2=g2, g2_err=g2_err, saxs_1d=saxs_1d,
                      # static_v_list_dim0 is already in Ainv; the rest of the
                      # paper plots Q in Ainv, so no nm^-1 conversion here
-                     q_saxs=ql_sta, t_g2=t_el * t0)
+                     q_saxs=ql_sta, q_g2=ql_dyn[0], t_g2=t_el * t0)
     print(f'{key:>7}   {ic:.3e}   {pind:.3e}    {flux:.3e}')
+
+# --- NUMBERS QUOTED IN THE SI CAPTION AND THE TEXT ---
+MAIN_FLUX = 1.2e10   # ph/s on the main-experiment sample (SI, SA-XPCS at 8-ID-I)
+by_flux = sorted(ORDER, key=lambda k: data[k]['flux'])
+low = data[by_flux[0]]
+print('\nordered by flux:  ' + ''.join(f'{k:>7}' for k in by_flux))
+print('monitor ratio:    ' + ''.join(f"{data[k]['ic'] / low['ic']:7.2f}" for k in by_flux))
+print('mean I(Q) ratio:  ' + ''.join(
+    f"{np.nanmean(data[k]['saxs_1d']) / np.nanmean(low['saxs_1d']):7.2f}" for k in by_flux))
+print('flux / main expt: ' + ''.join(f"{data[k]['flux'] / MAIN_FLUX:7.1f}" for k in by_flux))
+q_shown = np.concatenate([d['q_saxs'][d['saxs_1d'] > 0] for d in data.values()])
+print(f'Q range of panel (a): {q_shown.min():.4f} to {q_shown.max():.3f} A^-1')
+print(f"Q of panel (b): {low['q_g2']:.5f} A^-1, "
+      f"2pi/Q = {2 * np.pi / low['q_g2'] / 10:.0f} nm")
 
 # --- FIGURE ---
 apply_style()
