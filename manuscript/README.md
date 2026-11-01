@@ -45,8 +45,10 @@ uses the PNAS forms, `Fig.~\ref{fig:xpcs}c` and `Eq.~\ref{eq:twomode}`;
 so each loads `xr` and imports the other under a prefix:
 `\externaldocument[SI-]{build/si}` in `main.tex` and
 `\externaldocument[MT-]{build/main}` in `si.tex`. A reference across documents
-therefore reads `SI Appendix, Fig.~\ref{SI-fig:collapse}` in the main text, or
-`Figure~\ref{MT-fig:xpcs}a` in the SI.
+therefore reads `SI Appendix, Fig.~\ref*{SI-fig:collapse}` in the main text, or
+`Figure~\ref*{MT-fig:xpcs}a` in the SI. The starred `\ref*` prints the number
+without a hyperlink: the target lives in the other PDF, so a link would point
+nowhere, and pdfTeX warns about each one.
 Because each document then depends on the other's `.aux`, `make papers` runs
 si -> main -> si; `make check` reports anything left unresolved.
 
