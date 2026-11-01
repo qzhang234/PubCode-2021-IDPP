@@ -39,12 +39,14 @@ figure is regenerated from the experimental data by `make figures`.
 ## Referring to figures
 
 No figure number is ever typed by hand. Each figure carries a label, and the
-text writes `Figure~\ref{fig:xpcs}`, appending any panel letter literally
-(`Figure~\ref{fig:xpcs}c`). The two documents cite each other's figures, so
-each loads `xr` and imports the other under a prefix:
+text cites it through `\ref`, appending any panel letter literally. `main.tex`
+uses the PNAS forms, `Fig.~\ref{fig:xpcs}c` and `Eq.~\ref{eq:twomode}`;
+`si.tex` keeps `Figure~\ref{...}`. The two documents cite each other's figures,
+so each loads `xr` and imports the other under a prefix:
 `\externaldocument[SI-]{build/si}` in `main.tex` and
 `\externaldocument[MT-]{build/main}` in `si.tex`. A reference across documents
-therefore reads `Figure~\ref{SI-fig:collapse}` or `Figure~\ref{MT-fig:xpcs}a`.
+therefore reads `SI Appendix, Fig.~\ref{SI-fig:collapse}` in the main text, or
+`Figure~\ref{MT-fig:xpcs}a` in the SI.
 Because each document then depends on the other's `.aux`, `make papers` runs
 si -> main -> si; `make check` reports anything left unresolved.
 
