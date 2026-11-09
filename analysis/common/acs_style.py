@@ -12,9 +12,9 @@ weights and one pair of column widths.
 
 Two deliberate choices go beyond the bare minimums:
 
-* FONT_SIZE is 8 pt, not the 4.5 pt floor.  8 pt is the largest size that still
-  lets the WAXS inset and its peak labels stay uncollided inside single-column
-  Figure 2, which is what sets the ceiling.
+* FONT_SIZE is 8 pt, not the 4.5 pt floor.  8 pt is the largest size that
+  kept the inset and peak labels of the single-column WAXS figure this style
+  was first set for uncollided, which is what set the ceiling.
 * Figures are saved at exactly SINGLE_COL or DOUBLE_COL wide and embedded in
   the LaTeX at natural size, so 8 pt drawn is 8 pt printed.  Nothing is scaled
   at typesetting time and no bounding box is trimmed.
@@ -111,8 +111,8 @@ def q_log_ticks(ax, axis='x'):
     labels one tick, 10^-2.  A reader then has no way to read a value off the
     axis.  The three named ticks below are integer multiples of a decade, so
     they satisfy the add_minor_grid() rule about half-decade positions, and the
-    same three are used on every Q axis in the paper (Figures 3a, S4b and
-    S7a-S10a) so the profiles can be compared tick for tick.
+    same three are used on every Q axis in the paper (Figures 2a, S3a and
+    S4a-S7a) so the profiles can be compared tick for tick.
     """
     if axis == 'x':
         a = ax.xaxis
@@ -135,7 +135,7 @@ def label_panels(axes, dx=-30, dy=5, start=0):
 
     dy clears the TOPMOST Y TICK LABEL, which is centred on the top spine and
     therefore reaches about half a cap height (2.9 pt at 8 pt Arial) above it.
-    Panels whose left margin is narrow -- Figure S7, where the y tick labels are
+    Panels whose left margin is narrow -- Figure S4, where the y tick labels are
     short and tight_layout leaves only ~17 pt of margin -- put the label and
     that tick label at the same x, so the two collided at the original dy = 2.
     Raising it to 5 leaves 2.1 pt of clear space in the worst case and changes

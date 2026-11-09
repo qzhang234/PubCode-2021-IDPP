@@ -1,7 +1,7 @@
 """Does the collapse of Figure 3b survive the choices in the g2 fit?
 
-Prints the numbers SI 5.3 and SI 8.2 quote.  The collapse of Figure 3b -- one
-master curve through f at the lowest Q of all four holds, with scaling
+Prints the numbers SI sections 4.3 and 6.2 quote.  The collapse of Figure 3b
+-- one master curve through f at the lowest Q of all four holds, with scaling
 temperature T_s, on group-midpoint t_w -- is redone with f from five versions
 of the g2 fit:
 
@@ -153,7 +153,7 @@ print(f'@@ beta_low: 1 - f at the end of the 28.50 C hold {1 - S["diff"][last][2
       f'{sum(all(np.diff(r[2]) > 0) for r in S["diff"])} -> {sum(all(np.diff(r[2]) > 0) for r in S["beta_low"])}'
       f' of {len(S["diff"])}')
 
-# SI 5.3 reports the Q exponent the released tau_fast returns, from the SEEDED fits
+# SI section 4.3 reports the Q exponent the released tau_fast returns, from the SEEDED fits
 _lq = np.log(QV)
 _sl = np.array([np.polyfit(_lq, np.log(r[4]), 1)[0] for r in S['seeded']
                 if np.all(np.isfinite(r[4])) and np.all(np.asarray(r[4]) > 0)])

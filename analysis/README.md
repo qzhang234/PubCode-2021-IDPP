@@ -30,17 +30,22 @@ October 2021 (2021-3), apart from the flux-dependence control in
                                                               two outlier cuts, and the trace)
 data_2021-3/
     --> temperature_series_2021-3.py  --> Figure3_Isothermal_SAXPCS.pdf (main Fig. 2),
-                                          FigureS7-S10_Temperature_*.pdf, FigureS12_Fast_Mode.pdf
+                                          FigureS7-S10_Temperature_*.pdf (SI Figs. S4-S7),
+                                          FigureS12_Fast_Mode.pdf (SI Fig. S8)
     --> arrest_vs_temperature.py      --> Figure4_Arrest_vs_Temperature.pdf (main Fig. 3),
-                                          FigureS11_Collapse_AllQ.pdf
-    --> general_model_check.py        --> SI 5.3 and 8.2 robustness numbers on stdout (no figure)
+                                          FigureS11_Collapse_AllQ.pdf (SI Fig. S9)
+    --> general_model_check.py        --> robustness numbers of SI sections 4.3 and 6.2
+                                          on stdout (no figure)
     --> contrast_2021-3.py            --> the speckle contrast on stdout (no figure)
 abs_xsec.py constants
-    --> calibration_figure.py         --> FigureS2_Calibration.pdf
+    --> calibration_figure.py         --> FigureS2_Calibration.pdf (SI Fig. S2)
+Rad_Dam_Check/cluster_results/
+    --> Rad_Dam_Check/g2_SAXPCS_Rad_Cali.py --> FigureS6_Flux_Control.pdf (SI Fig. S3)
 ```
 
 The file names carry the numbers of an earlier figure order; the manuscript
-resolves them by label, so the names are not the printed numbers.
+resolves them by label, so the names are not the printed numbers. The printed
+number of each figure is given in parentheses above.
 
 ## The shared modules
 
@@ -59,23 +64,27 @@ resolves them by label, so the names are not the printed numbers.
 
 `temperature_series_2021-3.py` fits Equation 2 to the five lowest Q bins of
 every group, with beta fixed, p_fast free and started from the minimum of a
-p_fast profile. It draws the four per-temperature figures (the 28.50 C one is
-also main Figure 2), the fast mode of every group against the arrested
-fraction, and prints the numbers SI Section 8 quotes. Its docstring lists
+p_fast profile. It draws the four per-temperature figures, SI Figs. S4-S7
+(the 28.50 C one is also main Fig. 2), and the fast mode of every group
+against the arrested fraction, SI Fig. S8. It prints the numbers SI section 6
+quotes. Its docstring lists
 every analysis choice and why, including the background measurement and why
 loading D8 has two 6 C references.
 
 `arrest_vs_temperature.py` refits the same groups and collapses the fast
 fraction at the lowest Q of all four holds onto one master curve,
 f = A / [1 + (X/X_c)^n] with X = t_w exp[(T - T0)/T_s]. It bootstraps T_s over
-whole groups, collapses each higher Q bin on its own for the SI, places the
+whole groups, collapses each higher Q bin on its own for SI Fig. S9, places the
 low-Q SAXS of the same groups on the same clock, and prints the numbers main
-Figure 3 and the scaling paragraphs quote.
+Figure 3 and the scaling paragraphs quote, including the checks that the
+half-arrest threshold and the choice of Q band do not change the reading of
+Figure 3c.
 
 `general_model_check.py` repeats that collapse with f from five versions of
 the g2 fit (Equation 2; the general two-mode form seeded and unseeded;
-p_fast frozen at 0.5; the lower contrast of the fitted bins). It takes about a
-quarter of an hour and is run by `make robustness`, not by `make figures`.
+p_fast frozen at 0.5; the lower contrast of the fitted bins). Its numbers are
+quoted in SI sections 4.3 and 6.2. It takes about a quarter of an hour and is
+run by `make robustness`, not by `make figures`.
 
 ## Environment
 

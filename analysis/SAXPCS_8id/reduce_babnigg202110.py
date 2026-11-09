@@ -16,14 +16,14 @@ different final temperature on zone 3 of the QNW stage, read by its RTD, on
 H0412 (D9 at 28.25 C) was stopped at 21.1 C after 11 minutes and never reached
 temperature, so D9's run is H0413.  Every run starts at 20 C and climbs at
 0.10 C/min, so the target is reached about 80 minutes in.  That is the main
-difference from the 2022-1 series behind Figure 3, which was brought from 20 to
-30 C at 1 C/min.
+difference from the 2022-1 series, which was brought from 20 to 30 C at
+1 C/min.
 
 WHAT IS WRITTEN
 ---------------
 1. TRACE: one row per acquisition with its time, zone-3 temperature, the two ion
    chambers and the mean I(Q) over SPIKE_BAND, 0.004-0.008 A^-1, the band
-   Figure S4b reports.  No averaging, so the onset can be placed in temperature.
+   Figure 3c averages.  No averaging, so the onset can be placed in temperature.
 2. AVERAGES: 100-acquisition blocks, run through average_ranges.process_group so
    the two outlier cuts are exactly the ones every 2022-1 group gets.  Blocks are
    aligned so that one boundary falls on the first acquisition at the target

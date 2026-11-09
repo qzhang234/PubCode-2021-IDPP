@@ -5,7 +5,7 @@
 #   make papers     compile main.pdf, si.pdf, cover_letter.pdf into manuscript/build/
 #   make all        figures + papers
 #   make check      report undefined citations / references / missing figures
-#   make robustness recompute the SI 5.3 robustness numbers (no figure)
+#   make robustness recompute the robustness numbers of SI sections 4.3 and 6.2 (no figure)
 #   make clean      remove LaTeX aux files (keeps the PDFs)
 #
 # Figure 1 (Setup.pdf) is the approved illustrator schematic and is NOT
@@ -35,6 +35,10 @@ export BIBINPUTS := .:$(MS):$(BUILD):
 export MPLBACKEND := Agg
 
 # --- data-derived figures: script -> outputs --------------------------------
+# The file names keep an earlier numbering; the printed numbers come from the
+# labels in main.tex and si.tex.  Figure3_* is Fig. 2, Figure4_* Fig. 3,
+# FigureS2 Fig. S2, FigureS6 Fig. S3, FigureS7-S10 Figs. S4-S7, FigureS12
+# Fig. S8 and FigureS11 Fig. S9.
 F_CALIB   := $(ANA)/SAXPCS_8id/FigureS2_Calibration.pdf
 F_RAD     := $(ANA)/Rad_Dam_Check/FigureS6_Flux_Control.pdf
 F_TSERIES := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
@@ -46,11 +50,7 @@ F_TSERIES := $(ANA)/SAXPCS_8id/Figure3_Isothermal_SAXPCS.pdf \
 F_ARREST  := $(ANA)/SAXPCS_8id/Figure4_Arrest_vs_Temperature.pdf \
              $(ANA)/SAXPCS_8id/FigureS11_Collapse_AllQ.pdf
 
-# The 2022-1 arrest analysis was retired with the move to the 2021-3
-# temperature series: saxs_evolution.py, g2_grid_SI.py and the fit-parameter
-# panels of saxpcs.py no longer have a figure in either document.  saxpcs.py
-# is still built for the absolute-scale calibration, which both beamtimes share.
-FIGURES := $(F_CALIB) $(F_RAD) $(F_TSERIES) $(F_ARREST)
+FIGURES :=$(F_CALIB) $(F_RAD) $(F_TSERIES) $(F_ARREST)
 
 RAD_DATA  := $(wildcard $(ANA)/Rad_Dam_Check/cluster_results/*.hdf)
 TSERIES_DATA := $(wildcard $(ANA)/SAXPCS_8id/data_2021-3/*.hdf) \
@@ -76,13 +76,13 @@ env:
 figures: $(FIGURES)
 	@echo "all figures up to date"
 
-# one script, three figures
+# one script, six figures: Fig. 2 and Figs. S4-S8
 
 $(F_TSERIES) &: $(ANA)/SAXPCS_8id/temperature_series_2021-3.py $(ANA)/SAXPCS_8id/abs_xsec.py \
                 $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS) $(SERIES)
 	cd $(ANA)/SAXPCS_8id && $(PY) temperature_series_2021-3.py
 
-# the four 2021-3 holds
+# Fig. 3 and Fig. S9, from the four isothermal experiments
 $(F_ARREST) &: $(ANA)/SAXPCS_8id/arrest_vs_temperature.py $(ANA)/SAXPCS_8id/abs_xsec.py \
              $(TSERIES_DATA) $(COMMON) $(XFIT) $(NEXUS) $(SERIES)
 	cd $(ANA)/SAXPCS_8id && $(PY) arrest_vs_temperature.py
@@ -150,11 +150,12 @@ check:
 	@grep -hE "No file|not found" $(BUILD)/*.log 2>/dev/null | grep -iE '\.pdf|\.png' || true
 	@echo "== done (no lines under a heading means clean) =="
 
-# --- the SI 5.3 robustness check --------------------------------------------
+# --- the robustness check of SI sections 4.3 and 6.2 ------------------------
 # Numbers only; this one draws nothing, so it is a prerequisite of nothing and
-# `make all` does not run it.  It refits all 34 groups three ways over a p_fast
-# grid and takes roughly half an hour.  Run it when SI Section 5.3 is rewritten
-# or the 2021-3 data are reprocessed, and paste its output into that section.
+# `make all` does not run it.  It refits all 34 groups five ways (listed in its
+# docstring) and takes about a quarter of an hour.  Run it when SI section 4.3
+# or 6.2 is rewritten or the 2021-3 data are reprocessed, and paste its output
+# into those sections.
 robustness:
 	cd $(ANA)/SAXPCS_8id && $(PY) general_model_check.py
 

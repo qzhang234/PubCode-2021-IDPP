@@ -1,13 +1,13 @@
 """Where things live inside an 8-ID-I averaged HDF file, and how to read them.
 
 The averaged NeXus files written by `average_ranges.py` all have the same
-layout, and four of the figure scripts here (`saxpcs.py`, `saxs_evolution.py`,
-`g2_grid_SI.py`, `thermal_cycle.py`) need the same handful of quantities out of
-them: when the acquisition started, the time-averaged I(Q), and the correlation
-functions.  Each script used to carry its own copy of these readers, so a reader
-comparing two scripts had to check four near-identical blocks to be sure they
-really were identical.  They live here once instead, and every script imports
-them, so all four figures provably read the files the same way.
+layout, and the scripts here need the same handful of quantities out of them:
+when the acquisition started, the time-averaged I(Q), and the correlation
+functions.  The two figure scripts (`temperature_series_2021-3.py`,
+`arrest_vs_temperature.py`), `general_model_check.py`, `contrast_2021-3.py`,
+`xpcs_fit.py` and `series_2021_3.py` all import these readers rather than
+carrying their own copies, so every figure provably reads the files the same
+way.
 
 Nothing here modifies a file: every caller opens the HDF read-only, and these
 functions only fetch.

@@ -4,7 +4,7 @@ the bins the paper fits.
 This prints beta; it draws no figure.  The contrast had its own SI figure up to
 27 Oct 2026, and that figure was dropped: the dashed 1 + beta line already drawn
 on every g2 panel shows where the contrast sits, so the figure only restated it.
-How beta is measured is now given in words in SI Section 8.
+How beta is measured is now given in words in SI section 6.2.
 
 beta is a property of the optics and the detector and is
 near enough constant in Q over this range, so a flat line is what a clean

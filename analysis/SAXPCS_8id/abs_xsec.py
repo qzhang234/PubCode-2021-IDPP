@@ -1,8 +1,9 @@
 """Absolute scattering cross-section calibration (shared helper).
 
-saxpcs.py (Figure S5), thermal_cycle.py (Figure S4b) and
-temperature_series_2021-3.py (Figure 3a and Figures S7-S10a) all import from
-here, so they use identical constants and one per-file coefficient function.
+temperature_series_2021-3.py (Figure 2a and Figures S4a-S7a), series_2021_3.py
+(the absolute I(Q) behind Figures 2a and 3c) and calibration_figure.py
+(Figure S2) all import from here, so they use identical constants and one
+per-file coefficient function.
 
 PROVENANCE: worked out originally in two beamline notebooks, IC_pind4_convert
 and Abs_Scatt_Cross, which are not part of this repository.  The code below is

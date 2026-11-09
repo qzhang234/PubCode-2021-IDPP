@@ -1,6 +1,6 @@
 # Radiation-damage / flux-dependence control
 
-Generates the flux-control figure of the SI Appendix (`FigureS6_Flux_Control.pdf`): SAXS and SA-XPCS of a diluted (VPAVG)30 sample
+Generates SI Fig. S3, the flux-control figure (file `FigureS6_Flux_Control.pdf`): SAXS and SA-XPCS of a diluted (VPAVG)30 sample
 (H06, 20 mg/mL, held at 33.0 °C) measured at four attenuator settings after the
 APS Upgrade. If the reported dynamics were a beam-damage artifact, the
 correlation functions would change with flux; they do not.
