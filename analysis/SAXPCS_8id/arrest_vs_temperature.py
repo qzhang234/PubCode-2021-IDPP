@@ -1,7 +1,7 @@
 """Figure 3 of the manuscript (file Figure4_Arrest_vs_Temperature.pdf) and its
-SI companion (FigureS11_Collapse_AllQ.pdf): how fast arrest runs, the one
-rescaling of the waiting time that collapses every temperature, and the SAXS of
-the same groups on the same clock.
+SI companion, Figure S9 (file FigureS11_Collapse_AllQ.pdf): how fast arrest
+runs, the one rescaling of the waiting time that collapses every temperature,
+and the SAXS of the same groups on the same clock.
 
 Figure 3, from the four 2021-3 holds and nothing else:
   (a) the fast fraction f at the largest length scale against t_w;
@@ -61,7 +61,7 @@ from common.acs_style import (DOUBLE_COL, MS, MS_SPARSE, MEW, LW_THIN, LW_DATA, 
 import xpcs_fit                                                           # noqa: E402
 from nexus_read import parse_name, read_start_time, read_g2              # noqa: E402
 from series_2021_3 import (DATA, BAND, T_HUES, T_MARKERS, acquisitions,   # noqa: E402
-                           group_midpoint, band_intensity)
+                           group_midpoint, band_intensity, abs_iq)
 
 STANDARD = os.path.join(DATA, 'Average_B0005_12IDB_Standard_006C_att00_Rq0_00001_00100_results.hdf')
 
@@ -95,13 +95,14 @@ def fit_block(tau, g2, g2e, q):
 
 
 # --- every group of every hold: f in all five Q bins, and the SAXS ----------
-series, saxs, base, QVALS = {}, {}, {}, None
+series, saxs, base, QVALS, hold_fps = {}, {}, {}, None, {}
 for run, T in RUNS.items():
     frame, t_acq, _, t0 = acquisitions(run)
     files = sorted(glob.glob(os.path.join(DATA, f'Average_{run}_*_results.hdf')),
                    key=lambda p: parse_name(p)[1])
     base[run] = band_intensity(files[0])          # the first group of the ramp, ~20 C
     t, F, E, ts_, Is_ = [], [], [], [], []
+    hold_fps[run] = []
     for fp in files:
         with h5py.File(fp, 'r') as hf:
             start = (read_start_time(hf) - t0).total_seconds()
@@ -111,6 +112,7 @@ for run, T in RUNS.items():
         tm = group_midpoint(fp, frame, t_acq)
         ts_.append(tm)
         Is_.append(band_intensity(fp))             # every hold group, fitted or not
+        hold_fps[run].append(fp)
         if np.median(g2e[(tau > 1e-4) & (tau < 1e-2), 0]) > ERR_MAX:
             continue
         r = fit_block(tau, g2, g2e, q)
@@ -235,6 +237,47 @@ for run, (T, t, F, E) in series.items():
     print(f'   {T:.2f} C: half arrested at t_w {th:.0f} s, band {Ih:.1f} mm^-1 = {Ih / base[run]:.0f}x its '
           f'~20 C level; then {Is[-1] / Ih:.1f}x more by the end, while f0 falls 0.50 -> {f0[-1]:.2f}')
 print(f'   time to f0 = 0.5 shortens {HALF[28.25][0] / HALF[28.75][0]:.1f}-fold from 28.25 to 28.75 C')
+
+
+# --- the two choices behind (c), and how little rides on them ---------------
+# Half arrest is where f at the lowest Q crosses 0.5, interpolated between the
+# two groups that bracket it: half of the fluctuation amplitude at 175 nm still
+# relaxes on the fast time scale, half is arrested on the 1.6 s window.  Any
+# other threshold on the fall of f tells the same story.
+print('\nthe half-arrest threshold: band intensity where f0 crosses it, and the growth after it')
+for thr in (0.3, 0.4, 0.5, 0.6, 0.7):
+    cells = []
+    for run, (T, t, F, E) in series.items():
+        f0 = F[:, Q0]
+        j = np.nonzero(f0 < thr)[0]
+        if not len(j) or j[0] == 0:
+            continue
+        j = j[0]
+        th = np.interp(thr, [f0[j], f0[j - 1]], [t[j], t[j - 1]])
+        _, ts_s, Is = saxs[run]
+        Ih = float(np.interp(th, ts_s, Is))
+        cells.append(f'{T:.2f} C {Ih:.1f} mm^-1, then {Is[-1] / Ih:.2f}x')
+    print(f'   f0 = {thr:.1f}: ' + '; '.join(cells))
+
+# BAND spans the length scales of the five fitted Q bins, where the intensity
+# grows most.  Other bands, inside and beyond them, superpose at the same T_s.
+print('\nthe band: T_s that superposes the SAXS on its own, other Q bands')
+for lo_, hi_ in [(0.0031, 0.0081), (0.005, 0.010), (0.008, 0.016), (0.012, 0.030)]:
+    alt = {}
+    for run, (T, ts_s, _) in saxs.items():
+        vals = []
+        for fp in hold_fps[run]:
+            q_, I_ = abs_iq(fp)
+            vals.append(float(np.mean(I_[(q_ >= lo_) & (q_ < hi_)])))
+        alt[run] = (T, ts_s, np.array(vals))
+
+    def alt_rss(ts):
+        lx = np.concatenate([np.log(t * np.exp((T - T_REF) / ts)) for T, t, _ in alt.values()])
+        ly = np.concatenate([np.log(I) for _, _, I in alt.values()])
+        return float(np.sum((ly - np.polyval(np.polyfit(lx, ly, 3), lx)) ** 2))
+    r_ = np.array([alt_rss(v) for v in _grid])
+    print(f'   {lo_:.4f}-{hi_:.4f} A^-1: T_s {_grid[np.argmin(r_)]:.2f} K, scatter '
+          f'{alt_rss(1e4) / r_.min():.0f}x smaller than without rescaling')
 
 
 # --- figures ------------------------------------------------------------------

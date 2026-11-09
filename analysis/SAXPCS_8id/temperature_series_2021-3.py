@@ -1,14 +1,19 @@
-"""Figures S7-S10 and Figure 3: the 2021-3 temperature series.
+"""Figure 2 and SI Figures S4-S8: the 2021-3 temperature series.
+
+The file names keep an earlier numbering: SI Figs. S4-S7 are
+FigureS7-S10_Temperature_*.pdf, Fig. S8 is FigureS12_Fast_Mode.pdf and main
+Fig. 2 is Figure3_Isothermal_SAXPCS.pdf.
 
 Reads only data_2021-3/, written by reduce_babnigg202110.py.  One figure per
 temperature, in the order 28.00, 28.25, 28.50, 28.75 C (loadings D8, D6, D7,
-D9), plus FigureS12_Fast_Mode.pdf, the fast mode of all four against the
+D9; Figs. S4-S7), plus Fig. S8, the fast mode of all four against the
 arrested fraction.  Each per-temperature figure carries three panels on its
 top row and the four further Q bins on its bottom row; the 28.50 C loading's
-top row is also Figure 3 (Figure 2 of the manuscript):
+top row is also Figure 2 of the main text:
 
   (a) absolute, background-subtracted I(Q): the 6 C reference of that loading,
-      the first group on target (t_w = 0) and the groups shown in (b);
+      the first group on target (t_w = 0) and the groups shown in (b), with
+      the low-Q band that Figure 3c averages shaded;
   (b) g2 at the lowest Q with the fits;
   (c) fast fraction f against t_w in the five Q bins, with the fitted
       diffusion coefficient D0 of the fast mode on the right axis;
@@ -21,13 +26,14 @@ and each group sits at the MIDPOINT of the acquisitions it averages (see
 series_2021_3.py, which holds the clock and the background subtraction shared
 with arrest_vs_temperature.py).
 
-WHAT IS THE SAME AS FIGURE 3.  The reduction (groups of 100 acquisitions through
-the two outlier cuts of average_ranges.py), the model (Equation 2, the fast mode
-tied to 1/(D0 Q^2), beta fixed), the five Q bins, the error-weighted least
-squares and covariance, the chi^2 guard of 10, and the absolute scale: every
-I(Q) is converted with abs_xsec.py from its own ion-chamber readings, which
-2021-3 recorded on the same chambers, and the background is subtracted as
-coef_sample * I_sample - coef_bg * I_bg, exactly as Figure 3 subtracts the buffer.
+WHAT IS THE SAME AS THE 2022-1 ANALYSIS.  The reduction (groups of 100
+acquisitions through the two outlier cuts of average_ranges.py), the model
+(Equation 2, the fast mode tied to 1/(D0 Q^2), beta fixed), the five Q bins, the
+error-weighted least squares and covariance, the chi^2 guard of 10, and the
+absolute scale: every I(Q) is converted with abs_xsec.py from its own
+ion-chamber readings, which 2021-3 recorded on the same chambers, and the
+background is subtracted as coef_sample * I_sample - coef_bg * I_bg, exactly as
+the 2022-1 analysis subtracted the buffer.
 
 WHAT DIFFERS, AND WHY.
 * The background is E0411.  Six candidates exist; E0411, G0409, G0410 and
@@ -55,7 +61,7 @@ WHAT DIFFERS, AND WHY.
 * Panel (a) starts at the lowest fitted Q bin.  Below it the points sit on the
   edge of the beamstop shadow, where no single coefficient reconciles the empty
   cell with the sample and the subtraction leaves a spike.
-* D8 has two 6 C measurements and Figure S7 shows the LATER one, H0403.
+* D8 has two 6 C measurements and Figure S4 shows the LATER one, H0403.
   H0402, taken before the hold, was the first measurement of the beamtime and
   is not a dissolved state: it carries a Q^-2.7 low-Q excess that dies out
   above 0.01 A^-1, where it is 4% of the plateau, and it fits a background
@@ -86,9 +92,9 @@ WHAT DIFFERS, AND WHY.
   weak to fix a rate; D0 is drawn open and grey there and kept out of the
   quoted ranges.
 * A group is fitted when its correlation function is no noisier than the
-  noisiest group Figure 3 fits: median g2_err at the lowest Q over 1e-4 to
-  1e-2 s of at most 0.016.  Where more than seven groups qualify, (a), (b) and
-  (d)-(g) show every second one; (c) shows them all.
+  noisiest group the 2022-1 analysis fitted: median g2_err at the lowest Q
+  over 1e-4 to 1e-2 s of at most 0.016.  Where more than seven groups qualify,
+  (a), (b) and (d)-(g) show every second one; (c) shows them all.
 """
 
 import csv
@@ -100,6 +106,7 @@ from datetime import datetime
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
 from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 from matplotlib.ticker import LogLocator, FuncFormatter
@@ -129,14 +136,14 @@ RUNS = {'H0402': ('H0402_D8_280C10p', 'D8', 28.00),
         'H0404': ('H0404_D7_285C10p', 'D7', 28.50),
         'H0413': ('H0413_D9_287C10p', 'D9', 28.75)}
 REF_6C = os.path.join(DATA, 'Average_H0404_D7_060C10p_att00_Rq0_00001_00020_results.hdf')
-QI = [0, 1, 2, 3, 4]                  # the five Q bins, as in Figure 3
+QI = [0, 1, 2, 3, 4]                  # the five lowest Q bins, 175 to 83 nm
 Q_MARKERS = ['o', 's', '^', 'D', 'v']
 AT_TARGET = 0.01                      # C
-ERR_MAX = 0.016                       # the noisiest group Figure 3 fits
-CHI2_MAX = 10.0                       # the Figure 3 guard
+ERR_MAX = 0.016                       # the noisiest group the 2022-1 analysis fitted
+CHI2_MAX = 10.0                       # the reduced chi^2 guard of the 2022-1 analysis
 P_GRID = np.round(np.arange(0.20, 1.31, 0.05), 2)
 SHOW_RUN = 'H0404'                    # the run shown in panels (a) and (d)
-COLOR_6C = '#1f77b4'                  # the 6 C reference, as in Figure 3a
+COLOR_6C = '#1f77b4'                  # the 6 C reference, blue squares in Figure 2a
 FIG_SIZE = (DOUBLE_COL, 5.0)
 
 T_COLOR = dict(zip(RUNS, hsv_colors(T_HUES)))
@@ -344,7 +351,7 @@ CONVERTING = 0.85                     # f at the lowest Q below which arrest is 
 RATE_MIN_F = 0.25
 FIG_T_SIZE = (DOUBLE_COL, 5.7)
 FIG_M_SIZE = (DOUBLE_COL, 2.90)   # the main-text version: top row only
-MAIN_RUN = 'H0404'               # 28.50 C, the loading shown as Figure 3
+MAIN_RUN = 'H0404'               # 28.50 C, the loading shown as Figure 2
 MAIN_FIG = 'Figure3_Isothermal_SAXPCS.pdf'
 # Two key rows below the panels, t_w above Q.  The Q key used to be a box
 # inside panel (c), where it overlapped the fast fractions at early t_w; both
@@ -428,6 +435,24 @@ for h, (run, sample, target) in RUNS.items():
     print(f'  {run}: {a["tw"]:.0f} -> {b["tw"]:.0f} s: 1-f0 {1 - a["f"][0]:.2f} -> {1 - b["f"][0]:.2f}, '
           f'band {Ia:.2f} -> {Ib:.2f} ({Ib / Ia:.2f}x); I(Q) ratio last/first at Q {ratio}')
 
+# Figure 2a against Figure 2b: how far the structure has grown when the
+# dynamics start to arrest.  The ~20 C level is the first group of the ramp,
+# the same reference arrest_vs_temperature.py quotes the half-arrest intensity
+# against.
+print('\nlow-Q band intensity of every group on target (mm^-1), with f at the lowest Q '
+      'where fitted,\nagainst the first group of the ramp (~20 C):')
+for h, (run, sample, target) in RUNS.items():
+    frame, t_acq, _, _ = acquisitions(run)
+    first = sorted(glob.glob(os.path.join(DATA, f'Average_{run}_*_results.hdf')),
+                   key=lambda p: parse_name(p)[1])[0]
+    base20 = band_intensity(first)
+    fitted = {r['fp']: r['f'][0] for r in series[h]}
+    cells = [f'{group_midpoint(fp, frame, t_acq):.0f} s {band_intensity(fp):.2f}'
+             + (f' (f0 {fitted[fp]:.2f})' if fp in fitted else '') for fp in hold_files[h]]
+    print(f'  {target:.2f} C, ~20 C level {base20:.4f}: ' + '; '.join(cells))
+    print('     ' + ', '.join(f'{group_midpoint(fp, frame, t_acq):.0f} s {band_intensity(fp) / base20:.0f}x'
+                              for fp in hold_files[h]) + ' the ~20 C level')
+
 print('\nramp: band intensity relative to the 20-22 C level of each loading')
 for h, (run, sample, target) in RUNS.items():
     t, T, I = traces[h]
@@ -444,8 +469,9 @@ for h in RUNS:
 
 
 # How far the empty cell stands above the 6 C reference, and how far the hold
-# groups stand above the empty cell.  Both numbers are quoted in SI 8.2, and
-# both had drifted while they lived only in comments, so they are printed here.
+# groups stand above the empty cell.  Both numbers are quoted in SI section
+# 6.2, and both had drifted while they lived only in comments, so they are
+# printed here.
 print('\nempty cell against the 6 C reference it has to be subtracted from:')
 _use = BG_COEF * COEF_BG * I_BG
 _raw = COEF_BG * I_BG
@@ -474,11 +500,11 @@ for h, (run, sample, target) in RUNS.items():
 _all = np.concatenate(_pts)
 print(f'  all {len(_means)} fitted groups: pointwise {_all.min():.0f}-{_all.max():.0f}x, '
       f'group means {min(_means):.0f}-{max(_means):.0f}x')
-print('  (SI 8.2 quotes the group-mean range; the two differ because one is a '
+print('  (SI section 6.2 quotes the group-mean range; the two differ because one is a '
       'per-point\n   extremum and the other a per-group average)')
 
 
-# --- FIGURES S11-S14 ---
+# --- FIGURE 2 AND FIGURES S4-S7 ---
 apply_style()
 
 
@@ -511,7 +537,7 @@ for h, (run, sample, target) in RUNS.items():
     zero_label = f'{group_midpoint(zero, _frame, _t):.0f}' if zero is not None else None
 
     # Loading MAIN_RUN is drawn twice: the seven-panel SI figure, and a
-    # three-panel version that is Figure 3 of the main text.  The main-text
+    # three-panel version that is Figure 2 of the main text.  The main-text
     # one carries only (a)-(c); the correlation functions at the four other Q
     # bins stay in the SI, where there is room for them.
     for MAIN in ([False, True] if h == MAIN_RUN else [False]):
@@ -554,6 +580,18 @@ for h, (run, sample, target) in RUNS.items():
         ax1.set_xlim(3.3e-3, 3.6e-2)
         q_log_ticks(ax1)
         ax1.set_ylim(lo * 0.45, hi * 3.0)
+        # The low-Q band that Figure 3c averages, BAND in series_2021_3.py.  It
+        # spans the length scales of the five fitted Q bins, and it is where
+        # the intensity grows most.  The fill is pale, so its edges are drawn
+        # as dashed lines that keep 3:1 contrast against the page.  They sit at
+        # zorder 1: the minor grid lines fall on exactly the same Q values, and
+        # at the grid's zorder (0.5) they are drawn after the edges and hide them.
+        ax1.axvspan(*BAND, color='0.92', lw=0, zorder=0)
+        for edge in BAND:
+            ax1.axvline(edge, color='0.45', ls='--', lw=LW_THIN, zorder=1.0)
+        ax1.text(np.sqrt(BAND[0] * BAND[1]), 0.27, 'low-$Q$\nband', ha='center', va='center',
+                 color='0.35', linespacing=1.0,
+                 transform=mtransforms.blended_transform_factory(ax1.transData, ax1.transAxes))
         q6, I6 = abs_iq(os.path.join(DATA, f'Average_{REFS[h]}_att00_Rq0_00001_00020_results.hdf'))
         plateau = np.median(I6[(q6 > 0.006) & (q6 < 0.03)])
         ax1.text(0.012, plateau * 2.4, '6 °C ref', ha='center', va='bottom', color=COLOR_6C)
@@ -579,7 +617,7 @@ for h, (run, sample, target) in RUNS.items():
             # reaches between 0.0085 and 0.0165 A^-1, NOT that reference's level
             # at this Q: the standard is scratched, so its apparent contrast in
             # these bins is depressed by up to 12% and a line drawn there would
-            # sit below data that are perfectly ordinary (Figure S6).
+            # sit below data that are perfectly ordinary (SI section 6.2).
             ax.axhline(1.0 + BETA, color='0.35', ls='--', lw=LW_DATA * 1.7, zorder=1)
             ax.set_xscale('log')
             ax.set_xlim(9e-6, 5.0)
@@ -640,7 +678,7 @@ for h, (run, sample, target) in RUNS.items():
         save_fig(fig, MAIN_FIG if MAIN else FIG_NAMES[h])
 
 
-# --- SI figure: the fast mode of every group, against the arrested fraction --
+# --- Figure S8: the fast mode of every group, against the arrested fraction --
 # D0 locates the fast decay (its 1/e time is 1/(D0 Q^2) whatever p_fast is) and
 # p_fast sets how widely it is spread.  Plotted against the arrested fraction
 # 1 - f at the lowest Q, which needs no clock, the four holds trace the same
