@@ -1,62 +1,25 @@
-"""Reduce the 2021-3 temperature series the same way average_ranges.py reduces 2022-1.
+"""Write data_2021-3/: the per-acquisition trace and the group averages.
 
-BEAMLINE-ONLY.  Reads /gdata, which mounts on the 10.x hosts (amber) and not on
-the 164.x analysis machines.  Everything downstream reads only what this writes
-into data_2021-3/.
+BEAMLINE-ONLY: reads /gdata (amber, adamite, amazonite), and averages through
+average_ranges.py, which is not part of this repository.  Everything
+downstream reads only what this writes.
 
-THE DATA
---------
-Four ELP loadings (D6-D9) in the same cell block, each taken from 20 C to a
-different final temperature on zone 3 of the QNW stage, read by its RTD, on
-17 Oct 2021:
+    python reduce_babnigg202110.py            # the trace, the groups, the 6 C references, the standard
+    python reduce_babnigg202110.py empties    # the six candidate backgrounds
 
-    H0402  D8  28.00 C        H0407  D6  28.25 C
-    H0404  D7  28.50 C        H0413  D9  28.75 C
-
-H0412 (D9 at 28.25 C) was stopped at 21.1 C after 11 minutes and never reached
-temperature, so D9's run is H0413.  Every run starts at 20 C and climbs at
-0.10 C/min, so the target is reached about 80 minutes in.  That is the main
-difference from the 2022-1 series, which was brought from 20 to 30 C at
-1 C/min.
-
-WHAT IS WRITTEN
----------------
-1. TRACE: one row per acquisition with its time, zone-3 temperature, the two ion
-   chambers and the mean I(Q) over SPIKE_BAND, 0.004-0.008 A^-1, the band
-   Figure 3c averages.  No averaging, so the onset can be placed in temperature.
-2. AVERAGES: 100-acquisition blocks, run through average_ranges.process_group so
-   the two outlier cuts are exactly the ones every 2022-1 group gets.  Blocks are
-   aligned so that one boundary falls on the first acquisition at the target
-   temperature, which is t_w = 0, the analogue of the RTD reaching 30 C.
-3. The 6 C reference of each loading and the 12IDB static standard B0005, each
-   averaged whole, for the SAXS baseline and for the speckle contrast.
-4. The six candidate background measurements, each header averaged whole
-   through the same two outlier cuts.  Their names were entered at the
-   beamline and do not reliably say what was in the cell; which one is used,
-   and why, is settled from the monitors and I(Q) in
-   temperature_series_2021-3.py.  They were correlated with
-   the same qmap and boost_corr flags as the sample data.
-
-    python reduce_babnigg202110.py            # items 1-3
-    python reduce_babnigg202110.py empties    # item 4, the backgrounds
-
-BOTH are needed after a reprocessing.  The bare call does NOT rebuild the six
-background averages of item 4; it returns before them.  Leaving them behind
-mixes a background reduced against one qmap with samples reduced against
-another, which is how the stuck pixel survived in the E0411 background on
-26 Oct 2026 after every sample file had been rebuilt without it.
+Run both after a reprocessing: the first call does not rebuild the background
+averages.  The repository README describes what is written.
 """
 
 import os
 import sys
-import glob
 
-import numpy as np
 import h5py
+import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import average_ranges as ar          # noqa: E402  the 2022-1 reduction, reused as is
+import average_ranges as ar          # noqa: E402  the reduction behind every group average
 
 PREFIX = '/gdata/s8id-dmdtn/2021-3/babnigg202110_nexus/reprocess_results'
 OUT_DIR = os.path.join(HERE, 'data_2021-3')
@@ -68,15 +31,14 @@ REFERENCES = ['H0402_D8_060C10p', 'H0403_D8_060C10p', 'H0404_D7_060C10p',
               'H0407_D6_060C10p', 'H0413_D9_060C10p']
 STANDARD = 'B0005_12IDB_Standard_006C'
 # Candidate backgrounds.  E0008 and E0304 (9-10 Oct) carry no transmitted-beam
-# monitor and an incident monitor on a different scale from 17 Oct, so only the
-# 17 Oct ones can go through abs_xsec_coef as recorded.
+# monitor and an incident monitor on a different scale from 17 Oct.
 EMPTIES = ['E0008__006C', 'E0304_Empty_006C', 'E0408_Air_006C',
            'E0411_Empty_3_006C', 'G0409_Empty_006C', 'G0410_Empty_2_006C']
-BLOCK = 100                           # acquisitions per average, as in 2022-1 (100-150)
-AT_TARGET = 0.01                      # C; zone 3 counts as at temperature within this
+BLOCK = 100                           # acquisitions per group
+AT_TARGET = 0.01                      # C; zone 3 counts as at its target within this
 
-# average_ranges.py reads these two module globals, so pointing them here sends
-# its unmodified code path at the 2021-3 tree.  Nothing about 2022-1 changes.
+# average_ranges.py reads these two module variables; pointing them here sends
+# its code at the 2021-3 tree.
 ar.prefix = PREFIX
 ar.out_dir = OUT_DIR
 
@@ -89,7 +51,8 @@ def scalar(hf, path):
 
 
 def trace(run):
-    """Per-acquisition rows for one run: frame, time, T, T_set, I0, I_T, band mean."""
+    """Per-acquisition rows of one run: frame, start time, T, T_set, I0, I_T,
+    and the mean of the stored I(Q) entries over 0.004-0.008 A^-1."""
     files = ar.group_files(run)
     q = ar.static_q(files[0])
     band = (q >= ar.SPIKE_BAND[0]) & (q < ar.SPIKE_BAND[1])
@@ -105,17 +68,37 @@ def trace(run):
 
 
 def blocks(rows):
-    """100-acquisition frame ranges with one boundary at the first frame on target."""
+    """Frame ranges of BLOCK acquisitions, with one boundary at the first frame
+    on target (t_w = 0).  The earliest range takes what is left before the first
+    full one, so it may be short."""
     frames = np.array([r[0] for r in rows])
-    T, Tset = np.array([r[2] for r in rows]), np.array([r[3] for r in rows])
-    a0 = int(frames[np.argmax(T >= Tset - AT_TARGET)])
-    first, last = int(frames.min()), int(frames.max())
-    # Block starts every BLOCK frames, counted both ways from a0.  The earliest
-    # block is whatever is left before the first full one, so it may be short.
-    starts = sorted(set([first] + [s for s in range(a0, first - 1, -BLOCK) if s > first]
-                        + list(range(a0, last + 1, BLOCK))))
-    ends = [s - 1 for s in starts[1:]] + [last]
-    return a0, list(zip(starts, ends))
+    T = np.array([r[2] for r in rows])
+    T_set = np.array([r[3] for r in rows])
+    on_target = T >= T_set - AT_TARGET
+    if not on_target.any():
+        raise ValueError('the run never reaches its target temperature')
+    a0 = int(frames[np.argmax(on_target)])
+    first = int(frames.min())
+    last = int(frames.max())
+
+    starts = [first]
+    s = a0
+    while s > first:                  # every BLOCK frames below a0
+        starts.append(s)
+        s = s - BLOCK
+    s = a0
+    while s <= last:                  # a0 and every BLOCK frames above it
+        starts.append(s)
+        s = s + BLOCK
+    starts = sorted(set(starts))
+
+    ranges = []
+    for k in range(len(starts)):
+        if k + 1 < len(starts):
+            ranges.append((starts[k], starts[k + 1] - 1))
+        else:
+            ranges.append((starts[k], last))
+    return a0, ranges
 
 
 def reduce_whole(group):
@@ -124,21 +107,23 @@ def reduce_whole(group):
     ar.process_group(group, [(min(frames), max(frames))])
 
 
-def main(only=None):
+def main(only):
     os.makedirs(OUT_DIR, exist_ok=True)
     if only == 'empties':
         for group in EMPTIES:
             reduce_whole(group)
         return
 
-    all_rows, ranges = [], {}
+    all_rows = []
+    ranges = {}
     for run in RUNS:
         rows = trace(run)
-        a0, rng = blocks(rows)
-        ranges[run] = rng
-        all_rows += [[run] + r for r in rows]
+        a0, run_ranges = blocks(rows)
+        ranges[run] = run_ranges
+        for r in rows:
+            all_rows.append([run] + r)
         print(f'{run}: {len(rows)} acquisitions, on target from frame {a0}, '
-              f'{len(rng)} blocks')
+              f'{len(run_ranges)} blocks')
     with open(TRACE_CSV, 'w') as fh:
         fh.write('run,frame,start_time,qnw3_C,qnw3_set_C,incident,transmitted,'
                  'I_band\n')
@@ -155,4 +140,7 @@ def main(only=None):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1] if len(sys.argv) > 1 else None)
+    if len(sys.argv) > 1:
+        main(sys.argv[1])
+    else:
+        main(None)

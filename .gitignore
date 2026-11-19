@@ -21,3 +21,14 @@ References/
 # baselines the comparison was made against, the run logs, and a copy of the
 # pre-reprocessing data_2021-3 (127 MB). Provenance only; safe to delete.
 analysis/SAXPCS_8id/_scratch/
+
+# Internal instructions for Claude Code; never part of the public repository.
+# CLAUDE.md at any depth (the root one is also caught by /*.md above).
+CLAUDE.md
+/guidance/
+
+# Personal login log appended by the shell; not part of the repository.
+/.loglogin
+
+# Local notes and message drafts; not part of the repository.
+/memo/

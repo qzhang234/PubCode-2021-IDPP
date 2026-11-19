@@ -1,136 +1,24 @@
-"""Build the NeXus-era qmap for the 2021-3 isothermal gelation series.
+"""Build the NeXus-era qmap (q partition and mask) of the 2021-3 isothermal series.
 
-BEAMLINE-ONLY.  Needs /gdata, which mounts on the 10.x hosts (amber) and not on
-the 164.x analysis machines, so it cannot run from a clone of the repository.
-It is kept here for provenance: it records exactly how the qmap was built.
+BEAMLINE-ONLY: needs /gdata (amber, adamite, amazonite) and the pySimpleMask
+source.  Kept for provenance: it records how the qmap was built.
 
-WHICH QMAP TO USE
------------------
-Three files exist, in order of age:
-
-    ..._Q0p0032_Lin_BadpixRm.hdf   what the default mode of this script writes
-    ..._Q0p0032_Lin_CrossRm.hdf    built in the pySimpleMask 0.4.0 GUI; adds the
-                                   beamstop cross arms and refines the beam
-                                   centre to (x=510.5, y=259.5), 1.7 and 1.1
-                                   pixels from the value recorded in the archive
-    ..._Q0p0032_Lin_CrossRm2.hdf   CrossRm with the second stuck pixel masked
-
-CrossRm2 is the one to process against.  `--crossrm2` derives it from CrossRm
-by a surgical copy, for the reason given in make_crossrm2().  The default mode
-is kept because it documents where the geometry, the mask sources and the
-stuck pixels came from, all of which still hold.
-
-WHY IT EXISTS
--------------
-The 2021-3 beamtime (babnigg202110) holds the isothermal gelation series that
-answers the referee question about the transition temperature: five samples
-held at 28.00, 28.25, 28.50 and 28.75 C.  Those frames were never converted to
-NeXus, so the current boost_corr, which reads NeXus only, cannot reach them.
-The conversion needs a qmap, and the 2021-3 qmap that the Matlab pipeline used
-(partitionMapLibrary/2021-3/babnigg202110_Rq0_S360_Sphi8_D18_Lin.h5) is gone.
-This script rebuilds one in the modern format.
-
-GEOMETRY
---------
-Taken from the per-acquisition Data Exchange metadata of the 2021-3 archive:
-
-    energy             10.945 keV
-    detector distance  7.8 m
-    pixel size         76 um
-    detector           Rigaku XSPA-500k, 512 x 1024
-
-The NeXus qmap indexes arrays as [y, x] with shape (ny=512, nx=1024), which is
-the transpose of the Data Exchange convention, where beam_center_x runs along
-the 512 axis.  The 2022-1 pair fixes the mapping: Data Exchange (x=235, y=584)
-became qmap (x=581.5, y=235.5).  So the 2021-3 Data Exchange centre
-(x=260.6, y=512.2) becomes qmap (x=512.2, y=260.6).
-
-That centre is confirmed three ways.  It sits 1.6 px from the centroid of the
-beamstop shadow in mask_beamstop_10_09.mat, so the direct beam is behind the
-beamstop as it must be.  Feeding it through the geometry above reproduces the
-smallest q the Matlab pipeline recorded, sqspan[0] = 0.00108568 A^-1, to six
-figures.  And the beamstop shadow only lands on the beam when the mask is read
-in this orientation, which fixes the transpose independently.
-
-MASK
-----
-Three sources, unioned:
-
-    beamstop        mask_beamstop_10_09.mat, the hand-drawn 2021-3 beamstop
-                    (2548 px).  Read as-is: h5py already returns it [y, x].
-    blemish         the current 8idRigaku500k bad-pixel map (52288 px): a
-                    border frame, rows 0-18 and 494-511 and columns 0-14 and
-                    1009-1023, plus 150 scattered bad pixels inside it.  The
-                    detector has no module gaps and the map holds none: strip
-                    the frame and not one interior row or column is fully
-                    masked.  An earlier note here said it carried module gaps,
-                    which was wrong and had been used to explain away a dip in
-                    beta near 0.018 A^-1; that dip has no cause assigned.
-    legacy bad px   the 47 pixels the 2021-3 Matlab mask excluded that the
-                    current blemish does not, so nothing the original analysis
-                    threw away comes back.
-    stuck pixel     (30, 340), which none of the above catch.  This is the
-                    BadpixRm part of the filename, the same step that removed
-                    three pixels from the 2022-1 qmap.  Found by correlating
-                    the two 2021-3 standards and looking for pixels far above
-                    the median of their own q ring: it reads ~0.75 in the
-                    12IDB standard, the silica and the ELP data alike, against
-                    a ring median near 1e-4, while its immediate neighbours are
-                    normal.  Left in, it alone drives the q = 0.0156 dynamic
-                    bin to g2 ~ 2.4 at every delay in every sample.
-
-    stuck pixel     (63, 166), q = 0.02143 A^-1, found 26 Oct 2026 and masked
-                    in CrossRm2 only.  It reads 1.4982 to 1.5009 counts per
-                    frame in every 17 Oct measurement alike: all four ELP
-                    loadings at their hold temperatures, their 6 C references,
-                    the three empty cells and the air.  Its ring median there
-                    is 1.3e-6 in the ELP data, which is the one-photon
-                    quantisation floor of an eight-acquisition average, and
-                    8.8e-5 in the 12IDB standard.  Its eight neighbours read
-                    1e-4 or less.  It lands in static bin Q = 0.0214 A^-1,
-                    phi sector 7, where it spikes I(Q), and in dynamic ROI 19,
-                    which it dominates.  The five fitted bins, 0.00359 to
-                    0.00756 A^-1, are untouched, so f, D_med and the contrast
-                    do not move.  It reads zero in 2022-1 (babnigg202203);
-                    that beamtime is unaffected.
-
-                    WHY THE FIRST PASS MISSED IT.  Not a loose threshold.  The
-                    first pass correlated the two standards, B0002 and F2303,
-                    and both were measured 9-10 Oct, when this pixel was still
-                    healthy: it reads 0.0000 to 0.0001 counts per frame in
-                    B0002, F2303 and E0304 alike, in line with its neighbours.
-                    The fault appeared between 10 and 17 Oct, so no sweep over
-                    the standards alone could have seen it.  Re-running the
-                    sweep over every scan prefix of the beamtime, with the
-                    threshold walked from 50x down to 3x its ring median,
-                    returns (63, 166) and nothing else; see
-                    sweep_stuck_pixels_2021-3.py.
-
-then an inner cut at q = 0.0032 A^-1, matching the 2022-1 qmap so both datasets
-start at the same q.  This geometry would allow 0.00109; the cut is a choice,
-not a limit, and it costs ~8500 low-q pixels.
-
-PARTITION
----------
-Sq270 / Dq27 / Sphi8 / Dphi1, linear, matching the 2022-1 qmap rather than the
-S360/Sphi8/D18 the Matlab pipeline used, so the two cycles bin the same way.
-
-A NOTE ON REPRODUCIBILITY
--------------------------
-The 2022-1 qmap was written by pysimplemask 0.2.0.post7, whose source is no
-longer readable.  This script uses 0.3.1.post2.  Regenerating the 2022-1
-partition from its own stored mask with 0.3.1 reproduces the index mappings
-exactly and the q bin centres to 1.6e-5 relative: the two versions disagree
-slightly in the q formula at the outer edge.  That is 0.0016% in q, far below
-anything the measurement resolves, but it means this file is not bit-identical
-to one 0.2.0.post7 would have written.
-
-Usage
------
     python make_qmap_babnigg202110.py                        # dry run, BadpixRm
     python make_qmap_babnigg202110.py --apply                # write BadpixRm
     python make_qmap_babnigg202110.py --crossrm2             # dry run, CrossRm2
     python make_qmap_babnigg202110.py --crossrm2 --apply     # write CrossRm2
+
+The series is correlated against ..._Lin_CrossRm2.hdf.  The default mode
+writes ..._Lin_BadpixRm.hdf from the geometry and the mask sources below;
+CrossRm (built in the pySimpleMask 0.4.0 GUI, which adds the beamstop cross
+arms and refines the beam centre) is not reproduced by this script, and
+--crossrm2 derives CrossRm2 from it by masking the second stuck pixel only
+(make_crossrm2).  Geometry: 10.945 keV, 7.8 m, 76 um pixels, 512 x 1024, beam
+centre (x=512.2, y=260.6) in NeXus orientation, the transpose of the Data
+Exchange value.  Mask: the 2021-3 beamstop, the detector blemish map, the
+pixels the 2021 Matlab mask excluded, and the stuck pixels (30, 340) and
+(63, 166); then q >= 0.0032 A^-1.  Partition: 270 x 8 static, 27 x 1 dynamic,
+linear.  The repository README gives the provenance in more detail.
 """
 
 import os
@@ -146,9 +34,10 @@ from PIL import Image
 PYSIMPLEMASK_SRC = "/home/beams10/8IDIUSER/Documents/Miaoqi/xpcs_tools/pySimpleMask_p2504/src"
 sys.path.insert(0, PYSIMPLEMASK_SRC)
 
-# pysimplemask/__init__.py imports the Qt GUI, which is not installed on the
-# GPU hosts.  Only the two pure-numpy submodules below are needed, so register
-# a stub package to import them without running that __init__.
+# pysimplemask/__init__.py imports the Qt GUI, which the GPU hosts do not
+# have.  Only two pure-numpy submodules are needed, so an empty package object
+# pointing at the source directory is registered first; importing the
+# submodules then skips that __init__.  (Unavoidable without the GUI.)
 if "pysimplemask" not in sys.modules:
     _pkg = types.ModuleType("pysimplemask")
     _pkg.__path__ = [os.path.join(PYSIMPLEMASK_SRC, "pysimplemask")]
@@ -209,8 +98,16 @@ SQSPAN_MATLAB = (0.0010856761, 0.0306956694)
 SQSPAN_TOL = 5e-4
 
 
-def build_mask(verbose=True):
-    """Union the beamstop, the blemish and the legacy bad pixels."""
+def compression_for(val):
+    """lzf for arrays of more than 1024 entries, none otherwise."""
+    if isinstance(val, np.ndarray) and val.size > 1024:
+        return "lzf"
+    return None
+
+
+def build_mask():
+    """Union of the beamstop, the blemish, the legacy bad pixels and the stuck
+    pixels; True where a pixel is kept.  Prints the size of each part."""
     with h5py.File(BEAMSTOP_MAT, "r") as f:
         usermask = f["usermask"][()]
     assert usermask.shape == SHAPE, f"beamstop mask is {usermask.shape}, expected {SHAPE}"
@@ -232,56 +129,52 @@ def build_mask(verbose=True):
         stuck[y, x] = True
 
     bad = beamstop_bad | blemish_bad | legacy_bad | stuck
-    if verbose:
-        print(f"  beamstop                 {beamstop_bad.sum():7d}")
-        print(f"  blemish                  {blemish_bad.sum():7d}")
-        print(f"  legacy-only bad pixels   {legacy_only.sum():7d}")
-        print(f"  stuck pixels             {int((stuck & ~blemish_bad).sum()):7d}")
-        print(f"  union before q cut       {bad.sum():7d}")
+    print(f"  beamstop                 {beamstop_bad.sum():7d}")
+    print(f"  blemish                  {blemish_bad.sum():7d}")
+    print(f"  legacy-only bad pixels   {legacy_only.sum():7d}")
+    print(f"  stuck pixels             {int((stuck & ~blemish_bad).sum()):7d}")
+    print(f"  union before q cut       {bad.sum():7d}")
     return ~bad
 
+def decode_strings(v):
+    """h5py returns bytes for string datasets; hash_numpy_dict needs str."""
+    if isinstance(v, bytes):
+        return v.decode()
+    if isinstance(v, np.ndarray) and v.dtype == object:
+        decoded = []
+        for e in v:
+            if isinstance(e, bytes):
+                decoded.append(e.decode())
+            else:
+                decoded.append(e)
+        return decoded
+    return v
 
 
 def make_crossrm2(out_dir, apply_changes, overwrite):
     """Derive CrossRm2 from CrossRm by masking the pixels in CROSS2_NEW_BAD.
 
-    WHY A SURGICAL COPY RATHER THAN A REBUILD
-    -----------------------------------------
-    CrossRm was written by pysimplemask 0.4.0.post2.  Rebuilding its partitions
-    from its own stored mask with the version installed here reproduces the
-    index mappings exactly and the q bin centres to 1.6e-5 relative, the same
-    q-formula difference between versions that the docstring records for the
-    2022-1 qmap.  That tiny shift moves 566 of 453,701 static pixels and 34
-    dynamic pixels across a bin edge.  Nothing the measurement resolves, but it
-    is a change beyond the one intended.  Copying CrossRm and clearing the
-    stuck pixel changes exactly the pixel in question and leaves every q value,
-    every bin edge and every index mapping byte-identical.
-
-    THE INVARIANT
-    -------------
-    In CrossRm, a masked pixel has mask False and both roi maps 0, and the
-    counts agree exactly: 70,587 masked pixels, 70,587 zeros in each roi map.
-    The blemish dataset is the raw detector TIFF and is NOT touched; (30, 340)
-    has blemish 1 there.  CrossRm2 follows the same convention.
+    A copy rather than a rebuild: rebuilding CrossRm's partitions with the
+    installed pySimpleMask shifts the q bin centres by 1.6e-5 relative (a
+    difference between versions) and moves 566 static and 34 dynamic pixels
+    across a bin edge.  The copy changes only the pixel in question.  In
+    CrossRm a masked pixel has mask False and both roi maps 0 (70,587 of
+    each); the blemish dataset is the raw detector map and is not touched.
     """
     src = os.path.join(out_dir, CROSS_NAME)
     dst = os.path.join(out_dir, CROSS2_NAME)
     if not os.path.exists(src):
         raise SystemExit(f"missing source qmap {src}")
 
-    def decode(v):
-        """h5py hands back bytes for string datasets; hash_numpy_dict needs str."""
-        if isinstance(v, bytes):
-            return v.decode()
-        if isinstance(v, np.ndarray) and v.dtype == object:
-            return [e.decode() if isinstance(e, bytes) else e for e in v]
-        return v
-
+    data = {}
+    units = {}
     with h5py.File(src, "r") as hf:
         grp = hf["qmap"]
-        data = {k: decode(grp[k][()]) for k in grp.keys()}
+        for k in grp.keys():
+            data[k] = decode_strings(grp[k][()])
+            if "_v_list_dim" in k:
+                units[k] = dict(grp[k].attrs)
         attrs = dict(grp.attrs)
-        units = {k: dict(grp[k].attrs) for k in grp.keys() if "_v_list_dim" in k}
 
     mask = data["mask"].astype(bool)
     srm, drm = data["static_roi_map"], data["dynamic_roi_map"]
@@ -334,9 +227,13 @@ def make_crossrm2(out_dir, apply_changes, overwrite):
     for name, roi_map, mapping in (("static", srm, data["static_index_mapping"]),
                                    ("dynamic", drm, data["dynamic_index_mapping"])):
         n_roi = np.asarray(mapping).size
-        present = np.unique(roi_map)
-        present = present[present != 0]
-        missing = sorted(set(range(1, n_roi + 1)) - set(int(i) for i in present))
+        present = set()
+        for i in np.unique(roi_map):
+            present.add(int(i))
+        missing = []
+        for roi in range(1, n_roi + 1):
+            if roi not in present:
+                missing.append(roi)
         assert not missing, f"{name} ROIs now empty: {missing}"
         print(f"  all {n_roi} {name} ROIs still populated")
 
@@ -355,8 +252,7 @@ def make_crossrm2(out_dir, apply_changes, overwrite):
     with h5py.File(tmp, "w") as hf:
         grp = hf.create_group("/qmap")
         for key, val in data.items():
-            compression = "lzf" if isinstance(val, np.ndarray) and val.size > 1024 else None
-            dset = grp.create_dataset(key, data=val, compression=compression)
+            dset = grp.create_dataset(key, data=val, compression=compression_for(val))
             for ak, av in units.get(key, {}).items():
                 dset.attrs[ak] = av
         for ak, av in attrs.items():
@@ -455,8 +351,7 @@ def main():
     with h5py.File(out_path, "w") as hf:
         grp = hf.create_group("/qmap")
         for key, val in partition.items():
-            compression = "lzf" if isinstance(val, np.ndarray) and val.size > 1024 else None
-            dset = grp.create_dataset(key, data=val, compression=compression)
+            dset = grp.create_dataset(key, data=val, compression=compression_for(val))
             if "_v_list_dim" in key:
                 dim = int(key[-1])
                 dset.attrs["unit"] = partition["map_units"][dim]

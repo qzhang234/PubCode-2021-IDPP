@@ -1,43 +1,22 @@
 """Find every stuck pixel in the 2021-3 (babnigg202110) detector data.
 
-BEAMLINE-ONLY.  Needs /gdata, so it runs on adamite or amazonite, not kouga.
+BEAMLINE-ONLY: needs /gdata (amber, adamite, amazonite).  Reports; writes nothing.
 
-WHY IT EXISTS
--------------
-The first pass, recorded in the docstring of make_qmap_babnigg202110.py, found
-(30, 340) as "the only pixel on the detector above 50x its ring median".  It
-missed (63, 166), which is stuck at about 1.5 photons per frame in every 2021-3
-acquisition.  That pass used the two standards only and a 50x threshold.  This
-one sweeps every scan prefix of the beamtime, including all four ELP loadings,
-the empties, the air and the standards, and walks the threshold down until the
-list of flagged pixels stops growing.
+The mean counts per frame at each pixel (xpcs/temporal_mean/scattering_2d) is
+averaged over the first few acquisitions of every scan prefix of the beamtime,
+and each pixel is compared with the median of its own q ring.  A stuck pixel
+is high in every group, including the air and the empty cells; a pixel high
+only in the ELP data is sample scattering.  The ratio threshold is walked down
+from 50 to 3 until the list stops growing.  The sweep found (63, 166) besides
+the already masked (30, 340); see the repository README.
 
-METHOD
-------
-xpcs/temporal_mean/scattering_2d in each result is the mean counts per frame at
-each pixel, averaged over all 100,000 frames of that acquisition.  Averaging it
-again over many acquisitions of a group beats the shot noise down far enough
-that a pixel stuck at O(1) photons/frame stands out against a ring median of
-O(1e-4).
-
-A pixel is judged against the median of its own q ring, because the scattering
-itself varies by orders of magnitude from the beamstop outward.  Rings are
-fixed-width in q over currently unmasked pixels only.
-
-A stuck pixel is one that is high in EVERY group, including the air and the
-empty cells, where there is no sample to scatter.  A pixel high only in the ELP
-data is sample scattering, not a detector fault.
-
-Usage
------
-    python sweep_stuck_pixels_2021-3.py                 # sweep, report, write nothing
+    python sweep_stuck_pixels_2021-3.py                 # sweep and report
     python sweep_stuck_pixels_2021-3.py --nacq 12       # more acquisitions per group
 """
 
 import os
 import glob
 import argparse
-import collections
 
 import numpy as np
 import h5py
@@ -94,22 +73,16 @@ def q_per_pixel(cx, cy):
 
 
 def group_mean(prefix, nacq):
-    """Mean counts/frame per pixel, averaged over the first nacq acquisitions."""
+    """Mean counts/frame per pixel over the first nacq acquisitions of a scan
+    prefix, and the number used; (None, 0) if the prefix has no results."""
     files = sorted(glob.glob(os.path.join(RESULTS, prefix + "_*_results.hdf")))[:nacq]
-    if not files:
+    if len(files) == 0:
         return None, 0
     total = np.zeros(SHAPE, dtype=np.float64)
-    used = 0
     for path in files:
-        try:
-            with h5py.File(path, "r") as hf:
-                total += np.asarray(hf["xpcs/temporal_mean/scattering_2d"][0], dtype=np.float64)
-            used += 1
-        except (OSError, KeyError):
-            continue
-    if not used:
-        return None, 0
-    return total / used, used
+        with h5py.File(path, "r") as hf:
+            total += np.asarray(hf["xpcs/temporal_mean/scattering_2d"][0], dtype=np.float64)
+    return total / len(files), len(files)
 
 
 def ring_median(img, q, good, nring=400):
@@ -123,6 +96,14 @@ def ring_median(img, q, good, nring=400):
         if sel.sum() >= 20:
             med[i] = np.median(img[sel])
     return med[idx]
+
+
+def pixels_where(condition):
+    """(y, x) of every pixel where condition is True, in row-major order."""
+    pixels = []
+    for y, x in np.argwhere(condition):
+        pixels.append((y, x))
+    return pixels
 
 
 def main():
@@ -181,8 +162,8 @@ def main():
         for label in ratios:
             votes += (ratios[label] > thr) & (images[label] > MIN_CPF)
         votes_at[thr] = votes
-        half = sorted(zip(*np.where(votes >= ngroup // 2)))
-        shown = ", ".join(f"({y}, {x})" for y, x in half[:10])
+        half = pixels_where(votes >= ngroup // 2)
+        shown = ", ".join([f"({y}, {x})" for y, x in half[:10]])
         more = f" +{len(half) - 10} more" if len(half) > 10 else ""
         print(f"{thr:7.0f}  {int((votes >= ngroup).sum()):6d} "
               f"{int((votes >= 3 * ngroup // 4).sum()):6d} "
@@ -190,7 +171,7 @@ def main():
 
     # Candidates: flagged in at least half the groups at the loosest threshold.
     thr_lo = min(args.thresholds)
-    cands = sorted(zip(*np.where(votes_at[thr_lo] >= ngroup // 2)))
+    cands = pixels_where(votes_at[thr_lo] >= ngroup // 2)
     # Always inspect the pixel the first pass already masks, as a reference.
     for ref in KNOWN_BAD:
         if ref not in cands:
@@ -213,7 +194,7 @@ def main():
             print(f"    {label:16s} {images[label][y, x]:13.4f} "
                   f"{med[y, x]:13.3e} {ratios[label][y, x]:11.1f}{note}")
 
-    # --- neighbourhood, step 1 of the TODO -----------------------------------
+    # --- the 3x3 neighbourhood of each candidate -------------------------------
     print("\n3x3 neighbourhood, mean counts/frame "
           "(centre pixel marked *):")
     for y, x in cands:

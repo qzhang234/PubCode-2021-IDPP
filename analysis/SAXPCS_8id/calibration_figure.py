@@ -1,22 +1,13 @@
-"""Figure S2: the ion-chamber calibration behind every absolute intensity here.
+"""SI Fig. S2 (file FigureS2_Calibration.pdf): the ion-chamber calibration
+behind every absolute intensity.
 
-Two panels:
-  (a) the air-path transmission across the attenuation series, and its mean;
-  (b) the PIN-diode photon count against the upstream ion-chamber readout,
-      with the linear fit whose slope and intercept are CAL_A and CAL_B.
+(a) the transmission of the air path across the attenuation series, and its
+mean; (b) the PIN-diode photon count against the upstream ion-chamber reading,
+with the linear fit whose slope and intercept are CAL_A and CAL_B.
 
-READS NO DATA FILES.  Everything plotted is a constant in abs_xsec.py:
-CAL_UPIC, CAL_DNIC and CAL_PHOTONS are the eight attenuation points recorded
-during the calibration, and AIR_TRANS_SERIES, AIR_TRANSMISSION, CAL_A and
-CAL_B are derived from them at import.  That matters here: the calibration was
-measured in the 2022-1 beamtime, whose averaged files moved to the companion
-repository with the rest of the structural work, but the calibration itself
-never lived in those files.  The same CAL_A, CAL_B and AIR_TRANSMISSION feed
-abs_xsec_coef(), so this figure documents the conversion the isothermal series
-actually uses.
-
-Split out of saxpcs.py, which drew it as one of three figures and did read the
-2022-1 averages for the other two.
+Reads no data file: everything plotted is a constant of abs_xsec.py, the same
+numbers abs_xsec_coef() uses.  The calibration was recorded in a separate
+beamtime on the same ion chambers.
 """
 
 import os
@@ -41,9 +32,7 @@ print(calibration_summary())
 apply_style()
 fig, (axt, axc) = plt.subplots(1, 2, figsize=FIG_SIZE)
 
-# (a) air-path transmission.  The unattenuated point is dropped from the fit
-# (CAL_CROP), so it is dropped here too and the series shown is the one the
-# mean is taken over.
+# (a) air-path transmission, over the seven points the mean is taken over
 axt.plot(np.arange(len(AIR_TRANS_SERIES)), AIR_TRANS_SERIES, 'ko:',
          ms=MS, mew=MEW, lw=LW_THIN)
 axt.axhline(AIR_TRANSMISSION, color='b', ls='-', lw=LW_DATA,
@@ -53,11 +42,11 @@ axt.set_ylabel('Transmission of air')
 add_minor_grid(axt)
 axt.legend(loc='lower left', borderaxespad=0.4)
 
-# (b) ion chamber to photon flux.
-_up = CAL_UPIC[CAL_CROP:]
-axc.plot(_up, CAL_PHOTONS[CAL_CROP:], 'ko', ms=MS, mew=MEW, label='measured')
-_uline = np.linspace(0, _up.max() * 1.05, 100)
-axc.plot(_uline, CAL_A * _uline + CAL_B, 'b-', lw=LW_DATA,
+# (b) ion chamber to photon count, over the seven attenuated points
+up_ic = CAL_UPIC[CAL_CROP:]
+axc.plot(up_ic, CAL_PHOTONS[CAL_CROP:], 'ko', ms=MS, mew=MEW, label='measured')
+up_line = np.linspace(0, up_ic.max() * 1.05, 100)
+axc.plot(up_line, CAL_A * up_line + CAL_B, 'b-', lw=LW_DATA,
          label=f'fit: {CAL_A:.2e}$\\cdot$Up\\_IC {CAL_B:+.2e}')
 axc.set_xlabel('Upstream ion chamber')
 axc.set_ylabel('Number of photons')
@@ -66,4 +55,4 @@ axc.legend(loc='upper left')
 
 label_panels([axt, axc])
 fig.tight_layout()
-save_fig(fig, 'FigureS2_Calibration.pdf')
+save_fig(fig, os.path.join(HERE, 'FigureS2_Calibration.pdf'))

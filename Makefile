@@ -57,8 +57,8 @@ TSERIES_DATA := $(wildcard $(ANA)/SAXPCS_8id/data_2021-3/*.hdf) \
                 $(ANA)/SAXPCS_8id/data_2021-3/trace_2021-3.csv
 COMMON    := $(ANA)/common/acs_style.py
 XFIT      := $(ANA)/SAXPCS_8id/xpcs_fit.py
-# nexus_read.py is imported by the four 8-ID-I figure scripts below, so a change
-# to it has to rebuild all four; without it here they would go quietly stale.
+# nexus_read.py is imported by both temperature-series scripts, so a change to
+# it has to rebuild their figures; without it here they would go quietly stale.
 NEXUS     := $(ANA)/SAXPCS_8id/nexus_read.py
 # The 2021-3 clock (group midpoints) and background subtraction, shared by both
 # temperature-series scripts.
@@ -153,7 +153,7 @@ check:
 # --- the robustness check of SI sections 4.3 and 6.2 ------------------------
 # Numbers only; this one draws nothing, so it is a prerequisite of nothing and
 # `make all` does not run it.  It refits all 34 groups five ways (listed in its
-# docstring) and takes about a quarter of an hour.  Run it when SI section 4.3
+# docstring) and takes about six minutes.  Run it when SI section 4.3
 # or 6.2 is rewritten or the 2021-3 data are reprocessed, and paste its output
 # into those sections.
 robustness:

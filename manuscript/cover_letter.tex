@@ -28,17 +28,19 @@ Common Clock in an Elastin-like Polypeptide.''
 \textbf{Classification.} Physical Sciences: Applied Physical Sciences.
 Secondary: Biophysics and Computational Biology.
 
-\textbf{Significance.} Whether a soft or biological material has stopped
-flowing is usually inferred from its structure: a scattering profile that has
-grown enough is read as a gel. We measure structure and motion on the same
-detector frames and find that they run on one clock. In isothermal
+\textbf{Significance.} Many proteins assemble into dense phases that later
+lose their mobility, but structure and mobility are usually measured with
+different tools, so it has been hard to establish what sets the pace of arrest
+and whether the growth of structure keeps pace with it.
+We measure structure and motion on the same detector frames and find that they
+run on one clock. In isothermal
 experiments on the sequence-defined elastin-like polypeptide (VPAVG)$_{30}$ at
 four temperatures between 28.00 and 28.75~$^\circ$C, every sample assembles,
 but only those above 28.00~$^\circ$C arrest within the experiment. The
 low-$Q$ SAXS intensity and the arrested fraction collapse with the same
-scaling temperature, and arrest follows assembly: every sample that arrests
-is half arrested at nearly the same intensity, and most of the
-arrest happens after most of the low-$Q$ structure has formed. Arrest reaches
+scaling temperature. Along that clock, arrest follows assembly: in every sample
+that arrests, the fast-decay amplitude at 175~nm falls to one half at nearly
+the same low-$Q$ intensity, after most of the low-$Q$ structure has formed. Arrest reaches
 the largest length scales first. At 175~nm the fast-decay amplitude falls from
 0.80 to 0.07 within an hour, while the $1/e$ rate of the fast decay levels off.
 
@@ -47,31 +49,58 @@ isothermal experiments onto a single master curve: with $T_s=0.24\pm0.02$~K,
 arrest speeds up by about a factor of three for every quarter of a degree of
 heating, and the low-$Q$ SAXS superposes with the same $T_s$. That is a stronger statement than a rate: most of what
 distinguishes the four experiments is their pace, and temperature sets it. A scaling temperature of a few tenths of a
-kelvin is far too sharp for a single contact, which places the rate-limiting
-step at the concerted formation of a junction in which many contacts close
-together.
+kelvin makes the clock far steeper than the calorimetric transition of the
+polymer, so the step that sets it is not the desolvation that calorimetry
+records.
 
 That scaling framework is our own. One of us introduced it for thermoreversible
 colloidal gels [Q. Zhang \textit{et al.}, \textit{Phys. Rev. Lett.}
 \textbf{119}, 178006 (2017)], where it returns $T_s=0.33$ and 0.45~K for two
 particle sizes [D. Bahadur \textit{et al.}, \textit{J. Chem. Phys.}
 \textbf{151}, 104902 (2019)]. The present work carries it from colloids to a
-protein polymer and finds the same cooperative regime. We cite the agreement
-with the nanoparticle-gel phenomenology rather than claiming it as new; what is
-new is that structure and dynamics share one clock in a protein network, and
-that one rescaling governs every temperature we can measure.
+protein polymer and finds the same kind of steep exponential scaling. Time--temperature
+superposition has also been followed with coherent X-rays in a heat-set protein
+gel. In heated egg yolk, protein gelation and lipoprotein aggregation follow
+Arrhenius clocks with activation energies of 410 to 450~kJ/mol, typical of
+protein denaturation [N. D. Anthuparambil \textit{et al.}, \textit{Nat. Commun.}
+\textbf{14}, 5580 (2023)]. We cite both the nanoparticle-gel phenomenology and
+the egg-yolk superposition rather than claiming either as new. What is new is
+how steep the clock is, what shares it, and how it compares with calorimetry.
+In a disordered protein with no folded structure to unfold, its apparent
+activation energy is about 3~MJ/mol, some seven times larger than in egg yolk
+and 6 to 14 times larger than the activation energy that calorimetry gives the
+inverse transition of poly(VPAVG) [J. Reguera \textit{et al.},
+\textit{Macromolecules} \textbf{36}, 8470 (2003)]. The arrest and the low-$Q$
+structure also return the same scaling temperature from the same detector
+frames. The step that sets the clock is therefore not the desolvation that
+dominates the calorimetric heat. We set out two readings: a barrier of another
+origin, such as arrested phase separation, or a step that joins several chains.
+In the second case the calorimetric enthalpy of one VPAVG repeat
+[C.-H. Luan \textit{et al.}, \textit{Biopolymers} \textbf{31}, 465 (1991);
+Reguera \textit{et al.}; A. Ribeiro \textit{et al.}, \textit{Biophys. J.}
+\textbf{97}, 312 (2009)], interpolated to 30 repeats, counts about 330 to 440
+pentapeptides, the content of 11 to 15 chains. Because the protein is
+monodisperse and sequence-defined, isothermal series at several chain lengths,
+with calorimetry of the same construct, could tell the two readings apart,
+which a natural mixture such as egg yolk does not allow. For condensates, the
+same measurement could tell whether a molecular nucleus or a collective step of
+many contacts paces their maturation.
 
-\textbf{Why it needed this measurement.} The fast relaxation is
-sub-millisecond at these length scales and falls at or below the shortest
-delay a conventional kilohertz acquisition reaches. Recording the scattering at
-50~kHz with the XSPA-500k at APS 8-ID-I resolves the fast decay itself: its
-rate, its diffusive $Q$ dependence and its broadening as the sample arrests.
-At conventional speeds only the loss of contrast would remain.
+\textbf{Why it needed this measurement.} The fast relaxation takes from a
+fraction of a millisecond to several milliseconds at these length scales, and
+early in each experiment it is at or below the shortest delay a conventional
+kilohertz acquisition reaches. Recording the scattering at 50~kHz with the
+XSPA-500k at APS 8-ID-I resolves the fast decay itself: its rate and its
+broadening as the sample arrests. At conventional speeds much of it would
+appear only as a loss of contrast.
 
 \textbf{Limits, stated plainly.} The 1.6~s maximum delay bounds a fraction
 arrested on that scale rather than an infinite-time nonergodicity factor. The
 scaling rests on three arresting temperatures spanning half a degree, and the
-collapse is approximate rather than exact.
+collapse is approximate rather than exact. The bond number applies only if
+the rate-limiting step is built from the desolvation enthalpy that calorimetry
+measures, and it rests on calorimetry of longer poly(VPAVG) chains in water,
+interpolated to 30 repeats.
 
 \textbf{Companion manuscript.} A separate manuscript, in preparation from the
 same construct, reports the structural side: a thermally reversible transition
@@ -87,7 +116,7 @@ code are public at
 \href{https://github.com/qzhang234/PubCode-2021-IDPP}{qzhang234/PubCode-2021-IDPP};
 every data-derived figure regenerates from that repository alone.
 
-The manuscript is original, is not under consideration elsewhere, and has been
+The manuscript is original, is not under consideration elsewhere and has been
 approved by all authors. The authors declare no competing interest;
 AI-tool use is disclosed in the Acknowledgments. Suggested Editorial Board
 members, NAS members and reviewers are listed overleaf.

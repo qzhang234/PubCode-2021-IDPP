@@ -1,132 +1,42 @@
-"""Figure 2 and SI Figures S4-S8: the 2021-3 temperature series.
+"""Figure 2 and SI Figs. S4-S8: the four isothermal experiments of 2021-3.
 
-The file names keep an earlier numbering: SI Figs. S4-S7 are
-FigureS7-S10_Temperature_*.pdf, Fig. S8 is FigureS12_Fast_Mode.pdf and main
-Fig. 2 is Figure3_Isothermal_SAXPCS.pdf.
+Writes, next to this script,
+  FigureS7-S10_Temperature_*.pdf   SI Figs. S4-S7, one per temperature
+                                   (28.00, 28.25, 28.50, 28.75 C)
+  Figure3_Isothermal_SAXPCS.pdf    main Fig. 2, the top row of the 28.50 C figure
+  FigureS12_Fast_Mode.pdf          SI Fig. S8, the fast mode of every group
+and prints the numbers the text quotes with them.  Each per-temperature figure
+shows (a) the absolute, background-subtracted I(Q), (b) g2 at the lowest Q with
+the fits of Equation 2, (c) the fast fraction f in the five Q bins with D0 on
+the right axis, and (d)-(g) g2 at the four other Q bins.
 
-Reads only data_2021-3/, written by reduce_babnigg202110.py.  One figure per
-temperature, in the order 28.00, 28.25, 28.50, 28.75 C (loadings D8, D6, D7,
-D9; Figs. S4-S7), plus Fig. S8, the fast mode of all four against the
-arrested fraction.  Each per-temperature figure carries three panels on its
-top row and the four further Q bins on its bottom row; the 28.50 C loading's
-top row is also Figure 2 of the main text:
-
-  (a) absolute, background-subtracted I(Q): the 6 C reference of that loading,
-      the first group on target (t_w = 0) and the groups shown in (b), with
-      the low-Q band that Figure 3c averages shaded;
-  (b) g2 at the lowest Q with the fits;
-  (c) fast fraction f against t_w in the five Q bins, with the fitted
-      diffusion coefficient D0 of the fast mode on the right axis;
-  (d)-(g) g2 and fits at the four other Q bins.
-
-THE DATA.  Four loadings in one cell block, each taken from 20 C to its final
-temperature at 0.10 C/min and then held there; temperatures are the RTD
-readings of the QNW stage.  t_w = 0 is the first acquisition at the target,
-and each group sits at the MIDPOINT of the acquisitions it averages (see
-series_2021_3.py, which holds the clock and the background subtraction shared
-with arrest_vs_temperature.py).
-
-WHAT IS THE SAME AS THE 2022-1 ANALYSIS.  The reduction (groups of 100
-acquisitions through the two outlier cuts of average_ranges.py), the model
-(Equation 2, the fast mode tied to 1/(D0 Q^2), beta fixed), the five Q bins, the
-error-weighted least squares and covariance, the chi^2 guard of 10, and the
-absolute scale: every I(Q) is converted with abs_xsec.py from its own
-ion-chamber readings, which 2021-3 recorded on the same chambers, and the
-background is subtracted as coef_sample * I_sample - coef_bg * I_bg, exactly as
-the 2022-1 analysis subtracted the buffer.
-
-WHAT DIFFERS, AND WHY.
-* The background is E0411.  Six candidates exist; E0411, G0409, G0410 and
-  E0408 were recorded on 17 Oct, the same day as the samples.  THE NAMES ARE
-  NOT EVIDENCE: they were entered at the beamline and do not reliably
-  separate a cell left empty from one holding buffer, so the choice rests on
-  the monitors and on I(Q).  Four of the six recorded a transmitted beam.
-  E0411 passes 0.94 and the other three pass 1.00, the open-path value, so
-  only E0411 has material in the beam for the chambers to see.  None passes
-  anything near 0.41, which is what a 2 mm buffer column behind the same
-  material would give, so none of them holds a liquid column of the sample
-  thickness.  Fitting the three that pass 1.00 to a 6 C reference needs a
-  coefficient of 3 to 5 and still leaves 7-28% against 3-5% for E0411, and
-  averaging them does not help, so what they lack is shape, not statistics.
-  Had any of them held buffer it would matter little over this Q range: the
-  absorption goes into the coefficient and 2 mm of water scatters about
-  0.0016 mm^-1, 6% of the plateau and flat.
-* The empty cell is subtracted with a coefficient BG_COEF = 0.80.  The
-  flattest coefficient is 0.865, but it leaves a dip near 0.004-0.005 A^-1,
-  and a dip is a subtraction artefact rather than anything the sample does;
-  0.80 is the agreed point on that trade-off.  Subtracting all of the empty
-  cell leaves a bowl of 40-60% near 0.004 A^-1, deepest where the background
-  is steepest.  The comment at the fit tabulates the trade-off, gives the
-  estimator and says why ordinary least squares on I gets this wrong.
-* Panel (a) starts at the lowest fitted Q bin.  Below it the points sit on the
-  edge of the beamstop shadow, where no single coefficient reconciles the empty
-  cell with the sample and the subtraction leaves a spike.
-* D8 has two 6 C measurements and Figure S4 shows the LATER one, H0403.
-  H0402, taken before the hold, was the first measurement of the beamtime and
-  is not a dissolved state: it carries a Q^-2.7 low-Q excess that dies out
-  above 0.01 A^-1, where it is 4% of the plateau, and it fits a background
-  coefficient of 1.15 against 0.85-0.88 for every other reference.  H0403 is
-  the same loading in the same cell, returned to 6 C after the 28.00 C hold.
-  It is flat and fits 0.860, so the excess is undissolved material in the
-  earlier measurement rather than anything in the subtraction, and H0403 is
-  the measurement that shows what D8 looks like dissolved.
-* Pixel (y, x) = (63, 166) was stuck at 1.5 photons per frame in the 17 Oct
-  measurements.  It is masked in the qmap this series is correlated against,
-  ..._Lin_CrossRm2.hdf, so nothing downstream has to work around it.  It sat in
-  the static bin at Q = 0.0214 A^-1, phi sector 7, and in dynamic bin 18, far
-  from the five fitted bins, and masking it left every fitted number unmoved.
-* beta is measured for this beamtime on the static standard B0005, but over
-  0.0085-0.0165 A^-1 rather than over the five fitted bins: that standard is
-  scratched and its parasitic scattering depresses the apparent contrast by 12%
-  at the lowest fitted Q.  See the comment at BETA_BAND.
-* p_fast is fitted in each group, started from the minimum of a p_fast profile.
-  The holds run from a mobile state (p_fast near 0.9) into arrest (p_fast near
-  0.3), and a single shared value is rejected by an F test in every loading.
-* The rate is reported as D0 itself, the fitted coefficient of
-  tau_fast = 1/(D0 Q^2).  At delay 1/(D0 Q^2) the fast term has fallen to 1/e
-  of its amplitude WHATEVER p_fast is, so D0 is the diffusion coefficient
-  implied by the 1/e time of the fast decay, comparable between groups whose
-  p_fast differs.  The mean relaxation time would carry a further factor
-  Gamma(1/p)/p, 1 at p = 1 and 120 at p = 0.2, set by the tail of the decay.
-  Where f at the lowest Q is below RATE_MIN_F = 0.25 the fast decay is too
-  weak to fix a rate; D0 is drawn open and grey there and kept out of the
-  quoted ranges.
-* A group is fitted when its correlation function is no noisier than the
-  noisiest group the 2022-1 analysis fitted: median g2_err at the lowest Q
-  over 1e-4 to 1e-2 s of at most 0.016.  Where more than seven groups qualify,
-  (a), (b) and (d)-(g) show every second one; (c) shows them all.
+Reads data_2021-3/ only.  The analysis choices (clock, background, contrast,
+fit, group selection) are explained in the repository README.
 """
 
-import csv
-import glob
 import os
 import sys
-from datetime import datetime
 
-import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
+import numpy as np
 from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
-from matplotlib.ticker import LogLocator, FuncFormatter
+from matplotlib.ticker import FuncFormatter, LogLocator
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..'))
-from common.acs_style import (DOUBLE_COL, MS, MS_SPARSE, MEW, LW_THIN, LW_DATA,
-                              apply_style, add_minor_grid, hsv_colors, key_rows, label_panels,
-                              q_log_ticks, save_fig)
-import xpcs_fit                                                  # noqa: E402
-from nexus_read import parse_name, read_start_time, read_g2      # noqa: E402
-from abs_xsec import (abs_xsec_coef, CAL_A, CAL_B, T_EXP,         # noqa: E402
-                      AIR_TRANSMISSION, NUM_FRAMES, SAMPLE_THICKNESS,
-                      DELTA_OMEGA)
-# the clock (t_w = 0, group midpoints) and the absolute SAXS, shared with
-# arrest_vs_temperature.py; see series_2021_3.py
-from series_2021_3 import (DATA, TRACE, BACKGROUND, BAND, BG_COEF, T_HUES, T_MARKERS,  # noqa: E402
-                           Q_BG, I_BG, COEF_BG, read_iq, abs_iq,
-                           acquisitions, group_midpoint, band_intensity)
+from common.acs_style import (DOUBLE_COL, MS, MS_SPARSE, MEW, LW_THIN, LW_DATA,  # noqa: E402
+                              apply_style, add_minor_grid, hsv_colors, key_rows,
+                              label_panels, q_log_ticks, save_fig)
+import xpcs_fit                                                           # noqa: E402
+from nexus_read import read_start_time, read_g2, read_iq                  # noqa: E402
+from abs_xsec import abs_xsec_coef, coef_from_monitors                    # noqa: E402
+from series_2021_3 import (DATA, BACKGROUND, BAND, BG_COEF, T_HUES, T_MARKERS,  # noqa: E402
+                           Q_BG, I_BG, COEF_BG, abs_iq, acquisitions, band_intensity,
+                           group_files, group_midpoint, trace_rows)
 
 STANDARD = os.path.join(DATA, 'Average_B0005_12IDB_Standard_006C_att00_Rq0_00001_00100_results.hdf')
 
@@ -135,236 +45,168 @@ RUNS = {'H0402': ('H0402_D8_280C10p', 'D8', 28.00),
         'H0407': ('H0407_D6_282C10p', 'D6', 28.25),
         'H0404': ('H0404_D7_285C10p', 'D7', 28.50),
         'H0413': ('H0413_D9_287C10p', 'D9', 28.75)}
-REF_6C = os.path.join(DATA, 'Average_H0404_D7_060C10p_att00_Rq0_00001_00020_results.hdf')
+# The 6 C reference of each loading.  D8's is H0403, measured after its
+# isothermal experiment: H0402, measured before it, still holds undissolved
+# material (README).
+REFS = {'H0402': 'H0403_D8_060C10p', 'H0407': 'H0407_D6_060C10p',
+        'H0404': 'H0404_D7_060C10p', 'H0413': 'H0413_D9_060C10p'}
 QI = [0, 1, 2, 3, 4]                  # the five lowest Q bins, 175 to 83 nm
 Q_MARKERS = ['o', 's', '^', 'D', 'v']
-AT_TARGET = 0.01                      # C
-ERR_MAX = 0.016                       # the noisiest group the 2022-1 analysis fitted
-CHI2_MAX = 10.0                       # the reduced chi^2 guard of the 2022-1 analysis
-P_GRID = np.round(np.arange(0.20, 1.31, 0.05), 2)
-SHOW_RUN = 'H0404'                    # the run shown in panels (a) and (d)
-COLOR_6C = '#1f77b4'                  # the 6 C reference, blue squares in Figure 2a
-FIG_SIZE = (DOUBLE_COL, 5.0)
+ERR_MAX = 0.016                       # largest median g2_err at the lowest Q (1e-4 to 1e-2 s) of a fitted group
+CHI2_MAX = 10.0                       # largest reduced chi^2 of a kept fit
+CONVERTING = 0.85                     # f at the lowest Q below which arrest is under way
+RATE_MIN_F = 0.25                     # below this f at the lowest Q the fast decay fixes no rate
+LATE = 0.70                           # f at the lowest Q that separates early and late stages
+COLOR_6C = '#1f77b4'                  # the 6 C reference, blue squares in panel (a)
 
-T_COLOR = dict(zip(RUNS, hsv_colors(T_HUES)))
-INC = '/entry/instrument/incident_beam/incident_beam_intensity'
-TRN = '/entry/instrument/incident_beam/transmitted_beam_intensity'
+FIG_NAMES = {'H0402': 'FigureS7_Temperature_2800.pdf', 'H0407': 'FigureS8_Temperature_2825.pdf',
+             'H0404': 'FigureS9_Temperature_2850.pdf', 'H0413': 'FigureS10_Temperature_2875.pdf'}
+MAIN_RUN = 'H0404'                    # 28.50 C, also drawn as Figure 2
+MAIN_FIG = 'Figure3_Isothermal_SAXPCS.pdf'
+FAST_FIG = 'FigureS12_Fast_Mode.pdf'
+MAX_SHOWN = 7                         # more groups than this: (a), (b), (d)-(g) show every second
+FIG_T_SIZE = (DOUBLE_COL, 5.7)        # SI figures
+FIG_M_SIZE = (DOUBLE_COL, 2.90)       # Figure 2: the top row only
+LEGEND_H = 0.072                      # figure fraction kept for the key under the SI panels
+G2_YLIM = (0.98, 1.20)
+
+T_COLOR = {}
+colors = hsv_colors(T_HUES)
+run_keys = list(RUNS)
+for k in range(len(run_keys)):
+    T_COLOR[run_keys[k]] = colors[k]
+
+
+def ref_file(h):
+    """The averaged 6 C reference of the loading with header h."""
+    return os.path.join(DATA, f'Average_{REFS[h]}_att00_Rq0_00001_00020_results.hdf')
 
 
 BETA = xpcs_fit.measure_beta(STANDARD, '2021-3 static standard')
-xpcs_fit.CONTRAST = BETA              # double_exp reads it at call time
+xpcs_fit.CONTRAST = BETA
 
 
-# --- absolute scale ---
-def coef_from(up_ic, dn_ic):
-    """abs_xsec_coef for monitor readings given as numbers rather than an open file."""
-    flux = CAL_A * (up_ic / T_EXP) + CAL_B
-    transmission = dn_ic / up_ic / AIR_TRANSMISSION
-    return NUM_FRAMES / (T_EXP * flux * transmission * SAMPLE_THICKNESS * DELTA_OMEGA)
-
-
+# --- the background ----------------------------------------------------------
 def band_mean(hf):
-    """Mean of the stored (Q, phi) entries in BAND, as the trace records it."""
+    """Mean of the stored (Q, phi) intensities inside BAND, the quantity the
+    I_band column of the trace holds (no azimuthal average first)."""
     s = np.asarray(hf['/xpcs/temporal_mean/scattering_1d'][()]).reshape(-1)
-    idx = hf['/xpcs/qmap/static_index_mapping'][()]
-    q = hf['/xpcs/qmap/static_v_list_dim0'][()][idx // hf['/xpcs/qmap/static_v_list_dim1'].shape[0]]
+    bin_index = hf['/xpcs/qmap/static_index_mapping'][()]
+    n_phi = hf['/xpcs/qmap/static_v_list_dim1'].shape[0]
+    q = hf['/xpcs/qmap/static_v_list_dim0'][()][bin_index // n_phi]
     return float(np.nanmean(s[(q >= BAND[0]) & (q < BAND[1])]))
 
 
-# Q_BG, I_BG and COEF_BG come from series_2021_3.py; the band mean of the same
-# file is what the per-acquisition trace is corrected with.
 with h5py.File(BACKGROUND, 'r') as hf:
     BAND_BG = band_mean(hf)
-    check = coef_from(float(np.asarray(hf[INC][()]).ravel()[0]),
-                      float(np.asarray(hf[TRN][()]).ravel()[0]))
-assert abs(check / COEF_BG - 1) < 1e-12, 'coef_from disagrees with abs_xsec_coef'
 print(f'background E0411: coefficient {COEF_BG:.4g}, absolute band mean '
       f'{COEF_BG * BAND_BG:.4f} mm^-1')
 
-
-# --- how much of the background to subtract ---
-# At 6 C the sample is dissolved, so its background-subtracted I(Q) has to be
-# flat across the plotted range.  That fixes one number, ALPHA, in
-#     I_6C(Q) - ALPHA * I_bg(Q) = plateau
-#
-# HOW IT IS FITTED, AND WHY NOT BY ORDINARY LEAST SQUARES.  Straight least
-# squares on I minimises ABSOLUTE residuals, and at the bottom of the range the
-# empty cell is 3.2 to 3.5 times the 6 C signal, so the lowest Q points
-# carry almost all the weight and drag ALPHA up.  That is what left a 10-20%
-# bowl near 0.004-0.005 A^-1 in every loading: too much background subtracted
-# over the part of the range the fit was not really looking at.  Instead the
-# profile is reduced to the median in each of FIT_NBINS logarithmic Q bins,
-# divided by its own plateau, and ALPHA is the value on ALPHA_GRID that
-# minimises the rms departure of those bin values from 1.  Every decade of Q
-# then counts equally and the bins average down the point scatter.  The
-# residual falls from 12-20% to 3-5% and ALPHA from about 0.89 to 0.865.
-#
-# ALPHA is the MEDIAN over the four loadings, one shared number for all four.
-# Giving each loading its own value changes the flatness by well under a per
-# cent, so the shared value costs nothing and leaves one number to report.
-#
-# What ALPHA cannot fix: below about 0.005 A^-1 the background is several times
-# the 6 C signal, so a few per cent of shape mismatch between it
-# and the sample cell is tens of per cent of the dissolved-state intensity, and
-# no single coefficient removes it.  A q-scale mismatch between the two was
-# tested and rejected: flattening the residual that way needs a 6% stretch of
-# the background q axis and improves the rms by half a point.  The arrested and
-# assembling groups average 54 to 322 times the background over 0.004-0.008
-# A^-1, so this limit touches the 6 C reference alone.  Both ratios are printed
-# at the end of the run: they had drifted while they lived only in comments.
+# The coefficient that makes each 6 C reference flattest, and the shape that
+# BG_COEF leaves.  Each reference is reduced to its median in FIT_NBINS
+# logarithmic Q bins and divided by its plateau, so every decade of Q counts
+# equally (README, "Background subtraction").
 FIT_BAND = (0.0036, 0.0305)           # A^-1; starts at the lowest fitted Q bin
-FIT_NBINS = 9                         # logarithmic Q bins across FIT_BAND
+FIT_NBINS = 9
 PLATEAU_BAND = (0.012, 0.0305)        # A^-1, where every reference is flat
 ALPHA_GRID = np.arange(0.70, 1.15, 0.0025)
+
+
+def binned_median(q, y):
+    """Median of y in each of FIT_NBINS logarithmic Q bins across FIT_BAND."""
+    edges = np.exp(np.linspace(np.log(FIT_BAND[0]), np.log(FIT_BAND[1]), FIT_NBINS + 1))
+    medians = np.zeros(FIT_NBINS)
+    for k in range(FIT_NBINS):
+        medians[k] = np.median(y[(q >= edges[k]) & (q < edges[k + 1])])
+    return medians
 
 
 def flatness(q, y):
     """RMS fractional departure of the binned median from the plateau."""
     plateau = np.median(y[(q >= PLATEAU_BAND[0]) & (q < PLATEAU_BAND[1])])
-    edges = np.exp(np.linspace(np.log(FIT_BAND[0]), np.log(FIT_BAND[1]), FIT_NBINS + 1))
-    binned = np.array([np.median(y[(q >= a) & (q < b)]) for a, b in zip(edges[:-1], edges[1:])])
+    binned = binned_median(q, y)
     return float(np.sqrt(np.mean((binned / plateau - 1.0) ** 2)))
 
 
 def shape(q, y):
     """(rise, worst upward step) of the binned median across FIT_BAND.
 
-    rise  = lowest bin / highest bin.  1 is flat; above 1 the profile climbs
-            toward low Q.
-    step  = largest fractional INCREASE from one bin to the next going up in Q.
-            0 means the profile never turns back up, i.e. no oscillation.
+    rise: lowest bin over highest bin, 1 when flat.  step: largest fractional
+    increase from one bin to the next going up in Q, 0 when it never turns up.
     """
-    edges = np.exp(np.linspace(np.log(FIT_BAND[0]), np.log(FIT_BAND[1]), FIT_NBINS + 1))
-    binned = np.array([np.median(y[(q >= a) & (q < b)]) for a, b in zip(edges[:-1], edges[1:])])
+    binned = binned_median(q, y)
     step = float(max(0.0, (np.diff(binned) / binned[:-1]).max()))
     return float(binned[0] / binned[-1]), step
 
 
-def flattest_coef(ref_files):
-    """Per-loading coefficient that makes the 6 C reference flattest."""
-    out = {}
-    for name, fp in ref_files.items():
-        with h5py.File(fp, 'r') as hf:
-            I = abs_xsec_coef(hf) * read_iq(hf)[1]
-        cost = [flatness(Q_BG, I - a * COEF_BG * I_BG) for a in ALPHA_GRID]
-        k = int(np.argmin(cost))
-        out[name] = (float(ALPHA_GRID[k]), cost[k])
-    return out
+def flattest_coef(path):
+    """Fraction of the empty cell that makes the 6 C reference in path flattest."""
+    with h5py.File(path, 'r') as hf:
+        I = abs_xsec_coef(hf) * read_iq(hf)[1]
+    cost = []
+    for a in ALPHA_GRID:
+        cost.append(flatness(Q_BG, I - a * COEF_BG * I_BG))
+    return float(ALPHA_GRID[int(np.argmin(cost))])
 
 
-# The 6 C reference of each loading.  D8's is H0403, taken at 6 C after its
-# 28.00 C hold, rather than H0402 taken before it: H0402 was the first
-# measurement of the beamtime and still carries undissolved material, a Q^-2.7
-# low-Q excess that dies out above 0.01 A^-1.  It is the same loading in the
-# same cell, and it is the only one of the five 6 C measurements that is not a
-# dissolved state, so H0403 is the one that shows what D8 looks like dissolved.
-REFS = {'H0402': 'H0403_D8_060C10p', 'H0407': 'H0407_D6_060C10p',
-        'H0404': 'H0404_D7_060C10p', 'H0413': 'H0413_D9_060C10p'}
-
-# BG_COEF = 0.80 is defined, and the choice explained, in series_2021_3.py,
-# so the figure scripts subtract the same background.  The numbers it rests
-# on are printed here.
-
-_BG_FITS = flattest_coef({h: os.path.join(DATA, f'Average_{r}_att00_Rq0_00001_00020_results.hdf')
-                          for h, r in REFS.items()})
-print(f'background coefficient: using {BG_COEF:.3f}; flattest would be '
-      + ', '.join(f'{h} {a:.3f}' for h, (a, _) in _BG_FITS.items()))
-for h, r in REFS.items():
-    with h5py.File(os.path.join(DATA, f'Average_{r}_att00_Rq0_00001_00020_results.hdf'), 'r') as hf:
+flattest_text = []
+for h in REFS:
+    flattest_text.append(f'{h} {flattest_coef(ref_file(h)):.3f}')
+print(f'background coefficient: using {BG_COEF:.3f}; flattest would be ' + ', '.join(flattest_text))
+for h in REFS:
+    with h5py.File(ref_file(h), 'r') as hf:
         I = abs_xsec_coef(hf) * read_iq(hf)[1]
     rise, step = shape(Q_BG, I - BG_COEF * COEF_BG * I_BG)
-    print(f'   {r}: at {BG_COEF:.2f} the 6 C reference rises {rise:.2f}x toward low Q '
+    print(f'   {REFS[h]}: at {BG_COEF:.2f} the 6 C reference rises {rise:.2f}x toward low Q '
           f'and turns back up by at most {step * 100:.0f}%')
 
 
-# --- per-acquisition trace: absolute band intensity, temperature, time ---
+# --- per-acquisition trace: time, temperature, absolute band intensity -------
 def load_trace(run):
-    """Seconds from t_w = 0, RTD reading, absolute band intensity, the t_w = 0
-    datetime and the frame numbers, one entry per acquisition."""
+    """Per acquisition: seconds from t_w = 0, RTD reading (C) and absolute,
+    background-subtracted band intensity (mm^-1)."""
     frame, t, T, t0 = acquisitions(run)
-    rows = sorted((r for r in csv.DictReader(open(TRACE)) if r['run'] == run),
-                  key=lambda r: int(r['frame']))
-    I = np.array([coef_from(float(r['incident']), float(r['transmitted'])) * float(r['I_band'])
-                  for r in rows]) - BG_COEF * COEF_BG * BAND_BG
-    return t, T, I, t0, frame
+    rows = trace_rows(run)
+    I = np.zeros(len(rows))
+    for k in range(len(rows)):
+        coef = coef_from_monitors(float(rows[k]['incident']), float(rows[k]['transmitted']))
+        I[k] = coef * float(rows[k]['I_band'])
+    I = I - BG_COEF * COEF_BG * BAND_BG
+    return t, T, I
 
 
-def binned(x, y, edges):
-    """Median of y in each bin of x, for bins holding at least five points."""
-    xc, yc = [], []
-    for lo, hi in zip(edges[:-1], edges[1:]):
-        m = (x >= lo) & (x < hi)
-        if m.sum() >= 5:
-            xc.append(np.median(x[m]))
-            yc.append(np.median(y[m]))
-    return np.array(xc), np.array(yc)
-
-
-# --- Equation 2 in one block, p_fast free, started at its profile minimum ---
-def fit_block(tau, g2, g2e, q):
-    prof = [(r['red_chi2'], pf, r) for pf in P_GRID
-            for r in [xpcs_fit.fit_g2_diffusive(tau, g2, g2e, QI, q, p1_fixed=pf)]
-            if r is not None]
-    chi0, pf0, best = min(prof, key=lambda x: x[0])
-    xpcs_fit.P_EXP_P0[0] = pf0
-    free = xpcs_fit.fit_g2_diffusive(tau, g2, g2e, QI, q)
-    xpcs_fit.P_EXP_P0[0] = 0.5
-    if free is not None and free['red_chi2'] <= chi0:
-        best = free
-    return best
-
-
-traces, series, hold_files = {}, {}, {}
+# --- fit every group of every isothermal experiment --------------------------
+traces = {}
+series = {}                           # header -> one dict per fitted group
+hold_files = {}                       # header -> every group at the target, fitted or not
 for h, (run, sample, target) in RUNS.items():
-    t, T, I, t0, frame = load_trace(run)
-    traces[h] = (t, T, I)
-    rows, hold_files[h] = [], []
-    for fp in sorted(glob.glob(os.path.join(DATA, f'Average_{run}_*_results.hdf')),
-                     key=lambda p: parse_name(p)[1]):
+    traces[h] = load_trace(run)
+    frame, t_acq, _, t0 = acquisitions(run)
+    rows = []
+    hold_files[h] = []
+    for fp in group_files(run):
         with h5py.File(fp, 'r') as hf:
             start = (read_start_time(hf) - t0).total_seconds()
             tau, g2, g2e, q = read_g2(hf)
         if start < 0:
-            continue
-        hold_files[h].append(fp)              # every group of the hold, fitted or not
+            continue                  # a group of the ramp
+        hold_files[h].append(fp)
         if np.median(g2e[(tau > 1e-4) & (tau < 1e-2), 0]) > ERR_MAX:
-            continue
-        r = fit_block(tau, g2, g2e, q)
+            continue                  # too noisy to fit
+        r = xpcs_fit.fit_seeded(tau, g2, g2e, QI, q)
         if r is None or r['red_chi2'] >= CHI2_MAX:
             continue
-        # t_w of a group is the midpoint of the acquisitions it averages
-        rows.append({'tw': group_midpoint(fp, frame, t), 'fit': r, 'tau': tau, 'g2': g2, 'g2e': g2e, 'q': q, 'fp': fp,
-                     'f': np.array([r['per_q'][i]['f'] for i in QI]),
-                     'fe': np.array([r['per_q'][i]['f_err'] for i in QI])})
+        f = np.zeros(len(QI))
+        fe = np.zeros(len(QI))
+        for k in range(len(QI)):
+            f[k] = r['per_q'][QI[k]]['f']
+            fe[k] = r['per_q'][QI[k]]['f_err']
+        rows.append({'tw': group_midpoint(fp, frame, t_acq), 'fit': r, 'tau': tau, 'g2': g2,
+                     'g2e': g2e, 'q': q, 'fp': fp, 'f': f, 'fe': fe})
     series[h] = rows
 
 
-
-
-FIG_NAMES = {'H0402': 'FigureS7_Temperature_2800.pdf', 'H0407': 'FigureS8_Temperature_2825.pdf',
-             'H0404': 'FigureS9_Temperature_2850.pdf', 'H0413': 'FigureS10_Temperature_2875.pdf'}
-# REFS is defined above, next to the background-coefficient fit.
-MAX_SHOWN = 7                         # groups drawn in (a), (b), (d)-(g)
-CONVERTING = 0.85                     # f at the lowest Q below which arrest is under way
-# Below this fast fraction at the lowest Q the fast decay is too weak to fix a
-# rate: D0 is drawn open and grey and left out of every quoted rate range.
-RATE_MIN_F = 0.25
-FIG_T_SIZE = (DOUBLE_COL, 5.7)
-FIG_M_SIZE = (DOUBLE_COL, 2.90)   # the main-text version: top row only
-MAIN_RUN = 'H0404'               # 28.50 C, the loading shown as Figure 2
-MAIN_FIG = 'Figure3_Isothermal_SAXPCS.pdf'
-# Two key rows below the panels, t_w above Q.  The Q key used to be a box
-# inside panel (c), where it overlapped the fast fractions at early t_w; both
-# keys now live under the axes, in one box centred on the figure, and nothing
-# is drawn over.  LEGEND_H is the figure fraction reserved for that box.
-LEGEND_H = 0.072
-LEGEND_H_MAIN = 0.130          # the same box in the shorter main-text figure
-G2_YLIM = (0.98, 1.20)
-
-
-
-
-# --- the numbers the text rests on ---
+# --- the numbers the text rests on -------------------------------------------
 print(f'\n{"run":19s} {"T":>5s} {"groups":>6s} {"chi2":>9s} {"f0 first->last":>14s} '
       f'{"ordered":>7s} {"t(f0=0.5), group midpoints":>27s}')
 HALF = {}
@@ -372,23 +214,30 @@ for h, (run, sample, target) in RUNS.items():
     rows = series[h]
     f0 = np.array([r['f'][0] for r in rows])
     tw = np.array([r['tw'] for r in rows])
-    arr = [r for r in rows if r['f'][0] < CONVERTING]
-    ordered = sum(all(r['f'][i] < r['f'][i + 1] for i in range(4)) for r in arr)
+    # groups in which arrest is under way, and how many of them have f rising with Q
+    n_arresting = 0
+    n_ordered = 0
+    for r in rows:
+        if r['f'][0] < CONVERTING:
+            n_arresting += 1
+            if np.all(np.diff(r['f']) > 0):
+                n_ordered += 1
     below = np.nonzero(f0 < 0.5)[0]
-    if len(below) and below[0] > 0:
+    if len(below) > 0 and below[0] > 0:
         j = below[0]
         HALF[target] = np.interp(0.5, [f0[j], f0[j - 1]], [tw[j], tw[j - 1]])
-        th_txt = f'{HALF[target]:8.0f} s'
+        half_text = f'{HALF[target]:8.0f} s'
     else:
-        th_txt = 'never'
+        half_text = 'never'
     chi = [r['fit']['red_chi2'] for r in rows]
     print(f'{run} {target:5.2f} {len(rows):6d} {min(chi):4.2f}-{max(chi):4.2f} '
-          f'{f0[0]:5.2f}->{f0[-1]:5.2f}   {ordered:3d}/{len(arr):<3d} {th_txt:>27s}')
+          f'{f0[0]:5.2f}->{f0[-1]:5.2f}   {n_ordered:3d}/{n_arresting:<3d} {half_text:>27s}')
 print(f'time to f0 = 0.5 shortens {HALF[28.25] / HALF[28.75]:.1f}-fold from 28.25 to 28.75 C')
-print('first and last t_w (group midpoints): '
-      + '; '.join(f'{RUNS[h][2]:.2f} C {series[h][0]["tw"]:.0f}-{series[h][-1]["tw"]:.0f} s' for h in RUNS))
+span_text = []
+for h in RUNS:
+    span_text.append(f'{RUNS[h][2]:.2f} C {series[h][0]["tw"]:.0f}-{series[h][-1]["tw"]:.0f} s')
+print('first and last t_w (group midpoints): ' + '; '.join(span_text))
 
-LATE = 0.70                           # f at the lowest Q that separates the two stages
 print(f'\nD0 (1e7 A^2/s, the 1/e rate) in the early (f0 >= {LATE}) and late (f0 < {LATE}) stages;'
       f'\nthe late range counts only groups with f0 >= {RATE_MIN_F}, where the fast decay fixes a rate:')
 for h, (run, sample, target) in RUNS.items():
@@ -398,226 +247,277 @@ for h, (run, sample, target) in RUNS.items():
     f0 = np.array([r['f'][0] for r in rows])
     early = dm[f0 >= LATE]
     late = (f0 < LATE) & (f0 >= RATE_MIN_F)
-    txt = f'  {run}: early {early[0]:.2f} -> {early[-1]:.2f} ({early[0] / early[-1]:.1f}x)' \
-        if len(early) > 1 else f'  {run}: early {early[0]:.2f} (one group)'
+    if len(early) > 1:
+        txt = f'  {run}: early {early[0]:.2f} -> {early[-1]:.2f} ({early[0] / early[-1]:.1f}x)'
+    else:
+        txt = f'  {run}: early {early[0]:.2f} (one group)'
     if late.sum() > 1:
         txt += (f'; late {dm[late].min():.2f}-{dm[late].max():.2f} ({dm[late].max() / dm[late].min():.1f}x)'
                 f' while f0 falls {f0[late].max():.2f} -> {f0[late].min():.2f}')
-    unres = f0 < RATE_MIN_F
-    if unres.any():
-        txt += f'; unresolved after that: f0 {f0[unres].max():.2f} -> {f0[unres].min():.2f}'
+    unresolved = f0 < RATE_MIN_F
+    if unresolved.any():
+        txt += f'; unresolved after that: f0 {f0[unresolved].max():.2f} -> {f0[unresolved].min():.2f}'
     print(txt + f'; p_fast {pf.max():.2f} -> {pf.min():.2f}')
 
 print('\nthe same structure, mobile or arresting: I(Q) at the first converting group over')
 print('I(Q) of the last 28.00 C group, which is still mobile')
 q_ref, I_ref = abs_iq(series['H0402'][-1]['fp'])
 for h in ['H0407', 'H0404', 'H0413']:
-    r = next(r for r in series[h] if r['f'][0] < CONVERTING)
-    q, I = abs_iq(r['fp'])
-    rat = [np.interp(x, q, I) / np.interp(x, q_ref, I_ref) for x in (0.004, 0.006, 0.008, 0.012, 0.02, 0.028)]
-    print(f'  {RUNS[h][0]} t_w {r["tw"]:.0f} s, f0 {r["f"][0]:.2f}: ' + ' '.join(f'{x:.2f}' for x in rat))
+    first = None
+    for r in series[h]:
+        if r['f'][0] < CONVERTING:
+            first = r
+            break
+    q, I = abs_iq(first['fp'])
+    ratio_text = []
+    for x in (0.004, 0.006, 0.008, 0.012, 0.02, 0.028):
+        ratio_text.append(f'{np.interp(x, q, I) / np.interp(x, q_ref, I_ref):.2f}')
+    print(f'  {RUNS[h][0]} t_w {first["tw"]:.0f} s, f0 {first["f"][0]:.2f}: ' + ' '.join(ratio_text))
 
 print('\nstructure against arrest (absolute band intensity of the group I(Q), mm^-1,'
       ' as Figure 3c draws it):')
 for h, (run, sample, target) in RUNS.items():
     rows = series[h]
-    conv = [r for r in rows if r['f'][0] < CONVERTING]
-    if not conv:
-        I_end, I_0 = band_intensity(rows[-1]['fp']), band_intensity(hold_files[h][0])
+    arresting = []
+    for r in rows:
+        if r['f'][0] < CONVERTING:
+            arresting.append(r)
+    if len(arresting) == 0:
+        I_end = band_intensity(rows[-1]['fp'])
+        I_0 = band_intensity(hold_files[h][0])
+        f0_min = np.min([r['f'][0] for r in rows])
         print(f'  {run}: no arrest; band {I_0:.2f} over the first group -> {I_end:.2f} at {rows[-1]["tw"]:.0f} s '
-              f'({I_end / I_0:.0f}x), f0 >= {min(r["f"][0] for r in rows):.2f} throughout')
+              f'({I_end / I_0:.0f}x), f0 >= {f0_min:.2f} throughout')
         continue
-    a, b = conv[0], conv[-1]
-    Ia, Ib = band_intensity(a['fp']), band_intensity(b['fp'])
+    a = arresting[0]
+    b = arresting[-1]
+    Ia = band_intensity(a['fp'])
+    Ib = band_intensity(b['fp'])
     qa, ia = abs_iq(a['fp'])
-    _, ib = abs_iq(b['fp'])
-    ratio = '  '.join(f'{x:.3f}:{np.interp(x, qa, ib) / np.interp(x, qa, ia):.2f}' for x in (0.004, 0.008, 0.02))
+    qb, ib = abs_iq(b['fp'])
+    ratio_text = []
+    for x in (0.004, 0.008, 0.02):
+        ratio_text.append(f'{x:.3f}:{np.interp(x, qa, ib) / np.interp(x, qa, ia):.2f}')
     print(f'  {run}: {a["tw"]:.0f} -> {b["tw"]:.0f} s: 1-f0 {1 - a["f"][0]:.2f} -> {1 - b["f"][0]:.2f}, '
-          f'band {Ia:.2f} -> {Ib:.2f} ({Ib / Ia:.2f}x); I(Q) ratio last/first at Q {ratio}')
+          f'band {Ia:.2f} -> {Ib:.2f} ({Ib / Ia:.2f}x); I(Q) ratio last/first at Q ' + '  '.join(ratio_text))
 
-# Figure 2a against Figure 2b: how far the structure has grown when the
-# dynamics start to arrest.  The ~20 C level is the first group of the ramp,
-# the same reference arrest_vs_temperature.py quotes the half-arrest intensity
-# against.
+# How far the structure has grown when the dynamics start to arrest.  The ~20 C
+# level is the first group of the ramp, the reference arrest_vs_temperature.py
+# quotes the half-arrest intensity against.
 print('\nlow-Q band intensity of every group on target (mm^-1), with f at the lowest Q '
       'where fitted,\nagainst the first group of the ramp (~20 C):')
 for h, (run, sample, target) in RUNS.items():
     frame, t_acq, _, _ = acquisitions(run)
-    first = sorted(glob.glob(os.path.join(DATA, f'Average_{run}_*_results.hdf')),
-                   key=lambda p: parse_name(p)[1])[0]
-    base20 = band_intensity(first)
-    fitted = {r['fp']: r['f'][0] for r in series[h]}
-    cells = [f'{group_midpoint(fp, frame, t_acq):.0f} s {band_intensity(fp):.2f}'
-             + (f' (f0 {fitted[fp]:.2f})' if fp in fitted else '') for fp in hold_files[h]]
+    base20 = band_intensity(group_files(run)[0])
+    fitted_f0 = {}
+    for r in series[h]:
+        fitted_f0[r['fp']] = r['f'][0]
+    cells = []
+    for fp in hold_files[h]:
+        cell = f'{group_midpoint(fp, frame, t_acq):.0f} s {band_intensity(fp):.2f}'
+        if fp in fitted_f0:
+            cell += f' (f0 {fitted_f0[fp]:.2f})'
+        cells.append(cell)
     print(f'  {target:.2f} C, ~20 C level {base20:.4f}: ' + '; '.join(cells))
-    print('     ' + ', '.join(f'{group_midpoint(fp, frame, t_acq):.0f} s {band_intensity(fp) / base20:.0f}x'
-                              for fp in hold_files[h]) + ' the ~20 C level')
+    cells = []
+    for fp in hold_files[h]:
+        cells.append(f'{group_midpoint(fp, frame, t_acq):.0f} s {band_intensity(fp) / base20:.0f}x')
+    print('     ' + ', '.join(cells) + ' the ~20 C level')
 
 print('\nramp: band intensity relative to the 20-22 C level of each loading')
 for h, (run, sample, target) in RUNS.items():
     t, T, I = traces[h]
     base = np.median(I[T < 22.0])
-    vals = [f'{x:.2f}C:{np.median(I[(T >= x - 0.13) & (T < x + 0.13) & (t < 0)]) / base:.1f}'
-            for x in (26.0, 27.0, 27.5, 27.75, 28.0) if x < target]
-    print(f'  {run}: 20-22 C {base:.4f} mm^-1; ' + '  '.join(vals))
+    cells = []
+    for x in (26.0, 27.0, 27.5, 27.75, 28.0):
+        if x < target:
+            near = (T >= x - 0.13) & (T < x + 0.13) & (t < 0)
+            cells.append(f'{x:.2f}C:{np.median(I[near]) / base:.1f}')
+    print(f'  {run}: 20-22 C {base:.4f} mm^-1; ' + '  '.join(cells))
 
 print('\n6 C references, absolute and background-subtracted (mm^-1):')
 for h in RUNS:
-    q, I = abs_iq(os.path.join(DATA, f'Average_{REFS[h]}_att00_Rq0_00001_00020_results.hdf'))
+    q, I = abs_iq(ref_file(h))
     flat = (q > 0.006) & (q < 0.03)
     print(f'  {REFS[h]}: mean over 0.006-0.03 {np.mean(I[flat]):.4f} +/- {np.std(I[flat]):.4f}')
 
-
-# How far the empty cell stands above the 6 C reference, and how far the hold
-# groups stand above the empty cell.  Both numbers are quoted in SI section
-# 6.2, and both had drifted while they lived only in comments, so they are
-# printed here.
+# How far the empty cell stands above the 6 C references, and how far the
+# fitted groups stand above the subtracted background: the two ratios of
+# SI section 6.2.
 print('\nempty cell against the 6 C reference it has to be subtracted from:')
-_use = BG_COEF * COEF_BG * I_BG
-_raw = COEF_BG * I_BG
-for _qt in (0.0036, 0.0040, 0.0050):
-    _j = int(np.argmin(np.abs(Q_BG - _qt)))
-    _r = []
+bg_all = COEF_BG * I_BG               # all of the empty cell, absolute
+for q_target in (0.0036, 0.0040, 0.0050):
+    j = int(np.argmin(np.abs(Q_BG - q_target)))
+    ratios = []
     for h in RUNS:
-        _, _I = abs_iq(os.path.join(DATA, f'Average_{REFS[h]}_att00_Rq0_00001_00020_results.hdf'))
-        _r.append(_raw[_j] / _I[_j])
-    print(f'  Q = {Q_BG[_j]:.5f}: empty cell {_raw[_j]:.4g} mm^-1, '
-          f'{min(_r):.1f}-{max(_r):.1f}x the 6 C signal '
-          f'({BG_COEF:.2f} x it: {min(_r)*BG_COEF:.1f}-{max(_r)*BG_COEF:.1f}x)')
+        I_6C = abs_iq(ref_file(h))[1]
+        ratios.append(bg_all[j] / I_6C[j])
+    print(f'  Q = {Q_BG[j]:.5f}: empty cell {bg_all[j]:.4g} mm^-1, '
+          f'{min(ratios):.1f}-{max(ratios):.1f}x the 6 C signal '
+          f'({BG_COEF:.2f} x it: {min(ratios)*BG_COEF:.1f}-{max(ratios)*BG_COEF:.1f}x)')
 
 print('\nfitted groups against the subtracted background, over 0.004-0.008 A^-1:')
-_band = (Q_BG >= 0.004) & (Q_BG <= 0.008)
-_pts, _means = [], []
+in_band = (Q_BG >= 0.004) & (Q_BG <= 0.008)
+bg_used = BG_COEF * COEF_BG * I_BG    # the part of the empty cell subtracted
+all_points = []
+all_means = []
 for h, (run, sample, target) in RUNS.items():
-    _p, _m = [], []
-    for _fp in [r['fp'] for r in series[h]]:
-        _r = abs_iq(_fp)[1][_band] / (BG_COEF * COEF_BG * I_BG)[_band]
-        _p.append(_r); _m.append(_r.mean())
-    _pts += _p; _means += _m
-    _a = np.concatenate(_p)
-    print(f'  {run}: {len(_m):2d} groups, pointwise {_a.min():5.0f}-{_a.max():5.0f}x, '
-          f'group means {min(_m):5.0f}-{max(_m):5.0f}x')
-_all = np.concatenate(_pts)
-print(f'  all {len(_means)} fitted groups: pointwise {_all.min():.0f}-{_all.max():.0f}x, '
-      f'group means {min(_means):.0f}-{max(_means):.0f}x')
+    points = []
+    means = []
+    for r in series[h]:
+        ratio = abs_iq(r['fp'])[1][in_band] / bg_used[in_band]
+        points.append(ratio)
+        means.append(ratio.mean())
+    all_points += points
+    all_means += means
+    pointwise = np.concatenate(points)
+    print(f'  {run}: {len(means):2d} groups, pointwise {pointwise.min():5.0f}-{pointwise.max():5.0f}x, '
+          f'group means {min(means):5.0f}-{max(means):5.0f}x')
+pointwise = np.concatenate(all_points)
+print(f'  all {len(all_means)} fitted groups: pointwise {pointwise.min():.0f}-{pointwise.max():.0f}x, '
+      f'group means {min(all_means):.0f}-{max(all_means):.0f}x')
 print('  (SI section 6.2 quotes the group-mean range; the two differ because one is a '
       'per-point\n   extremum and the other a per-group average)')
 
 
-# --- FIGURE 2 AND FIGURES S4-S7 ---
+# --- Figure 2 and Figures S4-S7 ----------------------------------------------
 apply_style()
 
 
-def every_other_decade(x, _pos):
+def every_other_decade(x, position):
+    """Tick label 10^n for even n, blank for odd n."""
     power = int(round(np.log10(x)))
-    return rf'$10^{{{power}}}$' if power % 2 == 0 else ''
+    if power % 2 == 0:
+        return rf'$10^{{{power}}}$'
+    return ''
+
+
+def time_color(tw, t_lo, t_hi):
+    """Colour of a waiting time: plasma, from t_lo to t_hi."""
+    if t_hi == t_lo:
+        x = 0.5
+    else:
+        x = (tw - t_lo) / (t_hi - t_lo)
+    return plt.cm.plasma(0.10 + 0.78 * x)
 
 
 for h, (run, sample, target) in RUNS.items():
     rows = series[h]
-    shown = rows if len(rows) <= MAX_SHOWN else rows[::2]
+    if len(rows) <= MAX_SHOWN:
+        shown = rows
+    else:
+        shown = rows[::2]
     if shown[-1] is not rows[-1]:
         shown = shown + [rows[-1]]
-    t_lo, t_hi = rows[0]['tw'], rows[-1]['tw']
+    t_lo = rows[0]['tw']
+    t_hi = rows[-1]['tw']
 
-    def tcol(tw):
-        x = 0.5 if t_hi == t_lo else (tw - t_lo) / (t_hi - t_lo)
-        return plt.cm.plasma(0.10 + 0.78 * x)
-
-    # the first group on target, drawn black in (a) when it is too noisy to fit
-    _t, _, _, t0, _frame = load_trace(run)
-    offsets = {}
-    for fp in glob.glob(os.path.join(DATA, f'Average_{run}_*_results.hdf')):
+    # The group that starts at t_w = 0, drawn black in (a) if it was too noisy to fit.
+    frame, t_acq, _, t0 = acquisitions(run)
+    zero = None
+    smallest = None
+    for fp in group_files(run):
         with h5py.File(fp, 'r') as hf:
-            offsets[fp] = abs((read_start_time(hf) - t0).total_seconds())
-    zero = min(offsets, key=offsets.get)
-    if offsets[zero] > 60.0:
+            offset = abs((read_start_time(hf) - t0).total_seconds())
+        if smallest is None or offset < smallest:
+            zero = fp
+            smallest = offset
+    if smallest > 60.0:
         zero = None
-    zero_fitted = any(r['fp'] == zero for r in rows)
-    zero_label = f'{group_midpoint(zero, _frame, _t):.0f}' if zero is not None else None
+    zero_fitted = False
+    for r in rows:
+        if r['fp'] == zero:
+            zero_fitted = True
+    if zero is not None:
+        zero_label = f'{group_midpoint(zero, frame, t_acq):.0f}'
 
-    # Loading MAIN_RUN is drawn twice: the seven-panel SI figure, and a
-    # three-panel version that is Figure 2 of the main text.  The main-text
-    # one carries only (a)-(c); the correlation functions at the four other Q
-    # bins stay in the SI, where there is room for them.
-    for MAIN in ([False, True] if h == MAIN_RUN else [False]):
-        fig = plt.figure(figsize=FIG_M_SIZE if MAIN else FIG_T_SIZE)
-        top = GridSpec(1, 3, figure=fig, left=0.075, right=0.925,
-                       top=0.90 if MAIN else 0.955,
-                       bottom=0.325 if MAIN else 0.595, wspace=0.42)
-        ax1, ax2, ax3 = (fig.add_subplot(top[0, k]) for k in range(3))
+    # The 28.50 C loading is drawn twice: the seven-panel SI figure and the
+    # three-panel Figure 2.
+    if h == MAIN_RUN:
+        versions = [False, True]
+    else:
+        versions = [False]
+    for main_text in versions:
+        if main_text:
+            fig = plt.figure(figsize=FIG_M_SIZE)
+            top = GridSpec(1, 3, figure=fig, left=0.075, right=0.925, top=0.90,
+                           bottom=0.325, wspace=0.42)
+        else:
+            fig = plt.figure(figsize=FIG_T_SIZE)
+            top = GridSpec(1, 3, figure=fig, left=0.075, right=0.925, top=0.955,
+                           bottom=0.595, wspace=0.42)
+        ax1 = fig.add_subplot(top[0, 0])
+        ax2 = fig.add_subplot(top[0, 1])
+        ax3 = fig.add_subplot(top[0, 2])
         axq = []
-        if not MAIN:
-            bot = GridSpec(1, 4, figure=fig, left=0.075, right=0.925, top=0.470,
-                           bottom=0.088 + LEGEND_H, wspace=0.08)
-            axq = [fig.add_subplot(bot[0, k]) for k in range(4)]
+        if not main_text:
+            bottom = GridSpec(1, 4, figure=fig, left=0.075, right=0.925, top=0.470,
+                              bottom=0.088 + LEGEND_H, wspace=0.08)
+            for k in range(4):
+                axq.append(fig.add_subplot(bottom[0, k]))
             for a in axq[1:]:
                 a.sharey(axq[0])
         label_panels([ax1, ax2, ax3])
         if axq:
             label_panels(axq, dx=-14, start=3)   # no y tick labels to clear there
 
-        # (a) SAXS.  Drawn from the lowest fitted Q bin outward.  Below it the
-        # points sit on the edge of the beamstop shadow, where the empty cell and
-        # the sample no longer share a shape and the subtraction leaves a spike
-        # that is an artefact of the subtraction rather than a measured intensity.
+        # (a) SAXS, from the lowest fitted Q bin outward; below it the points
+        # sit on the edge of the beamstop shadow (README).
         key = []
-        q, I = abs_iq(os.path.join(DATA, f'Average_{REFS[h]}_att00_Rq0_00001_00020_results.hdf'))
-        m = (I > 0) & (q >= FIT_BAND[0])
-        ax1.plot(q[m], I[m], 's', color=COLOR_6C, ms=MS, mfc='none', mew=MEW)
-        lo, hi = I[m].min(), I[m].max()
-        curves = [(r['fp'], tcol(r['tw']), f'{r["tw"]:.0f}') for r in shown]
+        q6, I6 = abs_iq(ref_file(h))
+        m = (I6 > 0) & (q6 >= FIT_BAND[0])
+        ax1.plot(q6[m], I6[m], 's', color=COLOR_6C, ms=MS, mfc='none', mew=MEW)
+        lo = I6[m].min()
+        hi = I6[m].max()
+        curves = []
+        for r in shown:
+            curves.append((r['fp'], time_color(r['tw'], t_lo, t_hi), f'{r["tw"]:.0f}'))
         if zero is not None and not zero_fitted:
             curves.insert(0, (zero, 'black', zero_label))
         for fp, c, label in curves:
             q, I = abs_iq(fp)
             m = (I > 0) & (q >= FIT_BAND[0])
             ax1.plot(q[m], I[m], 'o', color=c, ms=MS, mfc='none', mew=MEW)
-            lo, hi = min(lo, I[m].min()), max(hi, I[m].max())
-            key.append(Line2D([], [], marker='o', ls='none', color=c, ms=MS, mfc='none', mew=MEW, label=label))
+            lo = min(lo, I[m].min())
+            hi = max(hi, I[m].max())
+            key.append(Line2D([], [], marker='o', ls='none', color=c, ms=MS, mfc='none', mew=MEW,
+                              label=label))
         ax1.set_xscale('log')
         ax1.set_yscale('log')
         ax1.set_xlim(3.3e-3, 3.6e-2)
         q_log_ticks(ax1)
         ax1.set_ylim(lo * 0.45, hi * 3.0)
-        # The low-Q band that Figure 3c averages, BAND in series_2021_3.py.  It
-        # spans the length scales of the five fitted Q bins, and it is where
-        # the intensity grows most.  The fill is pale, so its edges are drawn
-        # as dashed lines that keep 3:1 contrast against the page.  They sit at
-        # zorder 1: the minor grid lines fall on exactly the same Q values, and
-        # at the grid's zorder (0.5) they are drawn after the edges and hide them.
-        ax1.axvspan(*BAND, color='0.92', lw=0, zorder=0)
+        # The low-Q band of Figure 3c.  Its edges are dashed lines at zorder 1,
+        # above the minor grid lines that fall on the same Q values.
+        ax1.axvspan(BAND[0], BAND[1], color='0.92', lw=0, zorder=0)
         for edge in BAND:
             ax1.axvline(edge, color='0.45', ls='--', lw=LW_THIN, zorder=1.0)
         ax1.text(np.sqrt(BAND[0] * BAND[1]), 0.27, 'low-$Q$\nband', ha='center', va='center',
                  color='0.35', linespacing=1.0,
                  transform=mtransforms.blended_transform_factory(ax1.transData, ax1.transAxes))
-        q6, I6 = abs_iq(os.path.join(DATA, f'Average_{REFS[h]}_att00_Rq0_00001_00020_results.hdf'))
         plateau = np.median(I6[(q6 > 0.006) & (q6 < 0.03)])
         ax1.text(0.012, plateau * 2.4, '6 °C ref', ha='center', va='bottom', color=COLOR_6C)
         ax1.set_xlabel(r'$Q$ ($\AA^{-1}$)')
         ax1.set_ylabel(r'$I(Q)$ (mm$^{-1}$)')
         add_minor_grid(ax1)
 
-        # (b) and (d)-(g): g2 with fits
-        for ax, qi in [(ax2, 0)] + list(zip(axq, [1, 2, 3, 4])):
+        # (b) and (d)-(g): g2 with the fits
+        g2_panels = [(ax2, 0)]
+        for k in range(len(axq)):
+            g2_panels.append((axq[k], k + 1))
+        for ax, qi in g2_panels:
             for r in shown:
-                c = tcol(r['tw'])
+                c = time_color(r['tw'], t_lo, t_hi)
                 m = r['tau'] > 0
                 ax.errorbar(r['tau'][m], r['g2'][m, qi], yerr=r['g2e'][m, qi], fmt='o', color=c,
                             mfc='none', ms=MS - 0.5, mew=LW_THIN, capsize=1.0, elinewidth=LW_THIN,
                             capthick=LW_THIN, alpha=0.75, zorder=2)
-                fr, pq = r['fit'], r['fit']['per_q'][qi]
+                fit = r['fit']
+                pq = fit['per_q'][qi]
                 tt = np.logspace(np.log10(r['tau'][m].min()), np.log10(r['tau'][m].max()), 200)
                 ax.plot(tt, xpcs_fit.double_exp(tt, pq['tau_fast'], pq['f'], pq['tau_slow'],
-                                                fr['p1'], fr['p2']), color=c, lw=LW_DATA, zorder=3)
-            # The contrast the fit uses, drawn so the reader can see how close each
-            # correlation function comes to full arrest without reading a number
-            # off the caption.  It is 1 + BETA, the plateau the static reference
-            # reaches between 0.0085 and 0.0165 A^-1, NOT that reference's level
-            # at this Q: the standard is scratched, so its apparent contrast in
-            # these bins is depressed by up to 12% and a line drawn there would
-            # sit below data that are perfectly ordinary (SI section 6.2).
+                                                fit['p1'], fit['p2']), color=c, lw=LW_DATA, zorder=3)
+            # 1 + beta, the contrast every fit uses (the plateau of the static standard)
             ax.axhline(1.0 + BETA, color='0.35', ls='--', lw=LW_DATA * 1.7, zorder=1)
             ax.set_xscale('log')
             ax.set_xlim(9e-6, 5.0)
@@ -638,67 +538,95 @@ for h, (run, sample, target) in RUNS.items():
             for a in axq[1:]:
                 plt.setp(a.get_yticklabels(), visible=False)
 
-        # (c) f against t_w, colour = t_w, marker = Q bin; D0 on the right axis
-        for i, mk in zip(QI, Q_MARKERS):
+        # (c) f against t_w: colour = t_w, marker = Q bin; D0 on the right axis
+        for k in range(len(QI)):
+            i = QI[k]
+            mk = Q_MARKERS[k]
             x = [r['tw'] for r in rows]
             ax3.plot(x, [r['f'][i] for r in rows], '-', color='0.75', lw=LW_THIN, zorder=1)
             for r in rows:
-                ax3.errorbar(r['tw'], r['f'][i], yerr=r['fe'][i], marker=mk, color=tcol(r['tw']),
+                ax3.errorbar(r['tw'], r['f'][i], yerr=r['fe'][i], marker=mk,
+                             color=time_color(r['tw'], t_lo, t_hi),
                              ms=MS_SPARSE - 1, capsize=1.0, mfc='none', mew=MEW,
                              elinewidth=LW_THIN, capthick=LW_THIN, zorder=2)
-        f_lo = min(min(r['f'] - r['fe']) for r in rows)
-        f_hi = max(max(r['f'] + r['fe']) for r in rows)
+        f_lo = np.inf
+        f_hi = -np.inf
+        for r in rows:
+            f_lo = min(f_lo, np.min(r['f'] - r['fe']))
+            f_hi = max(f_hi, np.max(r['f'] + r['fe']))
         span = max(f_hi - f_lo, 0.2)
         ax3.set_ylim(f_lo - 0.08 * span, f_hi + 0.42 * span)
-        step = 0.2 if span > 0.5 else 0.1
-        ax3.set_yticks([v for v in np.arange(0.0, 1.0001, step) if f_lo - 0.08 * span <= v])
+        if span > 0.5:
+            step = 0.2
+        else:
+            step = 0.1
+        ticks = []
+        for v in np.arange(0.0, 1.0001, step):
+            if f_lo - 0.08 * span <= v:
+                ticks.append(v)
+        ax3.set_yticks(ticks)
         pad = 0.12 * max(t_hi - t_lo, 600)
         ax3.set_xlim(t_lo - pad, t_hi + pad)
         ax3.set_xlabel(r'$t_w$ (s)')
         ax3.set_ylabel('Fast Fraction, $f$')
         add_minor_grid(ax3)
-        qh = [Line2D([], [], marker=mk, ls='none', mfc='none', mec='k', mew=MEW,
-                     ms=MS_SPARSE - 1, label=f'{1e3 * rows[0]["q"][i]:.2f}')
-              for i, mk in zip(QI, Q_MARKERS)]
-        # D0 on the right axis: black where the fast decay fixes a rate, open
-        # grey where f at the lowest Q has fallen below RATE_MIN_F and it does not
+        q_handles = []
+        for k in range(len(QI)):
+            q_handles.append(Line2D([], [], marker=Q_MARKERS[k], ls='none', mfc='none', mec='k',
+                                    mew=MEW, ms=MS_SPARSE - 1,
+                                    label=f'{1e3 * rows[0]["q"][QI[k]]:.2f}'))
+        # D0: black where the fast decay fixes a rate, open grey where f at the
+        # lowest Q is below RATE_MIN_F
         ax3r = ax3.twinx()
-        yd = [r['fit']['D0'] / 1e7 for r in rows]
-        ed = [r['fit']['D0_err'] / 1e7 for r in rows]
-        for r, y, e in zip(rows, yd, ed):
-            ax3r.errorbar(r['tw'], y, yerr=e, marker='*', ls='none',
-                          color='k' if r['f'][0] >= RATE_MIN_F else '0.6',
+        d0_top = 0.0
+        for r in rows:
+            y = r['fit']['D0'] / 1e7
+            e = r['fit']['D0_err'] / 1e7
+            if r['f'][0] >= RATE_MIN_F:
+                star_color = 'k'
+            else:
+                star_color = '0.6'
+            ax3r.errorbar(r['tw'], y, yerr=e, marker='*', ls='none', color=star_color,
                           ms=MS_SPARSE + 2.0, capsize=1.0, mfc='none', mew=MEW, elinewidth=LW_THIN,
                           capthick=LW_THIN, zorder=4)
-        ax3r.set_ylim(0, max(y + e for y, e in zip(yd, ed)) * 1.30)
+            d0_top = max(d0_top, y + e)
+        ax3r.set_ylim(0, d0_top * 1.30)
         ax3r.set_ylabel(r'$D_0$ ($10^{7}\ \AA^{2}\,$s$^{-1}$)')
 
-        # One box, t_w above Q, titles and markers aligned on the left
-        key_rows(fig, [(r'$t_w$ (s)', key), (r'$Q$ ($10^{-3}\ \AA^{-1}$)', qh)], y=0.004)
-        save_fig(fig, MAIN_FIG if MAIN else FIG_NAMES[h])
+        # one key box under the panels: t_w above Q
+        key_rows(fig, [(r'$t_w$ (s)', key), (r'$Q$ ($10^{-3}\ \AA^{-1}$)', q_handles)], y=0.004)
+        if main_text:
+            save_fig(fig, os.path.join(HERE, MAIN_FIG))
+        else:
+            save_fig(fig, os.path.join(HERE, FIG_NAMES[h]))
 
 
 # --- Figure S8: the fast mode of every group, against the arrested fraction --
-# D0 locates the fast decay (its 1/e time is 1/(D0 Q^2) whatever p_fast is) and
-# p_fast sets how widely it is spread.  Plotted against the arrested fraction
-# 1 - f at the lowest Q, which needs no clock, the four holds trace the same
-# two stages: the rate falls while the amplitude barely moves, then the rate
-# levels off while the amplitude falls.
-FAST_FIG = 'FigureS12_Fast_Mode.pdf'
+def draw_against_arrest(ax, rows, x, value_key, error_key, scale, color, marker):
+    """One fit parameter of every group of one temperature against 1 - f;
+    open symbols where f at the lowest Q is below RATE_MIN_F."""
+    y = np.array([r['fit'][value_key] for r in rows]) / scale
+    e = np.array([r['fit'][error_key] for r in rows]) / scale
+    ax.plot(x, y, '-', color=color, lw=LW_THIN, alpha=0.6, zorder=1)
+    for k in range(len(rows)):
+        if rows[k]['f'][0] >= RATE_MIN_F:
+            face = color
+        else:
+            face = 'none'
+        ax.errorbar(x[k], y[k], yerr=e[k], marker=marker, ls='none', color=color, ms=MS_SPARSE - 1,
+                    mfc=face, mew=MEW, elinewidth=LW_THIN, capsize=1.0, capthick=LW_THIN, zorder=2)
+
+
 fig = plt.figure(figsize=(DOUBLE_COL, 2.75))
 gs = GridSpec(1, 2, figure=fig, left=0.075, right=0.985, top=0.92, bottom=0.30, wspace=0.28)
-axd, axp = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])
-for (h, (run, sample, target)), mk in zip(RUNS.items(), T_MARKERS):
-    rows, c = series[h], T_COLOR[h]
+axd = fig.add_subplot(gs[0, 0])
+axp = fig.add_subplot(gs[0, 1])
+for k in range(len(run_keys)):
+    h = run_keys[k]
+    rows = series[h]
     x = np.array([1.0 - r['f'][0] for r in rows])
-    for ax, key, err, scale in ((axd, 'D0', 'D0_err', 1e7), (axp, 'p1', 'p1_err', 1.0)):
-        y = np.array([r['fit'][key] for r in rows]) / scale
-        e = np.array([r['fit'][err] for r in rows]) / scale
-        ax.plot(x, y, '-', color=c, lw=LW_THIN, alpha=0.6, zorder=1)
-        for xi, yi, ei, r in zip(x, y, e, rows):
-            ax.errorbar(xi, yi, yerr=ei, marker=mk, ls='none', color=c, ms=MS_SPARSE - 1,
-                        mfc=c if r['f'][0] >= RATE_MIN_F else 'none', mew=MEW,
-                        elinewidth=LW_THIN, capsize=1.0, capthick=LW_THIN, zorder=2)
+    draw_against_arrest(axd, rows, x, 'D0', 'D0_err', 1e7, T_COLOR[h], T_MARKERS[k])
+    draw_against_arrest(axp, rows, x, 'p1', 'p1_err', 1.0, T_COLOR[h], T_MARKERS[k])
 axd.set_yscale('log')
 axd.set_ylabel(r'$D_0$ ($10^{7}\ \AA^{2}\,$s$^{-1}$)')
 axp.axhline(xpcs_fit.P_EXP_LO[0], color='0.35', ls='--', lw=LW_THIN, zorder=0)
@@ -710,12 +638,15 @@ for ax in (axd, axp):
     ax.set_xlabel(r'Arrested Fraction, $1-f$, at $Q$ = ' + f'{series["H0404"][0]["q"][0]:.5f} ' + r'$\AA^{-1}$')
     add_minor_grid(ax)
 label_panels([axd, axp])
-hh = [Line2D([], [], ls='none', marker='', label=r'$T$ (°C)')]
-hh += [Line2D([], [], ls='none', marker=mk, color=T_COLOR[h], mfc=T_COLOR[h], mew=MEW,
-              ms=MS_SPARSE - 1, label=f'{RUNS[h][2]:.2f}') for h, mk in zip(RUNS, T_MARKERS)]
-hh += [Line2D([], [], ls='none', marker='o', color='0.3', mfc='none', mew=MEW, ms=MS_SPARSE - 1,
-              label=f'open: $f$ < {RATE_MIN_F}, no resolved rate')]
-lg = fig.legend(handles=hh, loc='lower center', bbox_to_anchor=(0.5, 0.005), ncol=len(hh),
-                handlelength=1.0, handletextpad=0.35, columnspacing=1.0, borderpad=0.3)
-lg.get_frame().set_linewidth(LW_THIN)
-save_fig(fig, FAST_FIG)
+handles = [Line2D([], [], ls='none', marker='', label=r'$T$ (°C)')]
+for k in range(len(run_keys)):
+    h = run_keys[k]
+    handles.append(Line2D([], [], ls='none', marker=T_MARKERS[k], color=T_COLOR[h], mfc=T_COLOR[h],
+                          mew=MEW, ms=MS_SPARSE - 1, label=f'{RUNS[h][2]:.2f}'))
+handles.append(Line2D([], [], ls='none', marker='o', color='0.3', mfc='none', mew=MEW,
+                      ms=MS_SPARSE - 1, label=f'open: $f$ < {RATE_MIN_F}, no resolved rate'))
+legend = fig.legend(handles=handles, loc='lower center', bbox_to_anchor=(0.5, 0.005),
+                    ncol=len(handles), handlelength=1.0, handletextpad=0.35, columnspacing=1.0,
+                    borderpad=0.3)
+legend.get_frame().set_linewidth(LW_THIN)
+save_fig(fig, os.path.join(HERE, FAST_FIG))

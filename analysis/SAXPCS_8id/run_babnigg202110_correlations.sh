@@ -5,8 +5,8 @@
 # the 5-6 Oct 2026 APS shutdown and re-run on 26 Oct 2026 against CrossRm2,
 # which masks the second stuck pixel (63, 166).
 #
-# Scheduled with `at` on the GPU host rather than from a Claude session, so the
-# run does not depend on anything staying alive:
+# Scheduled with `at` on the GPU host rather than from an interactive session,
+# so the run does not depend on anything staying alive:
 #     echo /path/to/run_babnigg202110_correlations.sh | at 08:00 2026-10-26
 #
 # Design notes

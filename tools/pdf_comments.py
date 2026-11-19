@@ -62,9 +62,17 @@ def annots(xfdf):
                 quads = [[x0, y1, x1, y1, x0, y0, x1, y0]]
         if not quads:
             continue
-        boxes = [(min(q[0::2]), min(q[1::2]), max(q[0::2]), max(q[1::2])) for q in quads]
-        out.append((page, -max(b[3] for b in boxes), boxes, note))
-    return sorted(out, key=lambda a: (a[0], a[1]))
+        boxes = []
+        for q in quads:
+            boxes.append((min(q[0::2]), min(q[1::2]), max(q[0::2]), max(q[1::2])))
+        top = max([b[3] for b in boxes])
+        out.append((page, -top, boxes, note))
+    return sorted(out, key=reading_order)
+
+
+def reading_order(annotation):
+    """Sort key: page first, then from the top of the page down."""
+    return (annotation[0], annotation[1])
 
 
 def words(pdf):

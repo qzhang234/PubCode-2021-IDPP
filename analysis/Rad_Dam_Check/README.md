@@ -8,7 +8,7 @@ correlation functions would change with flux; they do not.
 | File | Role |
 |---|---|
 | `g2_SAXPCS_Rad_Cali.py` | Figure source. Reads the four result files in `cluster_results/`, converts each one's ion-chamber readout to the on-sample photon flux, and plots SAXS `I(Q)` and `g2(τ)` keyed by that flux. Run by `make figures`. |
-| `Flux_Cal.py` | The PIN-diode-current → photon-flux formula and its constants. `g2_SAXPCS_Rad_Cali.py` reimplements the same formula; this file documents it and prints the full-beam flux for the recorded calibration reading. |
+| `Flux_Cal.py` | The PIN-diode-current → photon-flux formula and its constants. `g2_SAXPCS_Rad_Cali.py` uses the same formula and constants; this file documents them and prints the raw flux for the recorded calibration reading. |
 | `Pind_calibration.csv` | Calibration sheet: upstream ion chamber against calibrated PIN-diode current. Fit through the origin gives the IC → PIN slope. |
 | `PINdiode_Calibration_DP00429_2024-02-01.pdf` | Vendor/beamline calibration certificate for the PIN diode. |
 | `cluster_results/` | The four result files, E0171–E0174, committed so the figure rebuilds from this repository alone. Byte-identical to the copy of record in `/gdata/s8id-dmdtn/2025-1/qzhang202503/flux_control_results`. |
@@ -29,8 +29,7 @@ experiment, and the Q values of both panels.
 
 ## Provenance
 
-The docstring of `g2_SAXPCS_Rad_Cali.py` records the same. The four result
-files were correlated in 2025 from raw frames under
+The four result files were correlated in 2025 from raw frames under
 `/gdata/dm/8ID/8IDI/2025-1/qzhang202503/data` with the qmap
 `rigaku_s360_d36_lin_MC.hdf`; each file records both paths. That DM experiment
 was archived on 23 Aug 2025, so the raw frames are no longer online, and

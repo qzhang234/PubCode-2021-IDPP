@@ -1,26 +1,13 @@
-"""Shared ACS / Nano Letters figure-formatting constants and helpers.
+"""House figure style, imported by every plotting script.
 
-Every number below comes from Appendix 2 "Preparing Graphics" of the ACS author
-guidelines (ACS_author_guide.pdf): single-column graphics up to 240 pt
-(3.33 in); double-column graphics 300-504 pt (4.167-7.0 in); maximum depth
-660 pt (9.167 in) including caption; lettering no smaller than 4.5 pt in the
-final published format, in Helvetica or Arial; lines no thinner than 0.5 pt.
-
-Compliance is defined once, here, and every plotting script in the repo imports
-it, so the whole submission uses one typeface, one font size, one set of line
-weights and one pair of column widths.
-
-Two deliberate choices go beyond the bare minimums:
-
-* FONT_SIZE is 8 pt, not the 4.5 pt floor.  8 pt is the largest size that
-  kept the inset and peak labels of the single-column WAXS figure this style
-  was first set for uncollided, which is what set the ceiling.
-* Figures are saved at exactly SINGLE_COL or DOUBLE_COL wide and embedded in
-  the LaTeX at natural size, so 8 pt drawn is 8 pt printed.  Nothing is scaled
-  at typesetting time and no bounding box is trimmed.
+The numbers come from Appendix 2, "Preparing Graphics", of the ACS author
+guide: single-column graphics up to 3.33 in, double-column up to 7.0 in,
+lettering at least 4.5 pt in Helvetica or Arial, lines at least 0.5 pt.  The
+style was kept for the PNAS submission; see the repository README.  Every
+figure is drawn at exactly one of the two column widths and embedded at
+natural size, so the 8 pt lettering drawn here is 8 pt in print.
 """
 
-import inspect
 import os
 
 import matplotlib.pyplot as plt
@@ -32,33 +19,27 @@ from matplotlib.textpath import text_to_path
 from matplotlib.ticker import FixedFormatter, FixedLocator, NullFormatter
 
 # --- geometry (in) ---
-SINGLE_COL = 3.33     # 240 pt, the ACS single-column maximum
-DOUBLE_COL = 7.00     # 504 pt, the ACS double-column maximum
+SINGLE_COL = 3.33     # 240 pt
+DOUBLE_COL = 7.00     # 504 pt
 MAX_DEPTH = 9.167     # 660 pt, including the caption
 
 # --- type ---
 FONT_SIZE = 8         # pt, every character in every figure
 
-# --- line weights (pt); 0.5 is the ACS floor, nothing may go below it ---
+# --- line weights (pt); nothing below 0.5 ---
 LW_THIN = 0.5         # spines, ticks, grids, error bars, guide lines
 LW_DATA = 1.0         # data and model curves
 MEW = 0.6             # open-marker edge width
 
 # --- markers (pt) ---
 MS = 3.5              # the default: I(Q), g2
-MS_DENSE = 2.4        # profiles carrying several hundred points per curve, where
-                      # MS-sized markers with a 0.6 pt edge merge into a solid
-                      # band.  Paired with a LW_THIN (0.5 pt) edge, the marker
-                      # outlines stay open and overlapping curves stay readable.
-MS_SPARSE = 4.5       # sparse points whose SHAPE encodes a variable, and which
-                      # therefore have to be big enough to tell o/s/^/D/v apart
+MS_SPARSE = 4.5       # sparse points whose shape encodes a variable
 
 
 def apply_style():
     """Set every rcParam that controls typeface, size and line weight."""
     plt.rcParams.update({
-        # Arial for text and for mathtext, so an axis label and the symbols
-        # inside it are the same typeface.
+        # Arial for text and for mathtext, so a label and its symbols match
         'font.family': 'sans-serif',
         'font.sans-serif': ['Arial', 'Helvetica', 'Liberation Sans', 'DejaVu Sans'],
         'mathtext.fontset': 'custom',
@@ -81,21 +62,17 @@ def apply_style():
         'xtick.major.width': LW_THIN, 'ytick.major.width': LW_THIN,
         'xtick.minor.width': LW_THIN, 'ytick.minor.width': LW_THIN,
         'grid.linewidth': LW_THIN,
-        # TrueType, never Type 3 -- ACS production rejects Type 3 subsets
+        # TrueType fonts in the PDF, never Type 3
         'pdf.fonttype': 42, 'ps.fonttype': 42,
         'savefig.facecolor': 'white', 'savefig.transparent': False,
     })
 
 
 def add_minor_grid(ax):
-    """Grid on major and minor ticks, at the 0.5 pt minimum and pale enough to
-    stay behind the data.
+    """Pale grid on major and minor ticks, behind the data.
 
-    A minor grid line must never land halfway between two labelled major ticks:
-    a line at 0.015 between 0.01 and 0.02 reads as a value the axis never names.
-    The linear axes here are safe, because matplotlib subdivides them by 5.  Log
-    axes need care, so every hand-written locator in this repository lists only
-    integer multiples of a decade, never 1.5 or 2.5 times one.
+    Hand-written log locators in this repository list only integer multiples
+    of a decade, so no minor grid line falls halfway between two labelled ticks.
     """
     ax.minorticks_on()
     ax.set_axisbelow(True)
@@ -106,13 +83,8 @@ def add_minor_grid(ax):
 def q_log_ticks(ax, axis='x'):
     """Label 0.004, 0.01 and 0.03 on a log Q axis.
 
-    The 8-ID Q range spans only about one decade (0.0033-0.034 Ainv), so
-    matplotlib's automatic log locator finds a single decade inside it and
-    labels one tick, 10^-2.  A reader then has no way to read a value off the
-    axis.  The three named ticks below are integer multiples of a decade, so
-    they satisfy the add_minor_grid() rule about half-decade positions, and the
-    same three are used on every Q axis in the paper (Figures 2a, S3a and
-    S4a-S7a) so the profiles can be compared tick for tick.
+    The Q range spans about one decade, where matplotlib's own log locator
+    labels a single tick.  The same three ticks are used on every Q axis.
     """
     if axis == 'x':
         a = ax.xaxis
@@ -128,74 +100,91 @@ def q_log_ticks(ax, axis='x'):
 def label_panels(axes, dx=-30, dy=5, start=0):
     """Bold (a), (b), (c)... just outside the top-left corner of each axes.
 
-    The offset is in POINTS, not axes fractions, so every panel label in the
-    paper sits the same distance out no matter how wide its panel is.  As a
-    fraction, a wide panel (the 2x2 SI grids) pushed the label off the canvas
-    while a narrow one (a 1-of-3 panel) tucked it against the tick labels.
-
-    dy clears the TOPMOST Y TICK LABEL, which is centred on the top spine and
-    therefore reaches about half a cap height (2.9 pt at 8 pt Arial) above it.
-    Panels whose left margin is narrow -- Figure S4, where the y tick labels are
-    short and tight_layout leaves only ~17 pt of margin -- put the label and
-    that tick label at the same x, so the two collided at the original dy = 2.
-    Raising it to 5 leaves 2.1 pt of clear space in the worst case and changes
-    nothing else: no figure in the paper draws anything else in that corner.
-
-    start skips that many letters, so a figure whose panels are created in more
-    than one call can label the second group (d), (e), ... rather than starting
-    over at (a).  A panel row that shares its y axis has no tick labels to clear
-    on its second and later panels, and there dx = -30 would place the label
-    nearer the previous panel than its own; pass a smaller dx for that row.
+    dx and dy are offsets in points, so every label sits the same distance from
+    its panel whatever the panel width.  start skips that many letters, for a
+    figure whose panels are labelled in two calls.
     """
-    for ax, letter in zip(axes, 'abcdefghijklmnopqrstuvwxyz'[start:]):
-        ax.annotate(f'({letter})', xy=(0, 1), xycoords='axes fraction',
-                    xytext=(dx, dy), textcoords='offset points',
-                    fontsize=FONT_SIZE, fontweight='bold', va='bottom', ha='left')
+    letters = 'abcdefghijklmnopqrstuvwxyz'[start:]
+    for k in range(len(axes)):
+        axes[k].annotate(f'({letters[k]})', xy=(0, 1), xycoords='axes fraction',
+                         xytext=(dx, dy), textcoords='offset points',
+                         fontsize=FONT_SIZE, fontweight='bold', va='bottom', ha='left')
+
+
+def text_width(s, prop):
+    """Width in points of the string s drawn in the font prop."""
+    is_math = s.count('$') >= 2
+    return text_to_path.get_text_width_height_descent(s, prop, ismath=is_math)[0]
+
+
+def pad_to_width(box, width, column_width):
+    """box followed by blank space, so the pair is column_width wide."""
+    return HPacker(children=[box, DrawingArea(column_width - width, 0)],
+                   align='baseline', pad=0, sep=0)
 
 
 def key_rows(fig, rows, y, x=0.5):
-    """One framed key below the panels, with a row for each variable.
+    """One framed key below the panels, with one row per variable.
 
-    rows is a list of (title, handles), e.g. the t_w colours and the Q markers;
-    each handle is a Line2D carrying the marker style and the label.  Every row
-    opens with its title, and the titles share the first column, so they line up
-    on the left and the first marker of every row sits in the same column.
-
-    Built from offset boxes rather than fig.legend: a legend stacks each column
-    on its own, so a title taller than the entries beside it (Q in 10^-3 A^-1,
-    whose superscripts rise 11 pt against 6 pt for a number) pushes its row
-    down in that column alone.  Here each row is aligned on one baseline, and
-    every column is given a fixed width, the widest of its entries.  Spacing,
-    padding and frame match the legends used elsewhere.  The box is centred on
-    x with its bottom at y (figure fractions).
+    rows is a list of (title, handles); each handle is a Line2D carrying the
+    marker style and the label.  Each row starts with its title, the titles
+    share the first column, and every column is as wide as its widest entry,
+    so the markers of all rows line up.  Built from offset boxes rather than
+    fig.legend, which would set a title with superscripts on a lower baseline
+    than its row.  The box is centred on x with its bottom at y (figure
+    fractions).
     """
     fs = FONT_SIZE
     prop = FontProperties(size=fs)
-    hl, pad, gap = 1.0 * fs, 0.4 * fs, 1.0 * fs      # handle length, handle-text pad, column gap
+    handle_length = 1.0 * fs
+    handle_pad = 0.4 * fs
+    column_gap = 1.0 * fs
 
-    def width(s):
-        return text_to_path.get_text_width_height_descent(s, prop, ismath=s.count('$') >= 2)[0]
+    # the title of each row, with its width
+    titles = []
+    for title, handles in rows:
+        titles.append((TextArea(title, textprops={'fontsize': fs}), text_width(title, prop)))
 
-    def entry(h):
-        mark = Line2D([hl / 2], [0.35 * fs])          # the legend's handle box: 0.7 font sizes tall
-        mark.update_from(h)
-        box = DrawingArea(hl, 0.7 * fs)
-        box.add_artist(mark)
-        return (HPacker(children=[box, TextArea(h.get_label(), textprops={'fontsize': fs})],
-                        align='baseline', pad=0, sep=pad), hl + pad + width(h.get_label()))
+    # each entry is a marker in a box the size of a legend handle, then its label
+    entries = []
+    for title, handles in rows:
+        row_entries = []
+        for h in handles:
+            mark = Line2D([handle_length / 2], [0.35 * fs])
+            mark.update_from(h)
+            box = DrawingArea(handle_length, 0.7 * fs)
+            box.add_artist(mark)
+            label = h.get_label()
+            packed = HPacker(children=[box, TextArea(label, textprops={'fontsize': fs})],
+                             align='baseline', pad=0, sep=handle_pad)
+            row_entries.append((packed, handle_length + handle_pad + text_width(label, prop)))
+        entries.append(row_entries)
 
-    def fixed(box, w, w_col):
-        return HPacker(children=[box, DrawingArea(w_col - w, 0)], align='baseline', pad=0, sep=0)
+    title_column = 0.0
+    for box, width in titles:
+        title_column = max(title_column, width)
+    n_columns = 0
+    for row_entries in entries:
+        n_columns = max(n_columns, len(row_entries))
+    column_widths = []
+    for c in range(n_columns):
+        widths = []
+        for row_entries in entries:
+            if c < len(row_entries):
+                widths.append(row_entries[c][1])
+        column_widths.append(max(widths))
 
-    titles = [(TextArea(t, textprops={'fontsize': fs}), width(t)) for t, _ in rows]
-    entries = [[entry(h) for h in hs] for _, hs in rows]
-    w_title = max(w for _, w in titles)
-    w_cols = [max(r[c][1] for r in entries if c < len(r)) for c in range(max(map(len, entries)))]
-    lines = [HPacker(children=[fixed(*ttl, w_title)] + [fixed(b, w, w_cols[c]) for c, (b, w) in enumerate(r)],
-                     align='baseline', pad=0, sep=gap)
-             for ttl, r in zip(titles, entries)]
-    key = AnchoredOffsetbox(loc='lower center', child=VPacker(children=lines, align='left', pad=0,
-                                                              sep=0.35 * fs),
+    lines = []
+    for r in range(len(rows)):
+        title_box, title_w = titles[r]
+        children = [pad_to_width(title_box, title_w, title_column)]
+        for c in range(len(entries[r])):
+            box, width = entries[r][c]
+            children.append(pad_to_width(box, width, column_widths[c]))
+        lines.append(HPacker(children=children, align='baseline', pad=0, sep=column_gap))
+
+    key = AnchoredOffsetbox(loc='lower center',
+                            child=VPacker(children=lines, align='left', pad=0, sep=0.35 * fs),
                             pad=0.3, borderpad=0, frameon=True, prop={'size': fs},
                             bbox_to_anchor=(x, y), bbox_transform=fig.transFigure)
     key.patch.set_boxstyle('square', pad=0)
@@ -204,55 +193,46 @@ def key_rows(fig, rows, y, x=0.5):
     return key
 
 
-def hsv_colors(hues, min_contrast=3.0):
-    """Fully saturated colours at the given hues of the hsv wheel (0 red, 1/3
-    green, 2/3 blue), each darkened only as far as it takes to keep min_contrast
-    against the white page.  ACS asks 3:1 of every non-text element; pure hsv
-    green, cyan and yellow reach only 1.1-1.4:1 on white.
-    """
-    def contrast(rgb):
-        lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
-        return 1.05 / (0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2] + 0.05)
+def contrast_on_white(rgb):
+    """WCAG contrast ratio of an sRGB colour against a white page."""
+    linear = []
+    for c in rgb:
+        if c <= 0.04045:
+            linear.append(c / 12.92)
+        else:
+            linear.append(((c + 0.055) / 1.055) ** 2.4)
+    return 1.05 / (0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2] + 0.05)
 
-    out = []
+
+def hsv_colors(hues, min_contrast=3.0):
+    """Saturated colours at the given hsv hues (0 red, 1/3 green, 2/3 blue),
+    each darkened just enough to reach min_contrast against white."""
+    colors = []
     for h in hues:
         v = 1.0
-        while contrast(hsv_to_rgb((h, 1.0, v))) < min_contrast:
+        while contrast_on_white(hsv_to_rgb((h, 1.0, v))) < min_contrast:
             v -= 0.01
-        out.append(tuple(hsv_to_rgb((h, 1.0, v))))
-    return out
+        colors.append(tuple(hsv_to_rgb((h, 1.0, v))))
+    return colors
 
 
-def save_fig(fig, filename):
-    """Save as vector PDF at exactly the requested figure size, NEXT TO THE SCRIPT.
+def save_fig(fig, path):
+    """Write fig as a vector PDF at exactly its figure size, and report the size.
 
-    A bare filename is resolved against the directory of the calling script, not
-    the current working directory.  Every figure therefore lands beside the code
-    that produced it however the script was launched -- `make`, an editor, or a
-    shell sitting somewhere else.  Running a script from the wrong directory used
-    to scatter stray duplicate PDFs around the tree, which then went stale while
-    the real ones were regenerated.  Pass an absolute path to override.
-
-    Deliberately no bbox_inches='tight': the media box has to stay exactly
-    SINGLE_COL or DOUBLE_COL wide so the journal reproduces the graphic at
-    100 % and the 8 pt lettering prints at 8 pt.  A trimmed box would be
-    rescaled at typesetting and the compliance arithmetic would no longer hold.
-    Call fig.tight_layout() (or set constrained layout) before this.
+    path is where the PDF goes; the scripts pass a path next to themselves.  No
+    bbox_inches='tight': the page must stay exactly one column width wide.
     """
-    if not os.path.isabs(filename):
-        caller = inspect.stack()[1].filename
-        filename = os.path.join(os.path.dirname(os.path.abspath(caller)), filename)
     w, h = fig.get_size_inches()
-    fig.savefig(filename, format='pdf')
+    fig.savefig(path, format='pdf')
     if abs(w - SINGLE_COL) < 0.01:
-        ok_w = 'single'
+        width_ok = 'single'
     elif abs(w - DOUBLE_COL) < 0.01:
-        ok_w = 'double'
+        width_ok = 'double'
     else:
-        ok_w = 'OFF-SPEC'
+        width_ok = 'OFF-SPEC'
     if h <= MAX_DEPTH:
-        ok_h = 'ok'
+        depth_ok = 'ok'
     else:
-        ok_h = 'OVER 9.167 in'
-    print(f'wrote {os.path.basename(filename)}  {w:.3f} x {h:.3f} in '
-          f'({72 * w:.0f} x {72 * h:.0f} pt)  width={ok_w}  depth={ok_h}')
+        depth_ok = 'OVER 9.167 in'
+    print(f'wrote {os.path.basename(path)}  {w:.3f} x {h:.3f} in '
+          f'({72 * w:.0f} x {72 * h:.0f} pt)  width={width_ok}  depth={depth_ok}')

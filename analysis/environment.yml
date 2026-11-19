@@ -1,14 +1,10 @@
-# Conda environment for reproducing every PDF figure in this directory.
+# Conda environment for every figure and number script in this repository.
 #
 #   conda env create -f environment.yml     # creates env-2021-LLDP
-#   conda activate env-2021-LLDP
-#   make -C .. figures                      # or: cd SAXS_12id && python Plot_12ID.py
+#   make -C .. figures
 #
-# Only the five scientific packages below are needed by the figure scripts.
-# `pyxpcsviewer` is NOT required: it is imported lazily inside two
-# common/utils.py helpers (read_keys_from_files, process_group) that operate on
-# raw beamline files and are not on the path from the reduced data in this repo
-# to any figure.
+# The beamline-side scripts that produced data_2021-3/ need more than this
+# (nexus_xpcs_aps, the pySimpleMask source, boost_corr); see the root README.
 name: env-2021-LLDP
 channels:
   - conda-forge
@@ -16,11 +12,8 @@ dependencies:
   - python=3.11
   - numpy=1.26.*
   - scipy=1.11.*
-  # 3.9.4 exactly: the committed figure PDFs were produced with it. save_fig()
-  # writes at the exact figure size with no bbox_inches='tight', so the page
-  # size no longer moves with the version, but tight_layout's internal spacing
-  # metrics still shift slightly between minor releases, which nudges axes,
-  # keys and annotations inside the frame. Pinned so reruns are byte-stable.
+  # 3.9.4 exactly: the committed figures were drawn with it, and tight_layout's
+  # spacing shifts slightly between releases, which moves axes and keys.
   - matplotlib-base=3.9.4
   - h5py=3.10.*
   - pandas=2.1.*
