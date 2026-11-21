@@ -236,13 +236,90 @@ The band and the half-arrest point are the two choices behind Figure~\ref*{MT-fi
 
 \subsection{Activation energy and bond number}
 \label{sec:bondnumber}
-Over the 0.75~K spanned by the four isothermal experiments, the rescaling factor $\exp[(T-T_0)/T_s]$ and an Arrhenius factor $\exp(-E_a/k_\mathrm{B}T)$ give the logarithm of the rate the same slope in temperature, $1/T_s$ and $E_a/k_\mathrm{B}T^2$, so $E_a=k_\mathrm{B}T^2/T_s$. At the mean temperature, $T=301.5$~K, $T_s=0.243\pm0.021$~K gives $E_a=(1.24\pm0.11)\times10^{3}\,k_\mathrm{B}T$, or $3.11\pm0.27$~MJ/mol. Transition-state theory writes the rate as $k=(k_\mathrm{B}T/h)\exp(\Delta S^\ddagger/k_\mathrm{B})\exp(-\Delta H^\ddagger/k_\mathrm{B}T)$, so the Arrhenius slope gives the activation enthalpy, $\Delta H^\ddagger=E_a-k_\mathrm{B}T=3.11$~MJ/mol. Reading the waiting time at which $f$ at the lowest $Q$ falls to 0.5 as $1/k$ gives the free energy of activation, $\Delta G^\ddagger=k_\mathrm{B}T\ln[(k_\mathrm{B}T/h)\,t_{1/2}]$. It is 38.2, 37.2 and 36.2~$k_\mathrm{B}T$, or 96, 93 and 91~kJ/mol, for $t_{1/2}=6100$, 2220 and \SI{830}{\second} at 28.25, 28.50 and \SI{28.75}{\degreeCelsius}. The entropy of activation follows as $T\Delta S^\ddagger=\Delta H^\ddagger-\Delta G^\ddagger=3.02$~MJ/mol, or $\Delta S^\ddagger=10.0$~kJ\,mol$^{-1}$\,K$^{-1}$, and offsets 97\% of the activation enthalpy. The estimate assumes the molecular prefactor $k_\mathrm{B}T/h$. A prefactor $10^{6}$ times smaller would lower $\Delta G^\ddagger$ by 13.8~$k_\mathrm{B}T$ and raise the compensation to 98\%.
+\textbf{Activation energy.} In the collapse of Figure~\ref*{MT-fig:arrest}b, $f$ depends on $t_w$ and $T$ only through $X=t_w\exp[(T-T_0)/T_s]$. A given value of $f$ is therefore reached at a fixed $X_f$, after a waiting time
+\begin{equation}
+ t_w(T)=X_f\exp\!\left(-\frac{T-T_0}{T_s}\right).
+ \label{eq:si-tw}
+\end{equation}
+The rate of arrest, $k\propto1/t_w$, then changes with temperature as
+\begin{equation}
+ \frac{\mathrm{d}\ln k}{\mathrm{d}T}=\frac{1}{T_s}.
+ \label{eq:si-slope}
+\end{equation}
+For an Arrhenius rate, $k=A\exp(-E_a/k_\mathrm{B}T)$ with a constant prefactor $A$, the same derivative is
+\begin{equation}
+ \frac{\mathrm{d}\ln k}{\mathrm{d}T}=\frac{E_a}{k_\mathrm{B}T^2}.
+ \label{eq:si-arrhenius}
+\end{equation}
+Equating Equations~\ref{eq:si-slope} and \ref{eq:si-arrhenius} gives
+\begin{equation}
+ E_a=\frac{k_\mathrm{B}T^2}{T_s}.
+ \label{eq:si-ea}
+\end{equation}
+Across the 0.75~K spanned here $1/T$ changes by only 0.25\%, so the exponential rescaling and the Arrhenius form describe the data equally well. At the mean temperature, $T=301.5$~K, $T_s=0.243\pm0.021$~K gives $E_a=(1.24\pm0.11)\times10^{3}\,k_\mathrm{B}T$, or $3.11\pm0.27$~MJ/mol, the uncertainty carried from $T_s$.
 
-$E_a$ belongs to the clock, the rate at which the samples evolve toward arrest, and not to the relaxation at a given stage. Compared at the same rescaled time $X=t_w\exp[(T-T_0)/T_s]$, the rate of the fast relaxation barely depends on temperature. Interpolated between the groups that bracket it, among those with $f\geq0.25$ at the lowest $Q$, $D_0$ at $X=3000$~s is 6.6, 6.2 and $6.1\times10^{7}$~\AA$^2$\,s$^{-1}$ at 28.00, 28.25 and \SI{28.50}{\degreeCelsius}. At $X=6600$~s it is 2.6, 4.4, 2.5 and $3.4\times10^{7}$~\AA$^2$\,s$^{-1}$ at the four temperatures in turn. These spreads, 1.1- and 1.8-fold and not ordered in temperature, compare with 7.8- and 22-fold changes of the clock over the same temperatures. The fast relaxation therefore follows the same rescaled time as $f$, and temperature sets how fast the state evolves rather than how fast the material relaxes in a given state.
+\textbf{Transition-state theory.} The rate of a thermally activated step is
+\begin{align}
+ k&=\frac{k_\mathrm{B}T}{h}\exp\!\left(-\frac{\Delta G^\ddagger}{k_\mathrm{B}T}\right),\label{eq:si-eyring}\\
+ \Delta G^\ddagger&=\Delta H^\ddagger-T\Delta S^\ddagger,\label{eq:si-dg}
+\end{align}
+where $h$ is Planck's constant and $\Delta G^\ddagger$, $\Delta H^\ddagger$ and $\Delta S^\ddagger$ are the free energy, enthalpy and entropy of activation. Taking the derivative of $\ln k$, with $\Delta H^\ddagger$ and $\Delta S^\ddagger$ constant over the narrow range,
+\begin{equation}
+ E_a=k_\mathrm{B}T^2\,\frac{\mathrm{d}\ln k}{\mathrm{d}T}=\Delta H^\ddagger+k_\mathrm{B}T.
+ \label{eq:si-dh}
+\end{equation}
+The Arrhenius slope therefore gives the enthalpy of activation, $\Delta H^\ddagger=3.11$~MJ/mol, but not the entropy. The free energy of activation follows from the rate itself. Taking the waiting time $t_{1/2}$ at which $f$ at the lowest $Q$ falls to 0.5 as $1/k$,
+\begin{equation}
+ \Delta G^\ddagger=k_\mathrm{B}T\,\ln\!\left(\frac{k_\mathrm{B}T}{h}\,t_{1/2}\right).
+ \label{eq:si-dgnum}
+\end{equation}
+For $t_{1/2}=6100$, 2220 and \SI{830}{\second} at 28.25, 28.50 and \SI{28.75}{\degreeCelsius}, $\Delta G^\ddagger$ is 38.2, 37.2 and 36.2~$k_\mathrm{B}T$, or 96, 93 and 91~kJ/mol. The entropy of activation is then
+\begin{equation}
+ T\Delta S^\ddagger=\Delta H^\ddagger-\Delta G^\ddagger=3.02~\mathrm{MJ\,mol^{-1}},
+ \label{eq:si-ds}
+\end{equation}
+or $\Delta S^\ddagger=10.0$~kJ\,mol$^{-1}$\,K$^{-1}$, which offsets 97\% of the activation enthalpy. The estimate assumes the molecular prefactor $k_\mathrm{B}T/h$. A prefactor $10^{6}$ times smaller would lower $\Delta G^\ddagger$ by 13.8~$k_\mathrm{B}T$ and raise the compensation to 98\%.
 
-The collective bond number divides $E_a$ by the transition enthalpy of one pentapeptide, whose residues V, P, A, V and G weigh 423.5~g/mol together. Calorimetry on heating in water gives 6.52~cal/g (27.3~J/g) for synthetic poly(VPAVG) retained by a 50~kDa dialysis membrane (more than 118 repeats),\cite{Luan1991-bp} 34~J/g for synthetic poly(VPAVG) of $M_n=74.8$~kDa (about 177 repeats)\cite{Reguera2003-ma} and 34~J/g for recombinant (VPAVG)$_{62}$.\cite{Ribeiro2009-bj} Per pentapeptide these are 11.55, 14.40 and 14.40~kJ/mol, which give $N=270$, 216 and 216, or 9.0, 7.2 and 7.2 chains of 30 repeats. No calorimetry of \VPAVG{} itself is available. For a related ELP, [(VPGVG)$_2$VPGEG(VPGVG)$_2$]$_n$ at pH 2.5, the transition enthalpy rises with chain length as 4.49, 7.82, 8.24, 8.87 and 9.03~J/g at 25, 45, 75, 150 and 225 pentapeptides, values read from Fig.~4 of Ref.~\citenum{Girotti2004-ma}. Interpolated linearly in chain length, these values give a chain of 30 pentapeptides 0.619, 0.596 and 0.661 of the enthalpy of chains of 118, 177 and 62 repeats. Scaled by these factors, the three calibrations become 16.9, 20.3 and 22.5~J/g, or 7.15, 8.59 and 9.51~kJ/mol per pentapeptide, and give $N=436$, 363 and 327, or 14.5, 12.1 and 10.9 chains. The scaling assumes that poly(VPAVG) loses enthalpy with chain length as that ELP does, and the interpolation between 25 and 45 pentapeptides is coarse, so the main text quotes both the long-chain and the scaled values. In 0.5~M NaCl the enthalpy of poly(VPAVG) rises 1.09-fold, from 2.76 to 3.01~kcal/mol,\cite{Luan1991-bp} which would lower $N$ by 8\% at that concentration and by less at the 0.25~M of the buffer used here.
+\textbf{Evolution and relaxation.} $E_a$ belongs to the evolution toward arrest, not to the relaxation at a given stage. At the lowest $Q$ the fast relaxation has the $1/\mathrm{e}$ time
+\begin{equation}
+ \tau_\mathrm{fast}=\frac{1}{D_0Q^2},
+ \label{eq:si-taufast}
+\end{equation}
+and a stage $X$ of the master curve is reached after the waiting time of Equation~\ref{eq:si-tw}. The fast-mode coefficient $D_0$ is interpolated between the groups that bracket each $X$, among those with $f\geq0.25$ at the lowest $Q$, where the fast decay fixes a rate. At $X=3000$~s, $\tau_\mathrm{fast}$ is 1.18, 1.25 and 1.28~ms at 28.00, 28.25 and \SI{28.50}{\degreeCelsius}, reached after 3000, 1071 and \SI{382}{\second}. At $X=6600$~s it is 3.04, 1.76, 3.12 and 2.25~ms at the four temperatures in turn, reached after 6600, 2356, 841 and \SI{300}{\second}. The relaxation time thus varies 1.1- and 1.8-fold, not ordered in temperature, whereas the waiting time varies 7.8- and 22-fold. The fast relaxation follows the same rescaled time as $f$, and temperature sets how fast the state evolves rather than how fast the material relaxes in a given state.
 
-The desolvation transition itself is far less steep. Isoconversional (Friedman) analysis of the calorimetry of poly(VPAVG) on heating gives apparent activation energies of 480~kJ/mol at the onset of the transition, 340~kJ/mol up to about 30\% conversion and 220~kJ/mol beyond 85\%,\cite{Reguera2003-ma} 6.5 to 14 times smaller than $E_a$. If that transition set the pace of arrest, $T_s$ would be 1.6 to 3.4~K rather than 0.24~K.
+\textbf{Collective bond number.} In scenario B of the main text, each repeat that changes state in the rate-limiting step adds its transition enthalpy to the activation enthalpy, so
+\begin{align}
+ N&\approx\frac{E_a}{\Delta H},\label{eq:si-n}\\
+ \Delta H&=\Delta h\,M,\label{eq:si-dhrepeat}
+\end{align}
+where $\Delta h$ is the transition enthalpy per gram measured by calorimetry and $M=423.5$~g/mol is the mass of one VPAVG repeat. Calorimetry on heating in water exists only for chains longer than \VPAVG: 6.52~cal/g (27.3~J/g) for synthetic poly(VPAVG) retained by a 50~kDa dialysis membrane (more than 118 repeats),\cite{Luan1991-bp} 34~J/g for synthetic poly(VPAVG) of $M_n=74.8$~kDa (about 177 repeats)\cite{Reguera2003-ma} and 34~J/g for recombinant (VPAVG)$_{62}$.\cite{Ribeiro2009-bj} The transition enthalpy per gram of a related ELP, [(VPGVG)$_2$VPGEG(VPGVG)$_2$]$_n$ at pH 2.5, rises with chain length as 4.49, 7.82, 8.24, 8.87 and 9.03~J/g at 25, 45, 75, 150 and 225 pentapeptides, values read from Fig.~4 of Ref.~\citenum{Girotti2004-ma}. Writing $\Delta h_G(n)$ for that dependence, interpolated linearly in the number $n$ of pentapeptides, each long-chain value is scaled to 30 repeats as
+\begin{equation}
+ \Delta h_{30}=s\,\Delta h_\mathrm{long},\qquad s=\frac{\Delta h_G(30)}{\Delta h_G(n_\mathrm{long})},
+ \label{eq:si-scale}
+\end{equation}
+with $n_\mathrm{long}$ the length of the calibrating chain, taken at its lower bound of 118 repeats for Luan \textit{et al.} The resulting values are
+\begin{center}
+\begin{tabular}{lrrrrr}
+\hline
+Calibration & $n_\mathrm{long}$ & $s$ & $\Delta h$ (J/g) & $\Delta H$ (kJ/mol) & $N$ (chains) \\
+\hline
+Luan \textit{et al.}, long chain & $>118$ & 1 & 27.3 & 11.55 & 270 (9.0) \\
+Reguera \textit{et al.}, long chain & 177 & 1 & 34.0 & 14.40 & 216 (7.2) \\
+Ribeiro \textit{et al.}, long chain & 62 & 1 & 34.0 & 14.40 & 216 (7.2) \\
+Luan \textit{et al.}, scaled & & 0.619 & 16.9 & 7.15 & 436 (14.5) \\
+Reguera \textit{et al.}, scaled & & 0.596 & 20.3 & 8.59 & 363 (12.1) \\
+Ribeiro \textit{et al.}, scaled & & 0.661 & 22.5 & 9.51 & 327 (10.9) \\
+\hline
+\end{tabular}
+\end{center}
+The scaling assumes that poly(VPAVG) loses enthalpy with chain length as that ELP does, and the interpolation between 25 and 45 pentapeptides is coarse, so the main text quotes both the long-chain and the scaled values. In 0.5~M NaCl the enthalpy of poly(VPAVG) rises 1.09-fold, from 2.76 to 3.01~kcal/mol,\cite{Luan1991-bp} which would lower $N$ by 8\% at that concentration and by less at the 0.25~M of the buffer used here.
+
+\textbf{Calorimetric kinetics.} Reguera \textit{et al.} obtained the activation energy of the calorimetric transition by isoconversional (Friedman) analysis.\cite{Reguera2003-ma} With $\alpha$ the fraction of the transition heat absorbed and $T_\alpha$ the temperature at which a run reaches it,
+\begin{equation}
+ \ln\!\left(\frac{\mathrm{d}\alpha}{\mathrm{d}t}\right)_{\!\alpha}=\ln\!\left[A\,g(\alpha)\right]-\frac{E_a(\alpha)}{R\,T_\alpha},
+ \label{eq:si-friedman}
+\end{equation}
+where $\mathrm{d}\alpha/\mathrm{d}t$ is the heat flow divided by the total transition heat, $g(\alpha)$ is an unknown function of the conversion and $R$ is the gas constant. Runs at heating rates of \SIrange{2}{30}{\degreeCelsius\per\minute} reach the same $\alpha$ at different temperatures, and at fixed $\alpha$ the slope of $\ln(\mathrm{d}\alpha/\mathrm{d}t)$ against $1/T_\alpha$ gives $E_a(\alpha)$. Like the rescaling of Figure~\ref*{MT-fig:arrest}b, the analysis compares the rate of one process at the same stage at different temperatures, so the two activation energies are quantities of the same kind. For poly(VPAVG) on heating it gives 480~kJ/mol at the onset of the transition, 340~kJ/mol up to about 30\% conversion and 220~kJ/mol beyond 85\%, 6.5 to 14 times smaller than $E_a$. If that transition set the pace of arrest, $T_s=RT^2/E_a$ would be 1.6 to 3.4~K rather than 0.24~K.
 
 \section{Code, Data and AI-Assisted Development}
 \label{sec:code}
@@ -337,7 +414,7 @@ GGTGGGCGTCCCGGCGGTCGGCGTACCAGCAGTAGGT
 \begin{figure}[H]
   \centering
   \acsfig{FigureS12_Fast_Mode.pdf}
-  \caption{\textbf{The rate of the fast relaxation falls while the arrested fraction is still small and then levels off as arrest proceeds, and the relaxation broadens as the mobile population shrinks.} The fast mode of every group of the four isothermal experiments is plotted against the arrested fraction $1-f$ at the lowest $Q$. (a) $D_0$, the diffusion coefficient set by the $1/\mathrm{e}$ time $1/(D_0Q^2)$ of the fast decay, which does not depend on $p_{\mathrm{fast}}$. (b) The stretching exponent $p_{\mathrm{fast}}$; the dashed line is the lower bound of the fit. Open symbols mark groups with $f<0.25$, where the fast decay is too weak to fix a rate. Color and marker shape denote temperature; error bars are one-standard-deviation fit uncertainties, absent on $p_{\mathrm{fast}}$ where it was held at the minimum of its profile.}
+  \caption{\textbf{The rate of the fast relaxation falls while the sample is still mobile and then levels off while the fast fraction keeps falling, and the relaxation broadens as the sample arrests.} Every fitted group of the four isothermal experiments is plotted against its waiting time $t_w$, the midpoint of the group, and lines join consecutive groups of each temperature. (a) The fast fraction $f$ at the lowest $Q$, 0.00359~\Ainv, as in Figure~\ref*{MT-fig:arrest}a of the main text; the dashed line marks $f=0.25$. (b) $D_0$, the diffusion coefficient set by the $1/\mathrm{e}$ time $1/(D_0Q^2)$ of the fast decay, which does not depend on $p_{\mathrm{fast}}$. (c) The stretching exponent $p_{\mathrm{fast}}$; the dashed line is the lower bound of the fit. Open symbols in (b) and (c) mark groups with $f<0.25$, where the fast decay is too weak to fix a rate; their values are shown for completeness and not used. Color and marker shape denote temperature; error bars are one-standard-deviation fit uncertainties, absent on $p_{\mathrm{fast}}$ where it was held at the minimum of its profile.}
   \label{fig:fastmode}
 \end{figure}
 \clearpage

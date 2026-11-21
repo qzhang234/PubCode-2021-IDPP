@@ -601,43 +601,59 @@ for h, (run, sample, target) in RUNS.items():
             save_fig(fig, os.path.join(HERE, FIG_NAMES[h]))
 
 
-# --- Figure S8: the fast mode of every group, against the arrested fraction --
-def draw_against_arrest(ax, rows, x, value_key, error_key, scale, color, marker):
-    """One fit parameter of every group of one temperature against 1 - f;
-    open symbols where f at the lowest Q is below RATE_MIN_F."""
-    y = np.array([r['fit'][value_key] for r in rows]) / scale
-    e = np.array([r['fit'][error_key] for r in rows]) / scale
-    ax.plot(x, y, '-', color=color, lw=LW_THIN, alpha=0.6, zorder=1)
+# --- Figure S8: f and the fast mode of every group, against the waiting time --
+# Plotted against t_w, which only increases, so each line runs forward in time.
+def draw_against_time(ax, rows, y, e, color, marker, open_low_f):
+    """One quantity of every group of one temperature against t_w, joined in
+    time order; open symbols where f at the lowest Q is below RATE_MIN_F if
+    open_low_f is True (the fast decay then fixes no rate)."""
+    t = np.array([r['tw'] for r in rows])
+    ax.plot(t, y, '-', color=color, lw=LW_THIN, alpha=0.6, zorder=1)
     for k in range(len(rows)):
-        if rows[k]['f'][0] >= RATE_MIN_F:
-            face = color
-        else:
+        if open_low_f and rows[k]['f'][0] < RATE_MIN_F:
             face = 'none'
-        ax.errorbar(x[k], y[k], yerr=e[k], marker=marker, ls='none', color=color, ms=MS_SPARSE - 1,
+        else:
+            face = color
+        ax.errorbar(t[k], y[k], yerr=e[k], marker=marker, ls='none', color=color, ms=MS_SPARSE - 1,
                     mfc=face, mew=MEW, elinewidth=LW_THIN, capsize=1.0, capthick=LW_THIN, zorder=2)
 
 
 fig = plt.figure(figsize=(DOUBLE_COL, 2.75))
-gs = GridSpec(1, 2, figure=fig, left=0.075, right=0.985, top=0.92, bottom=0.30, wspace=0.28)
-axd = fig.add_subplot(gs[0, 0])
-axp = fig.add_subplot(gs[0, 1])
+gs = GridSpec(1, 3, figure=fig, left=0.068, right=0.99, top=0.92, bottom=0.30, wspace=0.36)
+axf = fig.add_subplot(gs[0, 0])
+axd = fig.add_subplot(gs[0, 1])
+axp = fig.add_subplot(gs[0, 2])
 for k in range(len(run_keys)):
     h = run_keys[k]
     rows = series[h]
-    x = np.array([1.0 - r['f'][0] for r in rows])
-    draw_against_arrest(axd, rows, x, 'D0', 'D0_err', 1e7, T_COLOR[h], T_MARKERS[k])
-    draw_against_arrest(axp, rows, x, 'p1', 'p1_err', 1.0, T_COLOR[h], T_MARKERS[k])
+    f0 = np.array([r['f'][0] for r in rows])
+    f0_err = np.array([r['fe'][0] for r in rows])
+    d0 = np.array([r['fit']['D0'] for r in rows]) / 1e7
+    d0_err = np.array([r['fit']['D0_err'] for r in rows]) / 1e7
+    pf = np.array([r['fit']['p1'] for r in rows])
+    pf_err = np.array([r['fit']['p1_err'] for r in rows])
+    draw_against_time(axf, rows, f0, f0_err, T_COLOR[h], T_MARKERS[k], False)
+    draw_against_time(axd, rows, d0, d0_err, T_COLOR[h], T_MARKERS[k], True)
+    draw_against_time(axp, rows, pf, pf_err, T_COLOR[h], T_MARKERS[k], True)
+# Reference lines sit at zorder 1, above the grid (zorder 0.5), which hid them.
+axf.axhline(RATE_MIN_F, color='0.35', ls='--', lw=LW_THIN, zorder=1)
+axf.text(5000, RATE_MIN_F - 0.02, f'$f$ = {RATE_MIN_F}', color='0.35', ha='center', va='top')
+axf.text(0.97, 0.97, f'$Q$ = {series["H0404"][0]["q"][0]:.5f} ' + r'$\AA^{-1}$',
+         transform=axf.transAxes, ha='right', va='top')
+axf.set_ylim(-0.08, 1.15)
+axf.set_ylabel(r'Fast Fraction, $f$')
 axd.set_yscale('log')
 axd.set_ylabel(r'$D_0$ ($10^{7}\ \AA^{2}\,$s$^{-1}$)')
-axp.axhline(xpcs_fit.P_EXP_LO[0], color='0.35', ls='--', lw=LW_THIN, zorder=0)
-axp.text(0.02, xpcs_fit.P_EXP_LO[0] + 0.015, 'lower bound of the fit', color='0.35', va='bottom')
+axp.axhline(xpcs_fit.P_EXP_LO[0], color='0.35', ls='--', lw=LW_THIN, zorder=1)
+axp.text(8700, xpcs_fit.P_EXP_LO[0] - 0.015, 'lower bound of the fit', color='0.35', ha='right',
+         va='top')
 axp.set_ylim(0.0, 1.1)
 axp.set_ylabel(r'$p_{\mathrm{fast}}$')
-for ax in (axd, axp):
-    ax.set_xlim(-0.03, 1.0)
-    ax.set_xlabel(r'Arrested Fraction, $1-f$, at $Q$ = ' + f'{series["H0404"][0]["q"][0]:.5f} ' + r'$\AA^{-1}$')
+for ax in (axf, axd, axp):
+    ax.set_xlim(-400, 8900)
+    ax.set_xlabel(r'$t_w$ (s)')
     add_minor_grid(ax)
-label_panels([axd, axp])
+label_panels([axf, axd, axp])
 handles = [Line2D([], [], ls='none', marker='', label=r'$T$ (°C)')]
 for k in range(len(run_keys)):
     h = run_keys[k]

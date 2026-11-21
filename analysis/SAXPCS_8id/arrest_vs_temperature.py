@@ -349,21 +349,27 @@ for run, (T, t, F, E) in series.items():
     for k in np.nonzero(keep)[0]:
         cells.append(f'X {X[k]:.0f} s (f0 {F[k, Q0]:.2f}) {D0S[run][k] / 1e7:.2f}')
     print(f'   {T:.2f} C: ' + '; '.join(cells))
+print('   at the same X: D0, the fast relaxation time 1/(D0 Q^2) at the lowest Q, and the waiting')
+print('   time t_w = X exp[-(T - T0)/T_s] each temperature needs to reach that stage')
 for x_common in (3000.0, 6600.0):
     cells = []
     temps = []
     values = []
+    waits = []
     for run, (T, Xk, Dk) in X_D0.items():
         if len(Xk) < 2 or x_common < Xk.min() or x_common > Xk.max():
             continue
         d = np.exp(np.interp(np.log(x_common), np.log(Xk), np.log(Dk)))
-        cells.append(f'{T:.2f} C {d / 1e7:.2f}')
+        tau = 1.0 / (d * QVALS[Q0]**2)            # s, the 1/e time of the fast decay
+        t_wait = x_common * np.exp(-(T - T_REF) / TS)
+        cells.append(f'{T:.2f} C: D0 {d / 1e7:.2f}, 1/(D0 Q^2) {tau * 1e3:.2f} ms, t_w {t_wait:.0f} s')
         temps.append(T)
         values.append(d)
+        waits.append(t_wait)
     spread = max(values) / min(values)
-    clock = np.exp((max(temps) - min(temps)) / TS)
-    print(f'   D0 at X = {x_common:.0f} s: ' + '; '.join(cells)
-          + f'  -> {spread:.1f}x spread, against the clock\'s {clock:.1f}x over the same temperatures')
+    clock = max(waits) / min(waits)
+    print(f'   X = {x_common:.0f} s: ' + '; '.join(cells))
+    print(f'      relaxation time spread {spread:.1f}x, waiting time {clock:.1f}x over the same temperatures')
 
 # Bond number N = E_a / (transition enthalpy of one pentapeptide).
 # Calorimetry exists only for long poly(VPAVG) chains in water: J/g on heating,
