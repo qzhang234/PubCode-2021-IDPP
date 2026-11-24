@@ -235,10 +235,16 @@ and 1e-2 s is at most 0.016, a noise limit carried over from an earlier
 analysis, and kept when its reduced chi^2 is below 10; 34 groups pass. Where f
 at the lowest Q is below 0.25 the fast decay is too weak to fix a rate, and D0
 is drawn as an open grey star and left out of the quoted rate ranges. Arrest
-counts as under way once f at the lowest Q falls below 0.85. When an
-isothermal experiment has more than seven fitted groups, panels (a), (b) and
-(d)-(g) show every second one and panel (c) all of them; the group at t_w = 0
-is drawn black in panel (a) when it is too noisy to fit.
+counts as under way once f at the lowest Q falls below 0.85. Panel (a) shows
+the SAXS of every group at the target, 38 in all: circles where g2 was fitted,
+triangles where it was too noisy to fit (the first three groups at 28.00 C and
+the first at 28.25 C), with the 6 C reference and the first group of the
+heating ramp (~20 C, the level the text quotes ratios against). The colour
+scale spans every group at the target. When an isothermal experiment has more
+than seven fitted groups, panels (b) and (d)-(g) show every second one and
+panel (c) all of them; the key lists the groups drawn in (b) and the triangles.
+The script prints the RTD temperature of each ~20 C group (20.2-20.5 C) and the
+number of groups at the target and fitted.
 
 **The temperature collapse and the SAXS on the same clock**
 (`arrest_vs_temperature.py`; SI section 6.5). f at the lowest Q of all 34

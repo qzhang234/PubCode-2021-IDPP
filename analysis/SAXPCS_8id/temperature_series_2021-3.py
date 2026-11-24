@@ -58,6 +58,7 @@ CONVERTING = 0.85                     # f at the lowest Q below which arrest is 
 RATE_MIN_F = 0.25                     # below this f at the lowest Q the fast decay fixes no rate
 LATE = 0.70                           # f at the lowest Q that separates early and late stages
 COLOR_6C = '#1f77b4'                  # the 6 C reference, blue squares in panel (a)
+COLOR_20C = '0.45'                    # the first group of the ramp (~20 C), grey diamonds in (a)
 
 FIG_NAMES = {'H0402': 'FigureS7_Temperature_2800.pdf', 'H0407': 'FigureS8_Temperature_2825.pdf',
              'H0404': 'FigureS9_Temperature_2850.pdf', 'H0413': 'FigureS10_Temperature_2875.pdf'}
@@ -409,27 +410,30 @@ for h, (run, sample, target) in RUNS.items():
         shown = rows[::2]
     if shown[-1] is not rows[-1]:
         shown = shown + [rows[-1]]
-    t_lo = rows[0]['tw']
-    t_hi = rows[-1]['tw']
 
-    # The group that starts at t_w = 0, drawn black in (a) if it was too noisy to fit.
-    frame, t_acq, _, t0 = acquisitions(run)
-    zero = None
-    smallest = None
-    for fp in group_files(run):
-        with h5py.File(fp, 'r') as hf:
-            offset = abs((read_start_time(hf) - t0).total_seconds())
-        if smallest is None or offset < smallest:
-            zero = fp
-            smallest = offset
-    if smallest > 60.0:
-        zero = None
-    zero_fitted = False
+    # Every group at the target is drawn in (a), fitted or not, so the colour
+    # scale spans all of them; (c) keeps the range of the fitted groups.
+    frame, t_acq, _, _ = acquisitions(run)
+    hold_tw = []
+    for fp in hold_files[h]:
+        hold_tw.append(group_midpoint(fp, frame, t_acq))
+    t_lo = min(hold_tw)
+    t_hi = max(hold_tw)
+    fitted_files = []
     for r in rows:
-        if r['fp'] == zero:
-            zero_fitted = True
-    if zero is not None:
-        zero_label = f'{group_midpoint(zero, frame, t_acq):.0f}'
+        fitted_files.append(r['fp'])
+    shown_files = []
+    for r in shown:
+        shown_files.append(r['fp'])
+
+    # The first group of the ramp: the ~20 C level that the text quotes the
+    # low-Q growth against.
+    ramp_first = group_files(run)[0]
+    tw20 = group_midpoint(ramp_first, frame, t_acq)
+    t_trace, T_trace, _ = traces[h]
+    T20 = np.interp(tw20, t_trace, T_trace)
+    print(f'{target:.2f} C: first ramp group at t_w = {tw20:.0f} s, RTD {T20:.2f} C; '
+          f'{len(hold_files[h])} groups at the target, {len(rows)} fitted')
 
     # The 28.50 C loading is drawn twice: the seven-panel SI figure and the
     # three-panel Figure 2.
@@ -462,41 +466,55 @@ for h, (run, sample, target) in RUNS.items():
             label_panels(axq, dx=-14, start=3)   # no y tick labels to clear there
 
         # (a) SAXS, from the lowest fitted Q bin outward; below it the points
-        # sit on the edge of the beamstop shadow (README).
+        # sit on the edge of the beamstop shadow (README).  The 6 C reference,
+        # the first group of the ramp (~20 C) and every group at the target:
+        # circles where g2 was fitted, triangles where it was too noisy to fit
+        # (those appear in (a) only).  The key lists the triangles and the
+        # fitted groups drawn in (b) and (d)-(g); the profiles between them take
+        # their colour from the same t_w scale.
         key = []
         q6, I6 = abs_iq(ref_file(h))
         m = (I6 > 0) & (q6 >= FIT_BAND[0])
         ax1.plot(q6[m], I6[m], 's', color=COLOR_6C, ms=MS, mfc='none', mew=MEW)
         lo = I6[m].min()
         hi = I6[m].max()
-        curves = []
-        for r in shown:
-            curves.append((r['fp'], time_color(r['tw'], t_lo, t_hi), f'{r["tw"]:.0f}'))
-        if zero is not None and not zero_fitted:
-            curves.insert(0, (zero, 'black', zero_label))
-        for fp, c, label in curves:
+        q20, I20 = abs_iq(ramp_first)
+        m = (I20 > 0) & (q20 >= FIT_BAND[0])
+        ax1.plot(q20[m], I20[m], 'D', color=COLOR_20C, ms=MS - 0.5, mfc='none', mew=MEW)
+        lo = min(lo, I20[m].min())
+        hi = max(hi, I20[m].max())
+        for k in range(len(hold_files[h])):
+            fp = hold_files[h][k]
+            c = time_color(hold_tw[k], t_lo, t_hi)
+            if fp in fitted_files:
+                mk = 'o'
+            else:
+                mk = '^'
             q, I = abs_iq(fp)
             m = (I > 0) & (q >= FIT_BAND[0])
-            ax1.plot(q[m], I[m], 'o', color=c, ms=MS, mfc='none', mew=MEW)
+            ax1.plot(q[m], I[m], mk, color=c, ms=MS, mfc='none', mew=MEW)
             lo = min(lo, I[m].min())
             hi = max(hi, I[m].max())
-            key.append(Line2D([], [], marker='o', ls='none', color=c, ms=MS, mfc='none', mew=MEW,
-                              label=label))
+            if fp in shown_files or fp not in fitted_files:
+                key.append(Line2D([], [], marker=mk, ls='none', color=c, ms=MS, mfc='none',
+                                  mew=MEW, label=f'{hold_tw[k]:.0f}'))
         ax1.set_xscale('log')
         ax1.set_yscale('log')
         ax1.set_xlim(3.3e-3, 3.6e-2)
         q_log_ticks(ax1)
-        ax1.set_ylim(lo * 0.45, hi * 3.0)
+        ax1.set_ylim(lo * 0.3, hi * 6.0)
         # The low-Q band of Figure 3c.  Its edges are dashed lines at zorder 1,
         # above the minor grid lines that fall on the same Q values.
         ax1.axvspan(BAND[0], BAND[1], color='0.92', lw=0, zorder=0)
         for edge in BAND:
             ax1.axvline(edge, color='0.45', ls='--', lw=LW_THIN, zorder=1.0)
-        ax1.text(np.sqrt(BAND[0] * BAND[1]), 0.27, 'low-$Q$\nband', ha='center', va='center',
+        ax1.text(np.sqrt(BAND[0] * BAND[1]), 0.97, 'low-$Q$\nband', ha='center', va='top',
                  color='0.35', linespacing=1.0,
                  transform=mtransforms.blended_transform_factory(ax1.transData, ax1.transAxes))
         plateau = np.median(I6[(q6 > 0.006) & (q6 < 0.03)])
-        ax1.text(0.012, plateau * 2.4, '6 °C ref', ha='center', va='bottom', color=COLOR_6C)
+        ax1.text(0.012, plateau * 0.6, '6 °C ref', ha='center', va='top', color=COLOR_6C)
+        ax1.text(0.012, np.interp(0.012, q20, I20) * 1.5, '20 °C', ha='center', va='bottom',
+                 color=COLOR_20C)
         ax1.set_xlabel(r'$Q$ ($\AA^{-1}$)')
         ax1.set_ylabel(r'$I(Q)$ (mm$^{-1}$)')
         add_minor_grid(ax1)
@@ -565,8 +583,10 @@ for h, (run, sample, target) in RUNS.items():
             if f_lo - 0.08 * span <= v:
                 ticks.append(v)
         ax3.set_yticks(ticks)
-        pad = 0.12 * max(t_hi - t_lo, 600)
-        ax3.set_xlim(t_lo - pad, t_hi + pad)
+        fit_lo = rows[0]['tw']
+        fit_hi = rows[-1]['tw']
+        pad = 0.12 * max(fit_hi - fit_lo, 600)
+        ax3.set_xlim(fit_lo - pad, fit_hi + pad)
         ax3.set_xlabel(r'$t_w$ (s)')
         ax3.set_ylabel('Fast Fraction, $f$')
         add_minor_grid(ax3)
