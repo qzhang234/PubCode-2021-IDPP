@@ -36,7 +36,8 @@ from nexus_read import read_start_time, read_g2, read_iq                  # noqa
 from abs_xsec import abs_xsec_coef, coef_from_monitors                    # noqa: E402
 from series_2021_3 import (DATA, BACKGROUND, BAND, BG_COEF, T_HUES, T_MARKERS,  # noqa: E402
                            Q_BG, I_BG, COEF_BG, abs_iq, acquisitions, band_intensity,
-                           group_files, group_midpoint, trace_rows)
+                           group_files, group_midpoint, ramp_reference, trace_rows)
+from nexus_read import parse_name                                         # noqa: E402
 
 STANDARD = os.path.join(DATA, 'Average_B0005_12IDB_Standard_006C_att00_Rq0_00001_00100_results.hdf')
 
@@ -58,7 +59,7 @@ CONVERTING = 0.85                     # f at the lowest Q below which arrest is 
 RATE_MIN_F = 0.25                     # below this f at the lowest Q the fast decay fixes no rate
 LATE = 0.70                           # f at the lowest Q that separates early and late stages
 COLOR_6C = '#1f77b4'                  # the 6 C reference, blue squares in panel (a)
-COLOR_20C = '0.45'                    # the first group of the ramp (~20 C), grey diamonds in (a)
+COLOR_20C = '0.45'                    # the first 20 acquisitions of the ramp (~20 C), grey diamonds in (a)
 
 FIG_NAMES = {'H0402': 'FigureS7_Temperature_2800.pdf', 'H0407': 'FigureS8_Temperature_2825.pdf',
              'H0404': 'FigureS9_Temperature_2850.pdf', 'H0413': 'FigureS10_Temperature_2875.pdf'}
@@ -303,13 +304,13 @@ for h, (run, sample, target) in RUNS.items():
           f'band {Ia:.2f} -> {Ib:.2f} ({Ib / Ia:.2f}x); I(Q) ratio last/first at Q ' + '  '.join(ratio_text))
 
 # How far the structure has grown when the dynamics start to arrest.  The ~20 C
-# level is the first group of the ramp, the reference arrest_vs_temperature.py
-# quotes the half-arrest intensity against.
+# level is the first 20 acquisitions of the ramp, the reference
+# arrest_vs_temperature.py quotes the half-arrest intensity against.
 print('\nlow-Q band intensity of every group on target (mm^-1), with f at the lowest Q '
-      'where fitted,\nagainst the first group of the ramp (~20 C):')
+      'where fitted,\nagainst the first 20 acquisitions of the ramp (~20 C):')
 for h, (run, sample, target) in RUNS.items():
     frame, t_acq, _, _ = acquisitions(run)
-    base20 = band_intensity(group_files(run)[0])
+    base20 = band_intensity(ramp_reference(run))
     fitted_f0 = {}
     for r in series[h]:
         fitted_f0[r['fp']] = r['f'][0]
@@ -413,7 +414,7 @@ for h, (run, sample, target) in RUNS.items():
 
     # Every group at the target is drawn in (a), fitted or not, so the colour
     # scale spans all of them; (c) keeps the range of the fitted groups.
-    frame, t_acq, _, _ = acquisitions(run)
+    frame, t_acq, T_acq, _ = acquisitions(run)
     hold_tw = []
     for fp in hold_files[h]:
         hold_tw.append(group_midpoint(fp, frame, t_acq))
@@ -426,14 +427,15 @@ for h, (run, sample, target) in RUNS.items():
     for r in shown:
         shown_files.append(r['fp'])
 
-    # The first group of the ramp: the ~20 C level that the text quotes the
-    # low-Q growth against.
-    ramp_first = group_files(run)[0]
-    tw20 = group_midpoint(ramp_first, frame, t_acq)
-    t_trace, T_trace, _ = traces[h]
-    T20 = np.interp(tw20, t_trace, T_trace)
-    print(f'{target:.2f} C: first ramp group at t_w = {tw20:.0f} s, RTD {T20:.2f} C; '
-          f'{len(hold_files[h])} groups at the target, {len(rows)} fitted')
+    # The first 20 acquisitions of the ramp: the ~20 C level that the text
+    # quotes the low-Q growth against.
+    ramp_first = ramp_reference(run)
+    _, a20, b20 = parse_name(ramp_first)
+    in20 = (frame >= a20) & (frame <= b20)
+    print(f'{target:.2f} C: ~20 C reference = acquisitions {a20}-{b20}, RTD {T_acq[in20].min():.2f}-'
+          f'{T_acq[in20].max():.2f} C; {len(hold_files[h])} groups at the target, {len(rows)} fitted')
+    print(f'   acquisitions start {-t_acq[0] / 60:.1f} min before t_w = 0, at RTD {T_acq[0]:.2f} C, '
+          f'{int(np.sum(t_acq < 0))} of them on the ramp')
 
     # The 28.50 C loading is drawn twice: the seven-panel SI figure and the
     # three-panel Figure 2.
@@ -467,7 +469,7 @@ for h, (run, sample, target) in RUNS.items():
 
         # (a) SAXS, from the lowest fitted Q bin outward; below it the points
         # sit on the edge of the beamstop shadow (README).  The 6 C reference,
-        # the first group of the ramp (~20 C) and every group at the target:
+        # the first 20 acquisitions of the ramp (~20 C) and every group at the target:
         # circles where g2 was fitted, triangles where it was too noisy to fit
         # (those appear in (a) only).  The key lists the triangles and the
         # fitted groups drawn in (b) and (d)-(g); the profiles between them take

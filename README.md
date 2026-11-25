@@ -68,7 +68,7 @@ Some numbers in the text come from scripts that print them rather than draw:
 │   │   ├── acs_style.py  house figure style: column widths, 8 pt Arial, line widths, save_fig()
 │   │   └── utils.py      the first outlier cut and the group average, used by the reduction
 │   ├── SAXPCS_8id/       the 2021-3 temperature series
-│   │   ├── data_2021-3/                  committed reduced data (127 MB): 85 averaged NeXus files
+│   │   ├── data_2021-3/                  committed reduced data (132 MB): 89 averaged NeXus files
 │   │   │                                 and trace_2021-3.csv, one row per acquisition
 │   │   ├── temperature_series_2021-3.py  figure script: Fig. 2, Figs. S4-S8
 │   │   ├── arrest_vs_temperature.py      figure script: Fig. 3, Fig. S9
@@ -105,7 +105,9 @@ Some numbers in the text come from scripts that print them rather than draw:
 
 `data_2021-3/` holds the group averages of the four loadings and their 6 °C
 references, the empty-cell and air measurements, and the static standard used
-for the speckle contrast.
+for the speckle contrast. Its subfolder `ramp20/` holds the ~20 °C reference
+of each loading: the average of the first 20 acquisitions of its heating ramp
+(RTD 20.0-20.2 °C), kept apart so that the group lists never pick it up.
 
 Kept locally and gitignored: `PNAS_author_guide.pdf`, `ACS_author_guide.pdf`
 (Appendix 2 of the ACS guide is the source of the numbers in
@@ -238,13 +240,15 @@ is drawn as an open grey star and left out of the quoted rate ranges. Arrest
 counts as under way once f at the lowest Q falls below 0.85. Panel (a) shows
 the SAXS of every group at the target, 38 in all: circles where g2 was fitted,
 triangles where it was too noisy to fit (the first three groups at 28.00 C and
-the first at 28.25 C), with the 6 C reference and the first group of the
-heating ramp (~20 C, the level the text quotes ratios against). The colour
-scale spans every group at the target. When an isothermal experiment has more
-than seven fitted groups, panels (b) and (d)-(g) show every second one and
-panel (c) all of them; the key lists the groups drawn in (b) and the triangles.
-The script prints the RTD temperature of each ~20 C group (20.2-20.5 C) and the
-number of groups at the target and fitted.
+the first at 28.25 C), with the 6 C reference and the ~20 C reference from
+`data_2021-3/ramp20/` (the first 20 acquisitions of the heating ramp, the
+level the text quotes ratios against; `series_2021_3.ramp_reference()`). The
+colour scale spans every group at the target. When an isothermal experiment
+has more than seven fitted groups, panels (b) and (d)-(g) show every second one
+and panel (c) all of them; the key lists the groups drawn in (b) and the
+triangles. The script prints the RTD range of each ~20 C reference
+(20.0-20.2 C), when acquisitions start (79.5-86.8 min before t_w = 0, at
+20.0 C) and the number of groups at the target and fitted.
 
 **The temperature collapse and the SAXS on the same clock**
 (`arrest_vs_temperature.py`; SI section 6.5). f at the lowest Q of all 34
@@ -272,7 +276,7 @@ the fitted bins.
 ## Reproducibility
 
 The reduced data every figure is drawn from are committed:
-`analysis/SAXPCS_8id/data_2021-3/` (127 MB: one averaged NeXus file per group
+`analysis/SAXPCS_8id/data_2021-3/` (132 MB: one averaged NeXus file per group
 of acquisitions, plus the per-acquisition trace of time, RTD temperature,
 monitors and low-Q intensity) and `analysis/Rad_Dam_Check/cluster_results/`.
 **`make figures` and `make papers` therefore run from a clone of this
@@ -341,8 +345,10 @@ data) and `-w`, which overwrites a result in place.
 per acquisition with its start time, zone-3 RTD reading and setpoint, both ion
 chambers and the mean of the stored I(Q) entries over 0.004-0.008 A^-1; the
 groups of 100 acquisitions; each 6 °C reference and the static standard,
-averaged whole; and, with the argument `empties`, the six candidate
-backgrounds. Run both calls after a reprocessing. Every group passes two
+averaged whole; with the argument `empties`, the six candidate backgrounds;
+and, with the argument `ramp20`, the ~20 °C reference of each loading (its first
+20 acquisitions, into `data_2021-3/ramp20/`). Run all three calls after a
+reprocessing. Every group passes two
 outlier cuts (SI section 5.3). The first, `outlier_removal()` in
 `common/utils.py`, compares the shape of each acquisition's g2, g2
 uncertainty and log I(Q) with the rest of the group by cosine similarity and

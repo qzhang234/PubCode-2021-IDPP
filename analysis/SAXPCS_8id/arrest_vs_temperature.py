@@ -32,7 +32,7 @@ from common.acs_style import (DOUBLE_COL, MS, MS_SPARSE, MEW, LW_THIN, LW_DATA, 
 import xpcs_fit                                                           # noqa: E402
 from nexus_read import read_start_time, read_g2                           # noqa: E402
 from series_2021_3 import (DATA, BAND, T_HUES, T_MARKERS, abs_iq, acquisitions,  # noqa: E402
-                           band_intensity, group_files, group_midpoint)
+                           band_intensity, group_files, group_midpoint, ramp_reference)
 
 STANDARD = os.path.join(DATA, 'Average_B0005_12IDB_Standard_006C_att00_Rq0_00001_00100_results.hdf')
 
@@ -53,14 +53,14 @@ xpcs_fit.CONTRAST = xpcs_fit.measure_beta(STANDARD, '2021-3 static standard')
 # --- every group of every isothermal experiment: f in all five bins, and the SAXS
 series = {}                           # run -> (T, t_w, f[group, bin], f_err[group, bin]) of the fitted groups
 saxs = {}                             # run -> (T, t_w, band intensity) of every group at the target
-base = {}                             # run -> band intensity of the first group of the ramp, ~20 C
+base = {}                             # run -> band intensity of the first 20 acquisitions of the ramp, ~20 C
 hold_files = {}                       # run -> every group at the target
 D0S = {}                              # run -> D0 (A^2/s) of each fitted group, in the order of series
 QVALS = None
 for run, T in RUNS.items():
     frame, t_acq, _, t0 = acquisitions(run)
     files = group_files(run)
-    base[run] = band_intensity(files[0])
+    base[run] = band_intensity(ramp_reference(run))
     t_fit = []
     f_fit = []
     e_fit = []

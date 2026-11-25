@@ -6,6 +6,7 @@ downstream reads only what this writes.
 
     python reduce_babnigg202110.py            # the trace, the groups, the 6 C references, the standard
     python reduce_babnigg202110.py empties    # the six candidate backgrounds
+    python reduce_babnigg202110.py ramp20     # the ~20 C reference: first 20 acquisitions of each ramp
 
 Run both after a reprocessing: the first call does not rebuild the background
 averages.  The repository README describes what is written.
@@ -36,6 +37,11 @@ EMPTIES = ['E0008__006C', 'E0304_Empty_006C', 'E0408_Air_006C',
            'E0411_Empty_3_006C', 'G0409_Empty_006C', 'G0410_Empty_2_006C']
 BLOCK = 100                           # acquisitions per group
 AT_TARGET = 0.01                      # C; zone 3 counts as at its target within this
+# The ~20 C reference of each loading: its first RAMP_REF acquisitions (RTD
+# 20.0-20.2 C), the same number for all four.  They go to their own folder so
+# the group lists, which glob data_2021-3/, never pick them up.
+RAMP_REF = 20
+RAMP_DIR = os.path.join(OUT_DIR, 'ramp20')
 
 # average_ranges.py reads these two module variables; pointing them here sends
 # its code at the 2021-3 tree.
@@ -112,6 +118,12 @@ def main(only):
     if only == 'empties':
         for group in EMPTIES:
             reduce_whole(group)
+        return
+    if only == 'ramp20':
+        os.makedirs(RAMP_DIR, exist_ok=True)
+        ar.out_dir = RAMP_DIR
+        for run in RUNS:
+            ar.process_group(run, [(1, RAMP_REF)])
         return
 
     all_rows = []
