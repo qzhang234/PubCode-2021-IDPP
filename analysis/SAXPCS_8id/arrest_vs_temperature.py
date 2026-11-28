@@ -398,7 +398,7 @@ for source, dh_g, n_chain in DH_LONG:
 print(f'   Luan & Urry 1991: 0.5 M NaCl raises the enthalpy {3.01 / 2.76:.3f}-fold (2.76 -> 3.01 kcal/mol)')
 print(f'   the desolvation transition (Reguera 2003, Friedman E_a 220-480 kJ/mol) is '
       f'{EA / 480e3:.1f}-{EA / 220e3:.1f}x less steep; its T_s would be '
-      f'{R_GAS * T_MEAN**2 / 480e3:.1f}-{R_GAS * T_MEAN**2 / 220e3:.1f} K')
+      f'{R_GAS * T_MEAN**2 / 480e3:.2f}-{R_GAS * T_MEAN**2 / 220e3:.2f} K')
 
 
 # --- figures ------------------------------------------------------------------
