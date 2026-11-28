@@ -3,7 +3,7 @@
 Shared by temperature_series_2021-3.py, arrest_vs_temperature.py and
 general_model_check.py, so all of them use one t_w and one I(Q):
 
-- t_w = 0 is the first acquisition with the stage RTD within AT_TARGET of its
+- t_w = 0 is the first acquisition at which the stage RTD has reached its
   target, and each averaged group sits at the midpoint of its acquisitions;
 - I(Q) is absolute (abs_xsec.py) with BG_COEF times the empty cell E0411
   subtracted.
@@ -27,7 +27,6 @@ DATA = os.path.join(HERE, 'data_2021-3')
 TRACE = os.path.join(DATA, 'trace_2021-3.csv')
 BACKGROUND = os.path.join(DATA, 'Average_E0411_Empty_3_006C_att00_Rq0_00001_00050_results.hdf')
 BAND = (0.004, 0.008)                 # A^-1, the low-Q band of Figure 3c and of the trace
-AT_TARGET = 0.01                      # C
 BG_COEF = 0.80                        # fraction of the empty cell subtracted (README)
 # One hue and one marker shape per temperature, 28.00 to 28.75 C: blue, green,
 # orange, red (through acs_style.hsv_colors); circle, square, triangle, diamond.
@@ -62,10 +61,14 @@ def acquisitions(run):
     frame = np.array([int(r['frame']) for r in rows])
     when = [datetime.strptime(r['start_time'], '%Y-%m-%d %H:%M:%S') for r in rows]
     T = np.array([float(r['qnw3_C']) for r in rows])
-    on_target = T >= float(rows[0]['qnw3_set_C']) - AT_TARGET
+    on_target = T >= float(rows[0]['qnw3_set_C'])
     if not on_target.any():
         raise ValueError(f'{run} never reaches its target temperature, so t_w = 0 is undefined')
     i0 = int(np.argmax(on_target))
+    # reduce_babnigg202110.py cuts the groups by the same rule, so one starts at t_w = 0
+    starts = [parse_name(fp)[1] for fp in group_files(run)]
+    if int(frame[i0]) not in starts:
+        raise ValueError(f'{run}: no averaged group starts at t_w = 0 (acquisition {frame[i0]})')
     t = np.array([(w - when[i0]).total_seconds() for w in when])
     return frame, t, T, when[i0]
 

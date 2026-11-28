@@ -435,7 +435,7 @@ for h, (run, sample, target) in RUNS.items():
     print(f'{target:.2f} C: ~20 C reference = acquisitions {a20}-{b20}, RTD {T_acq[in20].min():.2f}-'
           f'{T_acq[in20].max():.2f} C; {len(hold_files[h])} groups at the target, {len(rows)} fitted')
     print(f'   acquisitions start {-t_acq[0] / 60:.1f} min before t_w = 0, at RTD {T_acq[0]:.2f} C, '
-          f'{int(np.sum(t_acq < 0))} of them on the ramp')
+          f'{int(np.sum(t_acq < 0))} of them on the ramp; the last starts {t_acq[-1]:.0f} s after t_w = 0')
 
     # The 28.50 C loading is drawn twice: the seven-panel SI figure and the
     # three-panel Figure 2.

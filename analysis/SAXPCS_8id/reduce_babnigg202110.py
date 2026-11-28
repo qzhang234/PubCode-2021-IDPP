@@ -35,7 +35,6 @@ STANDARD = 'B0005_12IDB_Standard_006C'
 EMPTIES = ['E0008__006C', 'E0304_Empty_006C', 'E0408_Air_006C',
            'E0411_Empty_3_006C', 'G0409_Empty_006C', 'G0410_Empty_2_006C']
 BLOCK = 100                           # acquisitions per group
-AT_TARGET = 0.01                      # C; zone 3 counts as at its target within this
 # The earliest group of each run is its ~20 C reference: the first RAMP_REF
 # acquisitions of the ramp (RTD 20.0-20.2 C), the same number for all four.
 RAMP_REF = 20
@@ -72,13 +71,16 @@ def trace(run):
 
 def blocks(rows):
     """Frame ranges of the groups: BLOCK acquisitions each, with one boundary at
-    the first frame on target (t_w = 0), except the earliest, which is the first
-    RAMP_REF acquisitions of the ramp (the ~20 C reference).  The acquisitions
-    between it and the first full block are not averaged."""
+    t_w = 0, the first frame at which the RTD has reached its target, except the
+    earliest, which is the first RAMP_REF acquisitions of the ramp (the ~20 C
+    reference).  The acquisitions between it and the first full block are not
+    averaged."""
     frames = np.array([r[0] for r in rows])
     T = np.array([r[2] for r in rows])
     T_set = np.array([r[3] for r in rows])
-    on_target = T >= T_set - AT_TARGET
+    # No rounding needed: the targets, 28.00-28.75 C, are exact in binary, so the
+    # float32 readings (28.49 is stored as 28.48999977) compare with them exactly.
+    on_target = T >= T_set
     if not on_target.any():
         raise ValueError('the run never reaches its target temperature')
     a0 = int(frames[np.argmax(on_target)])

@@ -146,10 +146,11 @@ The analysis choices, and where each lives in the code. The SI Appendix gives
 the evidence for them; the numbers quoted here are ones the scripts print.
 
 **The waiting-time clock** (`series_2021_3.py`). t_w = 0 is the first
-acquisition whose stage-RTD reading, as recorded in `trace_2021-3.csv`, is
-within 0.01 °C of its target. Acquisitions follow one another every 6 s, each
-at a fresh sample position, and are averaged in groups of 100, with one group
-boundary placed at the first acquisition on target. A group is placed at the
+acquisition whose stage-RTD reading, as recorded in `trace_2021-3.csv`, has
+reached its target; the reduction applies the same rule to the raw readings.
+Acquisitions follow one another every 6 s, each at a fresh sample position, and
+are averaged in groups of 100, with one group boundary placed at t_w = 0;
+`series_2021_3.py` stops if no group starts there. A group is placed at the
 midpoint of the acquisitions it averages. Placing it at its first acquisition
 instead would put the first group at about 6 s rather than about 300 s, more
 than a decade early on the logarithmic axes of Fig. 3, and would bias T_s low. Groups
@@ -246,8 +247,9 @@ quotes ratios against). The colour scale spans every group at the target. When a
 has more than seven fitted groups, panels (b) and (d)-(g) show every second one
 and panel (c) all of them; the key lists the groups drawn in (b) and the
 triangles. The script prints the RTD range of each ~20 C reference
-(20.0-20.2 C), when acquisitions start (79.5-86.8 min before t_w = 0, at
-20.0 C) and the number of groups at the target and fitted.
+(20.0-20.2 C), when acquisitions start (79.5-87.0 min before t_w = 0, at
+20.0 C), when the last one starts (2167-8478 s after t_w = 0, the length of
+each isothermal experiment) and the number of groups at the target and fitted.
 
 **The temperature collapse and the SAXS on the same clock**
 (`arrest_vs_temperature.py`; SI section 6.5). f at the lowest Q of all 34
@@ -260,8 +262,8 @@ seed 0). Each higher Q bin is collapsed on its own the same way. The low-Q
 intensity is the mean absolute I(Q) of each group over 0.004-0.008 A^-1, the
 length scales of the fitted bins, where I(Q) grows most; every group at the
 target is used, fitted or not. The T_s that superposes the intensity on its
-own minimises, on a grid from 0.10 to 1.50 K, the scatter of log I about one
-cubic in log X. A sample is half arrested when f at the lowest Q falls to 0.5,
+own minimises, on a grid from 0.10 to 1.50 K in steps of 0.005 K, the scatter
+of log I about one cubic in log X. A sample is half arrested when f at the lowest Q falls to 0.5,
 interpolated linearly between the two groups that bracket it. The script also
 prints the same reading for thresholds of 0.3 to 0.7 and for four other Q
 bands.

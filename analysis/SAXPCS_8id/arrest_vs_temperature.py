@@ -247,8 +247,8 @@ for k in range(len(TS_GRID)):
     rss[k] = saxs_rss(TS_GRID[k], saxs)
 TS_SAXS = float(TS_GRID[np.argmin(rss)])
 print(f'\nSAXS band intensity ({BAND[0]}-{BAND[1]} A^-1), all hold groups on t_w exp[(T-T0)/T_s]:')
-print(f'   the T_s that superposes it on its own: {TS_SAXS:.2f} K;  scatter about one curve at the '
-      f'f value {TS:.2f} K is {saxs_rss(TS, saxs) / rss.min():.2f}x the minimum and '
+print(f'   the T_s that superposes it on its own: {TS_SAXS:.3f} K (grid step 0.005 K);  scatter about one curve at the '
+      f'f value {TS:.3f} K is {saxs_rss(TS, saxs) / rss.min():.2f}x the minimum and '
       f'{saxs_rss(1e4, saxs) / saxs_rss(TS, saxs):.0f}x smaller than without rescaling')
 
 
@@ -305,7 +305,7 @@ for q_lo, q_hi in [(0.0031, 0.0081), (0.005, 0.010), (0.008, 0.016), (0.012, 0.0
     rss_other = np.zeros(len(TS_GRID))
     for k in range(len(TS_GRID)):
         rss_other[k] = saxs_rss(TS_GRID[k], other)
-    print(f'   {q_lo:.4f}-{q_hi:.4f} A^-1: T_s {TS_GRID[np.argmin(rss_other)]:.2f} K, scatter '
+    print(f'   {q_lo:.4f}-{q_hi:.4f} A^-1: T_s {TS_GRID[np.argmin(rss_other)]:.3f} K, scatter '
           f'{saxs_rss(1e4, other) / rss_other.min():.0f}x smaller than without rescaling')
 
 
