@@ -32,7 +32,7 @@ from common.acs_style import (DOUBLE_COL, MS, MS_SPARSE, MEW, LW_THIN, LW_DATA, 
 import xpcs_fit                                                           # noqa: E402
 from nexus_read import read_start_time, read_g2                           # noqa: E402
 from series_2021_3 import (DATA, BAND, T_HUES, T_MARKERS, abs_iq, acquisitions,  # noqa: E402
-                           band_intensity, group_files, group_midpoint, ramp_reference)
+                           band_intensity, group_files, group_midpoint)
 
 STANDARD = os.path.join(DATA, 'Average_B0005_12IDB_Standard_006C_att00_Rq0_00001_00100_results.hdf')
 
@@ -60,7 +60,7 @@ QVALS = None
 for run, T in RUNS.items():
     frame, t_acq, _, t0 = acquisitions(run)
     files = group_files(run)
-    base[run] = band_intensity(ramp_reference(run))
+    base[run] = band_intensity(files[0])
     t_fit = []
     f_fit = []
     e_fit = []

@@ -36,7 +36,7 @@ from nexus_read import read_start_time, read_g2, read_iq                  # noqa
 from abs_xsec import abs_xsec_coef, coef_from_monitors                    # noqa: E402
 from series_2021_3 import (DATA, BACKGROUND, BAND, BG_COEF, T_HUES, T_MARKERS,  # noqa: E402
                            Q_BG, I_BG, COEF_BG, abs_iq, acquisitions, band_intensity,
-                           group_files, group_midpoint, ramp_reference, trace_rows)
+                           group_files, group_midpoint, trace_rows)
 from nexus_read import parse_name                                         # noqa: E402
 
 STANDARD = os.path.join(DATA, 'Average_B0005_12IDB_Standard_006C_att00_Rq0_00001_00100_results.hdf')
@@ -310,7 +310,7 @@ print('\nlow-Q band intensity of every group on target (mm^-1), with f at the lo
       'where fitted,\nagainst the first 20 acquisitions of the ramp (~20 C):')
 for h, (run, sample, target) in RUNS.items():
     frame, t_acq, _, _ = acquisitions(run)
-    base20 = band_intensity(ramp_reference(run))
+    base20 = band_intensity(group_files(run)[0])
     fitted_f0 = {}
     for r in series[h]:
         fitted_f0[r['fp']] = r['f'][0]
@@ -429,7 +429,7 @@ for h, (run, sample, target) in RUNS.items():
 
     # The first 20 acquisitions of the ramp: the ~20 C level that the text
     # quotes the low-Q growth against.
-    ramp_first = ramp_reference(run)
+    ramp_first = group_files(run)[0]
     _, a20, b20 = parse_name(ramp_first)
     in20 = (frame >= a20) & (frame <= b20)
     print(f'{target:.2f} C: ~20 C reference = acquisitions {a20}-{b20}, RTD {T_acq[in20].min():.2f}-'

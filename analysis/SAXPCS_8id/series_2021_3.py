@@ -56,15 +56,6 @@ def group_files(run):
     return [files[k] for k in order]
 
 
-def ramp_reference(run):
-    """The ~20 C reference of one run: its first 20 acquisitions (RTD 20.0-20.2 C),
-    averaged by reduce_babnigg202110.py ramp20 into data_2021-3/ramp20/."""
-    files = glob.glob(os.path.join(DATA, 'ramp20', f'Average_{run}_*_results.hdf'))
-    if len(files) != 1:
-        raise FileNotFoundError(f'{len(files)} ~20 C references for {run} in data_2021-3/ramp20/')
-    return files[0]
-
-
 def acquisitions(run):
     """Frame numbers, seconds from t_w = 0, RTD readings, and the t_w = 0 datetime."""
     rows = trace_rows(run)

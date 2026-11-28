@@ -54,7 +54,6 @@ FIGURES :=$(F_CALIB) $(F_RAD) $(F_TSERIES) $(F_ARREST)
 
 RAD_DATA  := $(wildcard $(ANA)/Rad_Dam_Check/cluster_results/*.hdf)
 TSERIES_DATA := $(wildcard $(ANA)/SAXPCS_8id/data_2021-3/*.hdf) \
-                $(wildcard $(ANA)/SAXPCS_8id/data_2021-3/ramp20/*.hdf) \
                 $(ANA)/SAXPCS_8id/data_2021-3/trace_2021-3.csv
 COMMON    := $(ANA)/common/acs_style.py
 XFIT      := $(ANA)/SAXPCS_8id/xpcs_fit.py
